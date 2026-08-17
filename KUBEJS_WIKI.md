@@ -46,6 +46,19 @@ QShop
 
 Methods return `true` or `false` when an operation can fail, so scripts should check the result when the shop, tab, currency, or entry may not exist.
 
+### Public method groups
+
+The global binding is intentionally small and Builder-first:
+
+| Group | Methods |
+| --- | --- |
+| Open/query | `open`, `openByUuid`, `exists`, `getShopIds`, `getShopUuid`, `getShop`, `getTab`, `getEntry`, `getTabCount`, `getEntryCount` |
+| Shop/tab/entry writes | `createShop`, `removeShop`, `tab`, `removeTab`, `entry`, `removeEntry` |
+| Currency | `getCurrencies`, `createCurrency`, `getBalance`, `giveCurrency`, `takeCurrency`, `setCurrency` |
+| Limits/refresh | `clearEntryLimits`, `clearTabLimits`, `clearShopLimits`, `refreshTab`, `reload` |
+
+The old JSON CRUD methods (`addEntry`, `updateEntry`, `addTab`, `updateTab`) and direct `JsonIO` usage are not part of the public global API.
+
 ## Reference rules (important)
 
 The API has three different object levels. A reference is always interpreted relative to its parent:
@@ -66,7 +79,8 @@ QShop.getEntryCount('vip')
 QShop.getEntryCount('vip', 1)
 
 // vip = shop id, 1 = second tab index, 0 = first entry index in that tab.
-const uuid = QShop.getShopEntryUuid('vip', 1, 0)
+const entry = QShop.getEntry('vip', 1, 0)
+const uuid = entry ? entry.uuid : null
 ```
 
 Prefer UUIDs for long-lived scripts because indexes change when tabs or entries are added, removed, refreshed, or reordered:
@@ -76,12 +90,34 @@ const shop = QShop.getShop('vip')
 const tab = QShop.getTab('vip', 'daily-offers')
 const entry = QShop.getEntry('vip', 'daily-offers', 'daily-diamond')
 
+// UUIDs are available on the returned Java objects.
+console.log(shop.uuid)
+console.log(tab.uuid)
+console.log(entry.uuid)
+
 // Equivalent default-tab shortcuts:
 const firstTab = QShop.getTab('vip')
 const firstEntry = QShop.getEntry('vip', 0)
 ```
 
-`QShop.getShop`, `QShop.getTab`, and `QShop.getEntry` return the actual Java objects exposed by the plugin, or `null` when the reference is invalid. Their public fields can be read directly from KubeJS. Mutating these objects directly is not supported; use builders or the update methods so the shop is saved and clients are refreshed.
+`QShop.getShop`, `QShop.getTab`, and `QShop.getEntry` return the actual Java objects exposed by the plugin, or `null` when the reference is invalid. Their public fields can be read directly from KubeJS. Mutating these objects directly is not supported; use builders so the shop is saved and clients are refreshed.
+
+Useful read-only fields are:
+
+| Object | Fields commonly used in scripts |
+| --- | --- |
+| `Shop` | `id`, `uuid`, `displayName`, `currency`, `icon`, `tabs` |
+| `ShopTab` | `uuid`, `name`, `icon`, `description`, `entries`, `requiredQuests`, `requiredStages` |
+| `ShopEntry` | `uuid`, `type`, `displayName`, `description`, `item`, `displayItem`, `give`, `receive`, `currencyId`, `price`, `globalLimit`, `playerLimit`, `reset`, `commands`, `requiredQuests`, `requiredStages`, `count` |
+
+For example:
+
+```js
+const tab = QShop.getTab('vip', 0)
+if (tab) {
+  console.log(`${tab.name}: ${tab.entries.length} entries`)
+}
+```
 
 ## Item values
 
@@ -108,9 +144,9 @@ Invalid item ids are parsed as an empty item. Non-command entries with no usable
 ```js
 QShop.open(shopIdOrUuid, player)
 QShop.openByUuid(shopUuid, player)
-QShop.exists(shopId)
+QShop.exists(shopIdOrUuid)
 QShop.getShopIds()
-QShop.getShopUuid(shopId)
+QShop.getShopUuid(shopIdOrUuid)
 ```
 
 `open` accepts either a shop id or a shop UUID. The player must be a server-side player; calls made with a client-only player are ignored.
@@ -173,7 +209,8 @@ ServerEvents.commandRegistry(event => {
 Every shop has at least one sub-shop. The first sub-shop is index `0`. A tab can be referenced by its numeric index or stable UUID:
 
 ```js
-const tabUuid = QShop.getShopTabUuid('vip', 0)
+const tab = QShop.getTab('vip', 0)
+const tabUuid = tab ? tab.uuid : null
 QShop.getTabCount('vip')
 ```
 
@@ -206,6 +243,8 @@ Tab option fields:
 | `description` | string | Hover tooltip. Newlines are allowed. |
 | `requiredQuests` | string[] | FTB Quests task ids that must be complete. |
 | `requiredStages` | string[] | Stage ids that must be present. |
+
+The `icon` accepts the same item forms as trade entries, including `{ item, count, nbt }`. The tab `description` is shown as a hover tooltip and may contain newlines.
 
 When requirements are not satisfied, the tab and its entries are hidden from normal players. Edit mode may still show restricted content for administration.
 
@@ -284,7 +323,9 @@ Supported placeholders include `%player%`, `%player_uuid%`, `%shop%`, `%shop_uui
 ```js
 QShop.getEntryCount('vip')
 QShop.getEntryCount('vip', 1)
-QShop.getShopEntryUuid('vip', 1, 0)
+
+const firstEntry = QShop.getEntry('vip', 1, 0)
+const entryUuid = firstEntry ? firstEntry.uuid : null
 
 QShop.removeEntry('vip', 0, 0)             // tab index 0, entry index 0
 QShop.removeEntry('vip', 'daily-offers', 'oak-bundle')
@@ -437,10 +478,12 @@ Reset values are `NEVER`, `DAILY`, `WEEKLY`, and `MONTHLY`. Counters survive dea
 To clear counters:
 
 ```js
-QShop.clearEntryLimits(shopId, tabUuid, entryUuid)
-QShop.clearTabLimits(shopId, tabUuid)
-QShop.clearShopLimits(shopId)
+QShop.clearEntryLimits(shopRef, tabUuid, entryUuid)
+QShop.clearTabLimits(shopRef, tabUuid)
+QShop.clearShopLimits(shopRef)
 ```
+
+`clearEntryLimits` and `clearTabLimits` identify the tab and entry by UUID (`shopId` may be either the shop id or shop UUID). Use `getTab(...).uuid` and `getEntry(...).uuid` when the UUIDs are not known in advance.
 
 These methods clear the global counter and online players' personal counters. Offline player data is cleaned when that player is online again.
 
