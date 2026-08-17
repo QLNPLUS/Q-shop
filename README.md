@@ -29,7 +29,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.0.0.jar
+# 产物在 build/libs/qshop-1.0.3.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -156,7 +156,9 @@ serverconfig/qshop/
 
 需要安装 KubeJS(1.20.1,`kubejs` 模组)。脚本里直接使用全局绑定 `QShop`。
 
-> 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md)。
+> 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
+
+> 下方较早的 JSON CRUD 示例仅作为历史参考，不适用于 1.0.3；新脚本请使用上述 Builder API。
 
 本节中早期 JSON 示例仅保留作历史记录，当前脚本请以 `KUBEJS_WIKI.md` 的 Builder-first 示例为准。
 
