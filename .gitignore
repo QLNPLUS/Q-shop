@@ -7,6 +7,11 @@ build/
 run/
 src/generated/resources/
 
+# Local-only data and helper tools
+/converted_sdmshop/
+/lm-studio/
+/tools/
+
 # IDE
 .idea/
 *.iml
