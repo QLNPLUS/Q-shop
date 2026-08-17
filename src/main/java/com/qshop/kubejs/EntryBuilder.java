@@ -208,6 +208,13 @@ public class EntryBuilder {
             return false;
         }
         entry.ensureUuid();
+        for (int i = 0; i < target.entries.size(); i++) {
+            if (entry.uuid.equals(target.entries.get(i).uuid)) {
+                target.entries.set(i, entry);
+                ShopManager.save(shop);
+                return true;
+            }
+        }
         target.entries.add(entry);
         ShopManager.save(shop);
         return true;

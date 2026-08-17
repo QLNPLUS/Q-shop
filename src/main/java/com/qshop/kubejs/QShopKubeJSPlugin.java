@@ -43,14 +43,18 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
 
     @Override
     public void registerClasses(ScriptType type, ClassFilter filter) {
-        // 允许脚本反射访问 QShop 的事件类与数据类
-        filter.allow("com.qshop.kubejs");
+        // Only the Builder-first facade and event payloads are public to scripts.
+        filter.allow("com.qshop.kubejs.QShopApi");
+        filter.allow("com.qshop.kubejs.EntryBuilder");
+        filter.allow("com.qshop.kubejs.TabBuilder");
+        filter.allow("com.qshop.kubejs.BeforeTradeEvent");
+        filter.allow("com.qshop.kubejs.AfterTradeEvent");
         filter.allow("com.qshop.shop");
         filter.allow("com.qshop.currency");
     }
 
     @Override
     public void registerBindings(BindingsEvent event) {
-        event.add("QShop", QShopBindings.INSTANCE);
+        event.add("QShop", QShopApi.INSTANCE);
     }
 }

@@ -162,8 +162,13 @@ public final class ShopManager {
         }
     }
 
-    public static Shop get(String id) {
-        return id == null ? null : SHOPS.get(id);
+    /** 按商店 ID 或商店 UUID 查找商店。 */
+    public static Shop get(String idOrUuid) {
+        if (idOrUuid == null) {
+            return null;
+        }
+        Shop direct = SHOPS.get(idOrUuid);
+        return direct != null ? direct : byUuid(idOrUuid);
     }
 
     public static Shop byUuid(String uuid) {
@@ -176,11 +181,7 @@ public final class ShopManager {
 
     /** 先按 id 查找,再按 uuid 查找 */
     public static Shop byIdOrUuid(String idOrUuid) {
-        Shop shop = get(idOrUuid);
-        if (shop != null) {
-            return shop;
-        }
-        return byUuid(idOrUuid);
+        return get(idOrUuid);
     }
 
     public static List<Shop> all() {

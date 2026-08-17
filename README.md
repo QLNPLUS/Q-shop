@@ -16,7 +16,7 @@
 | 7. KubeJS 打开商店 | 脚本绑定 `QShop.open('id', player)` / `QShop.openByUuid('uuid', player)` |
 | 8. 限购 | 每个条目可设 `globalLimit`(全服)和 `playerLimit`(个人),按物品件数统计,支持每日/每周/每月自动重置 |
 | 9. 购买指令 | 交易完成后执行指令,每条可设 `op`(提权到 4 级)和 `silent`(静默) |
-| 10. KubeJS 增删改交易项目 | `QShop.createShop / addEntry / updateEntry / removeEntry / removeShop` |
+| 10. KubeJS 商店管理 | Builder-first: `QShop.entry(...).add()` / `QShop.tab(...).add()` / `QShop.getShop/getTab/getEntry` |
 | 11. 材质 GUI | 界面元素全部使用**拆分贴图**(`assets/qshop/textures/gui/` 下一个元素一个 PNG:面板/格子/按钮/输入框/滑块/勾选框/图标),可直接单独修改;带边框元素九宫格绘制不拉伸 |
 
 ## 构建
@@ -81,7 +81,6 @@ serverconfig/qshop/
       "item": { "item": "minecraft:diamond", "count": 1, "nbt": "{...}" },
       "currency": "coins",
       "price": 50.0,
-      "quantity": 1,
       "globalLimit": -1,
       "playerLimit": -1,
       "limitReset": "NEVER",
@@ -156,6 +155,10 @@ serverconfig/qshop/
 ## KubeJS
 
 需要安装 KubeJS(1.20.1,`kubejs` 模组)。脚本里直接使用全局绑定 `QShop`。
+
+> 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md)。
+
+本节中早期 JSON 示例仅保留作历史记录，当前脚本请以 `KUBEJS_WIKI.md` 的 Builder-first 示例为准。
 
 ```js
 // server_scripts 示例

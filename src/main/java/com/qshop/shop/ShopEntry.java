@@ -66,6 +66,21 @@ public class ShopEntry {
     /** 要求的游戏阶段(gamestage / kubejs stages,服务端检查;未安装时忽略) */
     public final List<String> requiredStages = new ArrayList<>();
 
+    /**
+     * 每个交易单位涉及的物品数量，供 KubeJS 使用 entry.count 读取。
+     * BUY/SELL/COMMAND 读取 item 数量，BARTER 读取 receive 总数量。
+     */
+    public int getCount() {
+        if (!item.isEmpty()) {
+            return item.getCount();
+        }
+        int total = 0;
+        for (ItemStack stack : receive) {
+            total += stack.getCount();
+        }
+        return total;
+    }
+
     /** 展示用名称:自定义名或展示物品名或实际物品名 */
     public String displayNameOrItem() {
         if (displayName != null && !displayName.isEmpty()) {

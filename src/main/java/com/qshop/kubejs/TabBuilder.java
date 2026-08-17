@@ -70,6 +70,19 @@ public class TabBuilder {
         }
         shop.ensureTabs();
         tab.ensureUuid();
+        for (ShopTab existing : shop.tabs) {
+            if (tab.uuid.equals(existing.uuid)) {
+                existing.name = tab.name;
+                existing.icon = tab.icon;
+                existing.description = tab.description;
+                existing.requiredQuests.clear();
+                existing.requiredQuests.addAll(tab.requiredQuests);
+                existing.requiredStages.clear();
+                existing.requiredStages.addAll(tab.requiredStages);
+                ShopManager.save(shop);
+                return true;
+            }
+        }
         shop.tabs.add(tab);
         ShopManager.save(shop);
         return true;

@@ -45,6 +45,24 @@ public class BeforeTradeEvent extends EventJS {
         return player;
     }
 
+    /** 触发交易的完整对象，便于脚本直接读取 entry.count 等字段。 */
+    public ShopEntry getEntry() {
+        return entry;
+    }
+
+    /** 触发交易所在的完整 tab 对象。 */
+    public com.qshop.shop.ShopTab getTab() {
+        if (shop == null || tabIndex < 0 || tabIndex >= shop.tabs.size()) {
+            return null;
+        }
+        return shop.tabs.get(tabIndex);
+    }
+
+    /** 触发交易所在的完整 shop 对象。 */
+    public Shop getShop() {
+        return shop;
+    }
+
     public String getPlayerName() {
         return player == null ? "" : player.getGameProfile().getName();
     }

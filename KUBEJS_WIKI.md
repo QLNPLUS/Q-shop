@@ -2,6 +2,8 @@
 
 QShop is a Forge 1.20.1 server-shop mod with a KubeJS integration. The integration exposes a global `QShop` binding for shop management, currencies, sub-shops, trade entries, random tab refreshes, and trade events.
 
+This is the current Builder-first API. Shop and entry JSON CRUD methods are not exposed on the global binding. Use `.add()` with a stable UUID to create or replace data.
+
 This document describes the public KubeJS API shipped by QShop. Put examples that change server data in `kubejs/server_scripts/`, then run `/reload` when appropriate.
 
 ## Requirements
@@ -44,9 +46,46 @@ QShop
 
 Methods return `true` or `false` when an operation can fail, so scripts should check the result when the shop, tab, currency, or entry may not exist.
 
+## Reference rules (important)
+
+The API has three different object levels. A reference is always interpreted relative to its parent:
+
+| Name | Accepted values | Meaning |
+| --- | --- | --- |
+| `shopRef` | shop id string or shop UUID string | Selects the top-level shop. Example: `'vip'`. |
+| `tabRef` | zero-based number, tab UUID string, or `null` | Selects a tab inside the shop. `null` means tab `0`. |
+| `entryRef` | zero-based number or entry UUID string | Selects an entry inside the selected tab. |
+
+The number is never a shop id. It is only an index at the level where it appears:
+
+```js
+// vip is the shop id. There is no tabRef, so count entries in tab 0.
+QShop.getEntryCount('vip')
+
+// vip is the shop id. 1 means the second tab. Count entries in that tab.
+QShop.getEntryCount('vip', 1)
+
+// vip = shop id, 1 = second tab index, 0 = first entry index in that tab.
+const uuid = QShop.getShopEntryUuid('vip', 1, 0)
+```
+
+Prefer UUIDs for long-lived scripts because indexes change when tabs or entries are added, removed, refreshed, or reordered:
+
+```js
+const shop = QShop.getShop('vip')
+const tab = QShop.getTab('vip', 'daily-offers')
+const entry = QShop.getEntry('vip', 'daily-offers', 'daily-diamond')
+
+// Equivalent default-tab shortcuts:
+const firstTab = QShop.getTab('vip')
+const firstEntry = QShop.getEntry('vip', 0)
+```
+
+`QShop.getShop`, `QShop.getTab`, and `QShop.getEntry` return the actual Java objects exposed by the plugin, or `null` when the reference is invalid. Their public fields can be read directly from KubeJS. Mutating these objects directly is not supported; use builders or the update methods so the shop is saved and clients are refreshed.
+
 ## Item values
 
-All item arguments accept the following forms:
+All Builder item arguments accept the following forms:
 
 ```js
 // Item id
@@ -55,19 +94,10 @@ All item arguments accept the following forms:
 // Item object with count and SNBT
 { item: 'minecraft:oak_log', count: 8, nbt: '{display:{Name:"Oak Bundle"}}' }
 
-// A KubeJS ItemStack is also accepted by the builder APIs.
+// A KubeJS ItemStack is also accepted.
 ```
 
-For methods whose signature expects a `JsonObject`, use `JsonIO.of(...)`:
-
-```js
-QShop.addEntry('vip', JsonIO.of({
-  type: 'SELL',
-  item: { item: 'minecraft:diamond', count: 1 },
-  price: 100,
-  currency: 'coins'
-}))
-```
+The public QShop binding is Builder-first. JSON CRUD calls such as `addEntry` and `updateEntry` are intentionally not exposed. This keeps item parsing, UUID handling, validation, saving, and client refresh in one API path.
 
 Invalid item ids are parsed as an empty item. Non-command entries with no usable item are rejected.
 
@@ -147,31 +177,23 @@ const tabUuid = QShop.getShopTabUuid('vip', 0)
 QShop.getTabCount('vip')
 ```
 
-### Add tabs
+### Add or update tabs
 
-Recommended options form:
+Use `TabBuilder` for both operations. A new UUID creates a tab. An existing UUID updates the tab metadata and preserves its entries.
 
 ```js
-QShop.addTab('vip', {
-  name: 'Daily Offers',
-  icon: {
+QShop.tab('vip')
+  .name('Daily Offers')
+  .icon({
     item: 'minecraft:paper',
     count: 1,
     nbt: '{display:{Name:"Daily Card"}}'
-  },
-  uuid: 'daily-offers',
-  description: 'Refreshes every day',
-  requiredQuests: ['chapter_1'],
-  requiredStages: ['vip_unlocked']
-})
-```
-
-Legacy overloads remain supported:
-
-```js
-QShop.addTab('vip', 'Weapons')
-QShop.addTab('vip', 'Weapons', JsonIO.of('minecraft:iron_sword'))
-QShop.addTab('vip', 'Weapons', JsonIO.of('minecraft:iron_sword'), 'weapons')
+  })
+  .uuid('daily-offers')
+  .description('Refreshes every day')
+  .quest('chapter_1')
+  .stage('vip_unlocked')
+  .add()
 ```
 
 Tab option fields:
@@ -187,58 +209,31 @@ Tab option fields:
 
 When requirements are not satisfied, the tab and its entries are hidden from normal players. Edit mode may still show restricted content for administration.
 
-### Update tabs
-
-The options form only changes fields that are present:
-
-```js
-QShop.updateTab('vip', 'daily-offers', {
-  name: 'Today\'s Offers',
-  description: 'Limited stock',
-  requiredQuests: [],
-  requiredStages: ['vip_unlocked']
-})
-
-// icon: null clears the icon
-QShop.updateTab('vip', 0, { icon: null })
-```
-
-Legacy forms:
-
-```js
-QShop.updateTab('vip', 0, 'Equipment')
-QShop.updateTab('vip', 0, 'Equipment', JsonIO.of('minecraft:diamond_chestplate'))
-QShop.updateTabByUuid('vip', 'daily-offers', 'New Name')
-QShop.updateTabByUuid('vip', 'daily-offers', 'New Name', JsonIO.of('minecraft:clock'))
-```
-
 ### Remove tabs
 
 ```js
-QShop.removeTab('vip', 2)
-QShop.removeTabByUuid('vip', 'daily-offers')
+QShop.removeTab('vip', 2)                 // third tab by index
+QShop.removeTab('vip', 'daily-offers')   // by tab UUID
 ```
 
 The last remaining tab cannot be removed.
 
 ## Trade entries
 
-Entries belong to a sub-shop. Omitting the tab reference targets the first tab.
+Entries belong to a sub-shop. Omitting the tab reference targets the first tab. Use `EntryBuilder` for both creation and replacement. A builder with an existing UUID replaces that entry in place.
 
 ```js
-QShop.addEntry('vip', JsonIO.of({
-  type: 'SELL',
-  item: 'minecraft:diamond',
-  price: 100,
-  currency: 'coins'
-}))
+QShop.entry('vip')
+  .sell('minecraft:diamond')
+  .price(100, 'coins')
+  .uuid('diamond-sale')
+  .add()
 
-QShop.addEntry('vip', 'daily-offers', JsonIO.of({
-  type: 'BUY',
-  item: { item: 'minecraft:oak_log', count: 8 },
-  price: 2,
-  currency: 'coins'
-}))
+QShop.entry('vip', 'daily-offers')
+  .buy({ item: 'minecraft:oak_log', count: 8 })
+  .price(2, 'coins')
+  .uuid('oak-bundle')
+  .add()
 ```
 
 Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab UUIDs, not tab names.
@@ -257,7 +252,7 @@ Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab U
 | `receive` | item[] | BARTER | Items received by the player. |
 | `currency` | string | BUY, SELL, COMMAND, optional BARTER fee | Currency id. Blank uses the shop default. |
 | `price` | number | all | Price per trade unit. BARTER treats it as an optional extra fee. |
-| `quantity` | int | all | Default units selected when the trade window opens. |
+| `count` | int | all | Read-only convenience property: item count per trade unit (`item.count` for normal entries, received-item total for BARTER). |
 | `globalLimit` | int | all | Server-wide item limit. `-1` means unlimited. |
 | `playerLimit` | int | all | Per-player item limit. `-1` means unlimited. |
 | `limitReset` | `NEVER\|DAILY\|WEEKLY\|MONTHLY` | limited entries | Counter reset period. |
@@ -266,6 +261,8 @@ Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab U
 | `requiredStages` | string[] | all | Stage requirements. |
 
 `BUY` means the player pays currency and receives `item`. `SELL` means the player gives `item` and receives currency. `BARTER` exchanges `give` for `receive`, optionally charging `price` in `currency`. `COMMAND` charges the configured price and executes `commands`.
+
+`count` is not the number of clicks or the number of units requested by a player. It describes the item stack quantity represented by one entry unit. The requested/completed transaction quantity is `beforeTrade.units` or `afterTrade.tradedUnits`.
 
 ### Commands in an entry
 
@@ -282,47 +279,18 @@ commands: [
 
 Supported placeholders include `%player%`, `%player_uuid%`, `%shop%`, `%shop_uuid%`, `%entry%`, `%units%`, `%items%`, `%price%`, `%currency%`, and `%multiplier%`.
 
-### Entry CRUD
+### Query and remove entries
 
 ```js
 QShop.getEntryCount('vip')
 QShop.getEntryCount('vip', 1)
 QShop.getShopEntryUuid('vip', 1, 0)
 
-QShop.updateEntry('vip', 0, JsonIO.of({
-  type: 'SELL',
-  item: 'minecraft:netherite_ingot',
-  price: 500,
-  currency: 'coins'
-}))
-
-QShop.updateEntry('vip', 1, 0, JsonIO.of({
-  type: 'BUY',
-  item: { item: 'minecraft:oak_log', count: 8 },
-  price: 2,
-  currency: 'coins'
-}))
-
-QShop.removeEntry('vip', 0)
-QShop.removeEntry('vip', 1, 0)
+QShop.removeEntry('vip', 0, 0)             // tab index 0, entry index 0
+QShop.removeEntry('vip', 'daily-offers', 'oak-bundle')
 ```
 
-UUID-based operations are safer when entries can be reordered:
-
-```js
-const tabUuid = QShop.getShopTabUuid('vip', 1)
-const entryUuid = QShop.getShopEntryUuid('vip', 1, 0)
-
-QShop.updateEntryByUuid('vip', tabUuid, entryUuid, JsonIO.of({
-  type: 'SELL',
-  item: 'minecraft:diamond',
-  price: 75,
-  currency: 'coins'
-}))
-QShop.removeEntryByUuid('vip', tabUuid, entryUuid)
-```
-
-`updateEntryByUuid` preserves the original entry UUID. Index-based replacement uses the UUID in the replacement JSON if one is supplied, otherwise a new UUID is generated.
+For updates, call the builder again with the same UUID. This is the only supported write path for entry contents.
 
 ## Builder API
 
@@ -339,6 +307,27 @@ QShop.entry('vip', 'daily-offers')
   .playerLimit(10, 'DAILY')
   .globalLimit(100)
   .uuid('daily-diamond')
+  .add()
+```
+
+If a builder supplies an existing UUID, `.add()` performs an upsert instead of creating a duplicate:
+
+```js
+// Existing entry with this UUID is replaced in place.
+QShop.entry('vip', 'daily-offers')
+  .uuid('daily-diamond')
+  .sell('minecraft:netherite_ingot')
+  .price(500, 'coins')
+  .add()
+```
+
+The same rule applies to tabs. A `TabBuilder` with an existing UUID updates the tab metadata and preserves its existing entries:
+
+```js
+QShop.tab('vip')
+  .uuid('daily-offers')
+  .name('New Daily Offers')
+  .icon('minecraft:clock')
   .add()
 ```
 
@@ -498,6 +487,20 @@ entryName, price, currency, units
 
 `units` is the number requested by the player, before inventory, balance, and limit adjustments.
 
+The event also exposes complete objects:
+
+```js
+QShopEvents.beforeTrade(event => {
+  const shop = event.getShop()
+  const tab = event.getTab()
+  const entry = event.getEntry()
+
+  if (entry && entry.count > 64) {
+    event.cancel()
+  }
+})
+```
+
 ### afterTrade
 
 This event runs after a successful trade and all configured post-trade commands:
@@ -523,6 +526,15 @@ tradedUnits, totalItems, paidPrice, partial
 ```
 
 `paidPrice` is `price * tradedUnits`. `partial` is `true` when fewer units completed than requested.
+
+`afterTrade` also provides `event.getShop()`, `event.getTab()`, and `event.getEntry()`. For example:
+
+```js
+QShopEvents.afterTrade(event => {
+  const entry = event.getEntry()
+  console.log(`${entry.displayName} count=${entry.count}`)
+})
+```
 
 ## Configuration files and reload
 
@@ -559,13 +571,13 @@ ServerEvents.loaded(event => {
 
   const tabs = QShop.getTabCount('adventurer')
   if (tabs < 2) {
-    QShop.addTab('adventurer', {
-      name: 'Daily Deals',
-      icon: 'minecraft:clock',
-      uuid: 'daily-deals',
-      description: 'Rotating daily offers',
-      requiredStages: ['adventurer_unlocked']
-    })
+    QShop.tab('adventurer')
+      .name('Daily Deals')
+      .icon('minecraft:clock')
+      .uuid('daily-deals')
+      .description('Rotating daily offers')
+      .stage('adventurer_unlocked')
+      .add()
   }
 
   if (QShop.getEntryCount('adventurer', 0) === 0) {
@@ -578,14 +590,12 @@ ServerEvents.loaded(event => {
   }
 
   if (QShop.getEntryCount('adventurer', 1) === 0) {
-    QShop.addEntry('adventurer', 'daily-deals', JsonIO.of({
-      type: 'BUY',
-      item: { item: 'minecraft:oak_log', count: 8 },
-      price: 2,
-      currency: 'coins',
-      playerLimit: 20,
-      limitReset: 'DAILY'
-    }))
+    QShop.entry('adventurer', 'daily-deals')
+      .buy({ item: 'minecraft:oak_log', count: 8 })
+      .price(2, 'coins')
+      .playerLimit(20, 'DAILY')
+      .uuid('daily-oak-bundle')
+      .add()
   }
 })
 

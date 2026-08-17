@@ -86,7 +86,7 @@ import java.util.UUID;
  *
  * <p>注意:新建商店自带一个默认子商店,getTabCount 初始为 1;addTab 每次新增一个。</p>
  */
-public class QShopBindings {
+final class QShopBindings {
 
     public static final QShopBindings INSTANCE = new QShopBindings();
 
@@ -106,6 +106,49 @@ public class QShopBindings {
     /** 按 uuid 打开商店 */
     public void openByUuid(String uuid, Player player) {
         open(uuid, player);
+    }
+
+    // ---------------- 统一对象查询 ----------------
+
+    /** 按 shop ID 或 shop UUID 获取商店对象。 */
+    public Shop getShop(String shopRef) {
+        return ShopManager.get(shopRef);
+    }
+
+    /** 获取指定 tab；tabRef 为索引(Number)，UUID(String)，或 null(第一个 tab)。 */
+    public ShopTab getTab(String shopRef, Object tabRef) {
+        Shop shop = getShop(shopRef);
+        if (shop == null) {
+            return null;
+        }
+        shop.ensureTabs();
+        return resolveTab(shop, tabRef);
+    }
+
+    /** 获取默认 tab。 */
+    public ShopTab getTab(String shopRef) {
+        return getTab(shopRef, null);
+    }
+
+    /** 获取指定 entry；entryRef 为索引(Number)或 UUID(String)。 */
+    public ShopEntry getEntry(String shopRef, Object tabRef, Object entryRef) {
+        ShopTab tab = getTab(shopRef, tabRef);
+        if (tab == null || entryRef == null) {
+            return null;
+        }
+        if (entryRef instanceof Number n) {
+            int index = n.intValue();
+            return index >= 0 && index < tab.entries.size() ? tab.entries.get(index) : null;
+        }
+        if (entryRef instanceof String uuid) {
+            return entryByUuid(tab, uuid);
+        }
+        return null;
+    }
+
+    /** 获取默认 tab 中的 entry。 */
+    public ShopEntry getEntry(String shopRef, Object entryRef) {
+        return getEntry(shopRef, null, entryRef);
     }
 
     // ---------------- 商店信息 ----------------
@@ -209,7 +252,8 @@ public class QShopBindings {
 
     /** 删除商店(同时删除配置文件),返回是否成功 */
     public boolean removeShop(String id) {
-        return ShopManager.deleteShop(id);
+        Shop shop = ShopManager.get(id);
+        return shop != null && ShopManager.deleteShop(shop.id);
     }
 
     // ---------------- 子商店(tab) 增删改 ----------------
@@ -471,21 +515,26 @@ public class QShopBindings {
 
     /** 按序号取交易条目 uuid(便于后续按 uuid 操作) */
     public String getShopEntryUuid(String shopId, int tabIndex, int entryIndex) {
-        Shop shop = ShopManager.get(shopId);
-        if (shop == null) {
-            return null;
-        }
-        shop.ensureTabs();
-        if (tabIndex < 0 || tabIndex >= shop.tabs.size()) {
-            return null;
-        }
-        List<ShopEntry> list = shop.tabs.get(tabIndex).entries;
-        if (entryIndex < 0 || entryIndex >= list.size()) {
-            return null;
-        }
-        return list.get(entryIndex).uuid;
+        return getShopEntryUuid(shopId, Integer.valueOf(tabIndex), Integer.valueOf(entryIndex));
     }
 
+    /** 按统一引用规则获取 entry UUID。 */
+    public String getShopEntryUuid(String shopRef, Object tabRef, Object entryRef) {
+        ShopEntry entry = getEntry(shopRef, tabRef, entryRef);
+        return entry == null ? null : entry.uuid;
+    }
+
+    /** 按统一引用规则获取指定 tab 的 entry 数量。 */
+    public int getEntryCount(String shopRef, Object tabRef) {
+        ShopTab tab = getTab(shopRef, tabRef);
+        return tab == null ? 0 : tab.entries.size();
+    }
+
+    /** 默认 tab 的 entry 数量。 */
+    public int getEntryCount(String shopRef) {
+        return getEntryCount(shopRef, null);
+    }
+    /* 保留旧版实现的源码兼容入口；统一逻辑由上面的 Object 版本处理。 */
     // ---------------- 交易项目 增删改(带子商店) ----------------
 
     /** 向商店默认子商店(第一个)追加一个交易条目 */
@@ -602,22 +651,9 @@ public class QShopBindings {
     }
 
     /** 默认子商店的条目数 */
-    public int getEntryCount(String shopId) {
-        Shop shop = ShopManager.get(shopId);
-        return shop == null ? 0 : shop.entries.size();
-    }
-
     /** 指定子商店的条目数 */
     public int getEntryCount(String shopId, int tabIndex) {
-        Shop shop = ShopManager.get(shopId);
-        if (shop == null) {
-            return 0;
-        }
-        shop.ensureTabs();
-        if (tabIndex < 0 || tabIndex >= shop.tabs.size()) {
-            return 0;
-        }
-        return shop.tabs.get(tabIndex).entries.size();
+        return getEntryCount(shopId, Integer.valueOf(tabIndex));
     }
 
     // ---------------- 子商店 / 交易项目:按 uuid 匹配 ----------------

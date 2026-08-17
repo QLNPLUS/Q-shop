@@ -46,6 +46,24 @@ public class AfterTradeEvent extends EventJS {
         return player;
     }
 
+    /** 完整交易条目对象，便于脚本直接读取 entry.count 等字段。 */
+    public ShopEntry getEntry() {
+        return entry;
+    }
+
+    /** 完整 tab 对象。 */
+    public com.qshop.shop.ShopTab getTab() {
+        if (shop == null || tabIndex < 0 || tabIndex >= shop.tabs.size()) {
+            return null;
+        }
+        return shop.tabs.get(tabIndex);
+    }
+
+    /** 完整 shop 对象。 */
+    public Shop getShop() {
+        return shop;
+    }
+
     public String getPlayerName() {
         return player == null ? "" : player.getGameProfile().getName();
     }
