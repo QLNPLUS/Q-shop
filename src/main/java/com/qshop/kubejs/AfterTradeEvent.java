@@ -2,19 +2,11 @@ package com.qshop.kubejs;
 
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopEntry;
+import com.qshop.shop.ShopTab;
 import dev.latvian.mods.kubejs.event.EventJS;
 import net.minecraft.server.level.ServerPlayer;
 
-/**
- * 购买后事件(只读):交易成功扣费/发物/执行指令之后触发。
- *
- * <pre>
- * QShopEvents.afterTrade(event => {
- *     console.log(event.playerName + ' 购买了 ' + event.entryName + ' x' + event.tradedUnits
- *             + ',实付 ' + event.paidPrice + ' ' + event.currency);
- * });
- * </pre>
- */
+/** Event fired after a successful trade. */
 public class AfterTradeEvent extends EventJS {
 
     private final ServerPlayer player;
@@ -46,34 +38,23 @@ public class AfterTradeEvent extends EventJS {
         return player;
     }
 
-    /** 完整交易条目对象，便于脚本直接读取 entry.count 等字段。 */
     public ShopEntry getEntry() {
         return entry;
     }
 
-    /** 完整 tab 对象。 */
-    public com.qshop.shop.ShopTab getTab() {
+    public ShopTab getTab() {
         if (shop == null || tabIndex < 0 || tabIndex >= shop.tabs.size()) {
             return null;
         }
         return shop.tabs.get(tabIndex);
     }
 
-    /** 完整 shop 对象。 */
     public Shop getShop() {
         return shop;
     }
 
     public String getPlayerName() {
         return player == null ? "" : player.getGameProfile().getName();
-    }
-
-    public String getShopId() {
-        return shop == null ? "" : shop.id;
-    }
-
-    public String getShopUuid() {
-        return shop == null || shop.uuid == null ? "" : shop.uuid.toString();
     }
 
     public int getTabIndex() {
@@ -84,42 +65,20 @@ public class AfterTradeEvent extends EventJS {
         return entryIndex;
     }
 
-    public String getEntryUuid() {
-        return entry == null || entry.uuid == null ? "" : entry.uuid;
-    }
-
-    public String getEntryType() {
-        return entry == null ? "" : entry.type.name();
-    }
-
-    public String getEntryName() {
-        return entry == null ? "" : entry.displayNameOrItem();
-    }
-
-    public double getPrice() {
-        return entry == null ? 0 : entry.price;
-    }
-
-    public String getCurrency() {
-        return entry == null ? "" : (entry.currencyId == null ? "" : entry.currencyId);
-    }
-
-    /** 实际成交单位数(可能因余额/限购小于请求数) */
     public int getTradedUnits() {
         return tradedUnits;
     }
 
-    /** 实际成交涉及的物品总件数 */
     public int getTotalItems() {
         return totalItems;
     }
 
-    /** 实际支付金额(单价 × 成交单位数) */
+    /** Actual currency paid: entry.price multiplied by traded units. */
     public double getPaidPrice() {
         return entry == null ? 0 : entry.price * tradedUnits;
     }
 
-    /** 是否因余额/物品/限购不足而部分成交 */
+    /** True when fewer units completed than the player requested. */
     public boolean isPartial() {
         return partial;
     }

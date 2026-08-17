@@ -513,24 +513,23 @@ This event runs before payment, item removal, rewards, and commands. Cancel it t
 
 ```js
 QShopEvents.beforeTrade(event => {
-  if (event.entryUuid === 'maintenance-entry') {
+  if (event.getEntry() && event.getEntry().uuid === 'maintenance-entry') {
     event.cancel()
     event.player.tell('This entry is temporarily unavailable.')
   }
 })
 ```
 
-Available properties:
+Event-level properties:
 
 ```text
-player, playerName, shopId, shopUuid
-tabIndex, entryIndex, entryUuid, entryType
-entryName, price, currency, units
+player, playerName
+tabIndex, entryIndex, units
 ```
 
 `units` is the number requested by the player, before inventory, balance, and limit adjustments.
 
-The event also exposes complete objects:
+The shop hierarchy is exposed as complete objects. Read every shop, tab, and entry field through these objects:
 
 ```js
 QShopEvents.beforeTrade(event => {
@@ -538,11 +537,16 @@ QShopEvents.beforeTrade(event => {
   const tab = event.getTab()
   const entry = event.getEntry()
 
-  if (entry && entry.count > 64) {
+  if (entry && entry.type.name() === 'BUY' && entry.getCount() > 64) {
     event.cancel()
   }
+
+  console.log(`${shop.id}/${tab.uuid}/${entry.uuid}`)
+  console.log(`${entry.displayName} x${entry.count} for ${entry.price} ${entry.currencyId}`)
 })
 ```
+
+`entry.count` is the KubeJS property form of `entry.getCount()`. Both forms are supported. `entry.type` is a Java enum, so compare it with `entry.type.name()` (for example, `entry.type.name() === 'BUY'`). Public fields such as `entry.item`, `entry.give`, `entry.receive`, `entry.commands`, `entry.requiredQuests`, and `entry.requiredStages` can be read the same way. `shop` or `tab` may be `null` only when the event payload does not point to a valid hierarchy object.
 
 ### afterTrade
 
@@ -550,32 +554,32 @@ This event runs after a successful trade and all configured post-trade commands:
 
 ```js
 QShopEvents.afterTrade(event => {
+  const entry = event.getEntry()
   console.log(
-    `${event.playerName} bought ${event.entryName} x${event.tradedUnits}`
+    `${event.playerName} bought ${entry.displayName} x${event.tradedUnits}`
   )
-  if (event.partial) {
+  if (event.isPartial()) {
     event.player.tell(`Only ${event.tradedUnits} unit(s) were available.`)
   }
 })
 ```
 
-Available properties:
+Event-level properties:
 
 ```text
-player, playerName, shopId, shopUuid
-tabIndex, entryIndex, entryUuid, entryType
-entryName, price, currency
-tradedUnits, totalItems, paidPrice, partial
+player, playerName
+tabIndex, entryIndex
+tradedUnits, totalItems, paidPrice, partial (or `isPartial()`)
 ```
 
 `paidPrice` is `price * tradedUnits`. `partial` is `true` when fewer units completed than requested.
 
-`afterTrade` also provides `event.getShop()`, `event.getTab()`, and `event.getEntry()`. For example:
+`afterTrade` also provides `event.getShop()`, `event.getTab()`, and `event.getEntry()`. Use `event.getEntry().type`, `event.getEntry().count`, `event.getEntry().price`, and `event.getEntry().currencyId` instead of flattened event properties. For example:
 
 ```js
 QShopEvents.afterTrade(event => {
   const entry = event.getEntry()
-  console.log(`${entry.displayName} count=${entry.count}`)
+  console.log(`${entry.type} ${entry.displayName} count=${entry.count}`)
 })
 ```
 
@@ -643,7 +647,7 @@ ServerEvents.loaded(event => {
 })
 
 QShopEvents.beforeTrade(event => {
-  if (event.entryType === 'COMMAND' && event.player.isCrouching()) {
+  if (event.getEntry().type.name() === 'COMMAND' && event.player.isCrouching()) {
     event.cancel()
     event.player.tell('Do not crouch while buying this command entry.')
   }
