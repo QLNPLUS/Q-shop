@@ -38,3 +38,4 @@ console.log(entry.type.name(), entry.count, entry.price, entry.currencyId)
 ### 文档修正
 
 - 明确阶段条件的标准依赖是 GameStages（模组 ID：`gamestages`），并说明 KubeJS PlayerStages 的兼容路径。
+- README 已改为展示 1.0.3 Builder-first API，并将旧 JSON 示例标记为历史参考。

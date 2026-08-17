@@ -3,13 +3,15 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
+当前版本：**1.0.3**（Forge 1.20.1）
+
 ## 功能清单
 
 | 需求 | 实现 |
 | --- | --- |
 | 1. 交易界面 | 客户端 GUI:网格布局(列×行),条目显示物品+价格;点击条目弹出**交易子窗口**,用**滑块+输入框**设置数量(滑块上限按余额/背包/限额自动计算) |
 | 2. 多种非物品货币 | 货币定义在 `serverconfig/qshop/currencies.json`,余额保存在玩家数据(Capability);每个商店可配置 `currency` 作为**默认展示货币**,主界面只显示该货币余额 |
-| 3. 购买 / 出售 / 一次性数量 | 交易子窗口里通过滑块/输入框自由设置每次交易数量(单位数);条目 `quantity` 为打开子窗口时的默认数量 |
+| 3. 购买 / 出售 / 一次性数量 | 交易子窗口里通过滑块/输入框自由设置每次交易数量(单位数);条目物品的 `count` 表示一个交易单位包含的物品数量 |
 | 4. 以物换物 | `BARTER` 类型条目(give ⇄ receive,可附加货币费用),格子上显示需求物品数量+图标;另有 `COMMAND` 类型:支付货币后执行指令(无物品交换) |
 | 5. 游戏内编辑 | **仅创造模式**显示编辑模式(GUI):点击条目编辑价格/货币/数量/限购/重置周期/指令(提权、静默用**勾选框**);"添加条目"按钮支持购买/出售/交换/指令四种类型,字段随类型联动;垃圾桶图标删除条目;另有 `/qshop edit` 指令 |
 | 6. 多商店 | 一个商店一个 JSON 文件,以 `id` 或自动生成的 `uuid` 区分 |
@@ -154,13 +156,53 @@ serverconfig/qshop/
 
 ## KubeJS
 
-需要安装 KubeJS(1.20.1,`kubejs` 模组)。脚本里直接使用全局绑定 `QShop`。
+需要安装 KubeJS(1.20.1,`kubejs` 模组)。如果使用 `requiredStages`，标准依赖是
+GameStages（模组 ID：`gamestages`）；QShop 也会兼容 KubeJS PlayerStages。
+脚本里直接使用全局绑定 `QShop`。
 
 > 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
 
-> 下方较早的 JSON CRUD 示例仅作为历史参考，不适用于 1.0.3；新脚本请使用上述 Builder API。
+### 1.0.3 当前 API
 
-本节中早期 JSON 示例仅保留作历史记录，当前脚本请以 `KUBEJS_WIKI.md` 的 Builder-first 示例为准。
+```js
+QShop.createShop('vip', 'VIP 商店', 'coins')
+
+QShop.tab('vip')
+  .name('每日特惠')
+  .icon({ item: 'minecraft:paper', count: 1, nbt: '{display:{Name:"每日卡片"}}' })
+  .uuid('daily-offers')
+  .stage('vip_unlocked')
+  .add()
+
+QShop.entry('vip', 'daily-offers')
+  .buy({ item: 'minecraft:oak_log', count: 8 })
+  .price(2, 'coins')
+  .uuid('oak-bundle')
+  .add()
+
+const entry = QShop.getEntry('vip', 'daily-offers', 'oak-bundle')
+console.log(entry.type.name(), entry.count, entry.getCount())
+```
+
+交易事件中的商店层级通过对象读取：
+
+```js
+QShopEvents.afterTrade(event => {
+  const shop = event.getShop()
+  const tab = event.getTab()
+  const entry = event.getEntry()
+  console.log(`${shop.id}/${tab.uuid}/${entry.uuid}`)
+  console.log(`${entry.type.name()} x${entry.count}, paid=${event.paidPrice}`)
+})
+```
+
+相同 UUID 的 `EntryBuilder.add()` 会替换已有交易项目；相同 UUID 的 `TabBuilder.add()` 会更新子商店信息并保留已有交易项目。
+
+### 历史 JSON API（1.0.3 不可用）
+
+下面的 JSON CRUD 示例仅保留用于迁移旧脚本，不能在 1.0.3 中直接调用。新脚本请使用上面的 Builder API和中文/英文 Wiki。
+
+本节中早期 JSON 示例仅保留作历史记录。
 
 ```js
 // server_scripts 示例
@@ -239,7 +281,7 @@ QShop.refreshTab('card', 'daily-tab-uuid', 10, [
 // 每次生成全新 uuid(限购从零开始);未知物品跳过并警告。
 ```
 
-### 字段参考
+### 历史 JSON 字段参考（1.0.3 不可用于写入）
 
 **交易条目(ShopEntry)共 16 个字段**,`addEntry/updateEntry/updateEntryByUuid/refreshTab` 池条目与商店 JSON 文件均用同一套 schema:
 
