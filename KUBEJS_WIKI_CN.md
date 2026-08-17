@@ -7,7 +7,8 @@
 - Minecraft Forge 1.20.1
 - QShop
 - KubeJS 6（Forge）
-- 可选：FTB Quests，以及用于阶段检测的兼容模组
+- 可选：FTB Quests（任务条件）；GameStages（模组 ID：`gamestages`，阶段条件的标准依赖）
+- 如果使用 KubeJS 的 PlayerStages，也可以作为阶段检测的兼容来源
 
 脚本放在 `kubejs/server_scripts/`。修改 JSON 后使用 `/reload` 或 `QShop.reload()`。
 
@@ -336,7 +337,14 @@ requiredQuests: ['quest_id']
 requiredStages: ['stage_id']
 ```
 
-这些条件由服务端检查。缺少可选集成时不会额外限制；条件不满足时普通玩家看不到对应内容。
+这些条件由服务端检查：
+
+- `requiredQuests` 需要安装并启用 FTB Quests；没有 FTB Quests 时，任务条件无法验证。
+- `requiredStages` 标准上需要安装并启用 GameStages（模组 ID：`gamestages`）。QShop 会调用 GameStages 的 `GameStageHelper.hasStage` 检查玩家阶段。
+- 如果没有 GameStages，QShop 还会尝试读取 KubeJS PlayerStages；只有检测到有效阶段提供者并拥有对应阶段时才算满足。
+- GameStages 和 KubeJS stages 都没有安装时，阶段条件按未满足处理。
+
+条件不满足时，普通玩家看不到对应的子商店或交易项目；编辑模式可以继续显示受限内容。
 
 ## 交易事件
 

@@ -34,3 +34,7 @@ console.log(entry.type.name(), entry.count, entry.price, entry.currencyId)
 - 修复 Builder 更新时重复创建交易项目或子商店的问题。
 - 修复交易事件无法直接访问完整商店层级数据的问题。
 - 更新 KubeJS API 文档，统一参数引用和 UUID 使用规则。
+
+### 文档修正
+
+- 明确阶段条件的标准依赖是 GameStages（模组 ID：`gamestages`），并说明 KubeJS PlayerStages 的兼容路径。
