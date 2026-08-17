@@ -1,0 +1,19 @@
+{
+    "currencies":  [
+                       {
+                           "color":  "#FFD700",
+                           "name":  "金币",
+                           "id":  "coins"
+                       },
+                       {
+                           "color":  "#55FFFF",
+                           "name":  "点数",
+                           "id":  "points"
+                       },
+                       {
+                           "color":  "#55FF55",
+                           "name":  "货币",
+                           "id":  "base_money"
+                       }
+                   ]
+}

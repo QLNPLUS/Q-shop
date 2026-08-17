@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+.gradle-home/
+.tmp/
+.tmp_kjs/
+build/
+run/
+src/generated/resources/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,56 @@
+package com.qshop.kubejs;
+
+import dev.latvian.mods.kubejs.KubeJSPlugin;
+import dev.latvian.mods.kubejs.event.EventGroup;
+import dev.latvian.mods.kubejs.event.EventHandler;
+import dev.latvian.mods.kubejs.event.EventResult;
+import dev.latvian.mods.kubejs.script.BindingsEvent;
+import dev.latvian.mods.kubejs.script.ScriptType;
+import dev.latvian.mods.kubejs.util.ClassFilter;
+
+/**
+ * KubeJS 插件:注册 QShop 绑定与购买前/后事件。
+ * 仅在安装了 KubeJS 时由 KubeJS 通过 kubejs.plugins.txt 加载。
+ */
+public class QShopKubeJSPlugin extends KubeJSPlugin {
+
+    /** 事件组:脚本用 QShopEvents.beforeTrade / QShopEvents.afterTrade */
+    public static final EventGroup QSHOP_EVENTS = EventGroup.of("QShopEvents");
+    public static final EventHandler BEFORE_TRADE =
+            QSHOP_EVENTS.server("beforeTrade", () -> BeforeTradeEvent.class).hasResult();
+    public static final EventHandler AFTER_TRADE =
+            QSHOP_EVENTS.server("afterTrade", () -> AfterTradeEvent.class);
+
+    @Override
+    public void init() {
+        // 注入交易钩子:TradeService 触发事件(仅在 KubeJS 存在时生效)
+        QShopTradeEvents.before = (player, shop, tabIndex, entryIndex, entry, requestedUnits) -> {
+            BeforeTradeEvent event = new BeforeTradeEvent(player, shop, tabIndex, entryIndex, entry, requestedUnits);
+            EventResult result = BEFORE_TRADE.post(event);
+            return !result.interruptFalse(); // 脚本调用了 event.cancel() → 取消交易
+        };
+        QShopTradeEvents.after = (player, shop, tabIndex, entryIndex, entry, tradedUnits, totalItems, partial) -> {
+            AfterTradeEvent event = new AfterTradeEvent(player, shop, tabIndex, entryIndex, entry,
+                    tradedUnits, totalItems, partial);
+            AFTER_TRADE.post(event);
+        };
+    }
+
+    @Override
+    public void registerEvents() {
+        QSHOP_EVENTS.register();
+    }
+
+    @Override
+    public void registerClasses(ScriptType type, ClassFilter filter) {
+        // 允许脚本反射访问 QShop 的事件类与数据类
+        filter.allow("com.qshop.kubejs");
+        filter.allow("com.qshop.shop");
+        filter.allow("com.qshop.currency");
+    }
+
+    @Override
+    public void registerBindings(BindingsEvent event) {
+        event.add("QShop", QShopBindings.INSTANCE);
+    }
+}

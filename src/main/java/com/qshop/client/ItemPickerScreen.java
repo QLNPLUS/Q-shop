@@ -1,0 +1,388 @@
+package com.qshop.client;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * 物品选择界面:全物品模式(全部已注册物品 + 常见 NBT 变体 + TACZ 枪械/配件)与背包模式。
+ * 搜索支持:普通文字按名称、#标签(如 #minecraft:planks)、@命名空间(如 @tacz)。
+ * 网格带平滑滚动动画;选择后通过回调返回 ItemStack;返回/关闭均回到上一个界面。
+ */
+public class ItemPickerScreen extends Screen {
+
+    public interface Picker {
+        void onPick(ItemStack stack);
+    }
+
+    private static final int GUI_W = 250;
+    private static final int GUI_H = 214;
+    private static final int COLS = 8;
+    private static final int ROWS = 5;
+    private static final int CELL = 28;
+
+    private final Screen previous;
+    private final Picker picker;
+    private final List<ItemStack> allItems = new ArrayList<>();
+    private final List<ItemStack> visible = new ArrayList<>();
+
+    private boolean allMode = true;
+    private String search = "";
+    private int scroll = 0;
+    private float rowAnim = 0;
+    private int left;
+    private int top;
+    private EditBox searchBox;
+
+    public ItemPickerScreen(Screen previous, Picker picker) {
+        super(Component.translatable("qshop.gui.pick_item"));
+        this.previous = previous;
+        this.picker = picker;
+    }
+
+    @Override
+    protected void init() {
+        this.left = (this.width - GUI_W) / 2;
+        this.top = (this.height - GUI_H) / 2;
+        if (allItems.isEmpty()) {
+            for (Item item : BuiltInRegistries.ITEM) {
+                if (item == Items.AIR) {
+                    continue;
+                }
+                allItems.add(new ItemStack(item));
+                addNbtVariants(allItems, item);
+            }
+            addTaczItems(allItems);
+        }
+        rebuild();
+    }
+
+    /** 为"同名不同 NBT"的物品补充常用变体(药水/喷溅/滞留/药箭/附魔书) */
+    private static void addNbtVariants(List<ItemStack> list, Item item) {
+        if (item == Items.POTION || item == Items.SPLASH_POTION || item == Items.LINGERING_POTION || item == Items.TIPPED_ARROW) {
+            for (var potion : BuiltInRegistries.POTION) {
+                ItemStack stack = new ItemStack(item);
+                net.minecraft.world.item.alchemy.PotionUtils.setPotion(stack, potion);
+                list.add(stack);
+            }
+        } else if (item == Items.ENCHANTED_BOOK) {
+            for (var enchantment : BuiltInRegistries.ENCHANTMENT) {
+                int max = enchantment.getMaxLevel();
+                for (int level = 1; level <= max; level++) {
+                    list.add(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                            new net.minecraft.world.item.enchantment.EnchantmentInstance(enchantment, level)));
+                }
+            }
+        }
+    }
+
+    /**
+     * TACZ(永恒枪械工坊)兼容:读取其注册在 assets/&lt;ns&gt;/custom/&lt;pack&gt;/data/&lt;ns&gt;/index/
+     * {guns,attachments,ammo}/ 下的枪械/配件/弹药索引,生成带 GunId/AttachmentId/AmmoId NBT 的物品。
+     */
+    private static void addTaczItems(List<ItemStack> list) {
+        try {
+            ResourceManager rm = Minecraft.getInstance().getResourceManager();
+            Item gunItem = firstItem("tacz:modern_kinetic_gun", "tacz:gun");
+            Item attachmentItem = firstItem("tacz:attachment", "tacz:modern_kinetic_attachment");
+            Item ammoItem = firstItem("tacz:ammo", "tacz:modern_kinetic_ammo");
+            if (gunItem == null || gunItem == Items.AIR) {
+                return; // 未安装 TACZ
+            }
+            Map<ResourceLocation, Resource> found = rm.listResources("custom",
+                    rl -> rl.getPath().endsWith(".json") && rl.getPath().contains("/data/tacz/index/"));
+            for (Map.Entry<ResourceLocation, Resource> entry : found.entrySet()) {
+                String path = entry.getKey().getPath();
+                String[] seg = path.split("/");
+                // custom/<pack>/data/<ns>/index/<kind>/<file>.json
+                if (seg.length < 7 || !seg[2].equals("data") || !seg[4].equals("index")) {
+                    continue;
+                }
+                String ns = seg[3];
+                String kind = seg[5];
+                String file = seg[seg.length - 1];
+                String id = file.substring(0, file.length() - 5);
+                Item item = switch (kind) {
+                    case "guns" -> gunItem;
+                    case "attachments" -> attachmentItem;
+                    case "ammo" -> ammoItem;
+                    default -> null;
+                };
+                if (item == null) {
+                    continue;
+                }
+                ItemStack stack = new ItemStack(item);
+                CompoundTag tag = new CompoundTag();
+                String tagKey = switch (kind) {
+                    case "guns" -> "GunId";
+                    case "attachments" -> "AttachmentId";
+                    default -> "AmmoId";
+                };
+                tag.putString(tagKey, ns + ":" + id);
+                stack.setTag(tag);
+                // 显示名(索引 JSON 的 name 字段,可能是语言键)
+                try {
+                    Resource res = entry.getValue();
+                    try (InputStream in = res.open()) {
+                        String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                        var obj = com.google.gson.JsonParser.parseString(content).getAsJsonObject();
+                        if (obj.has("name") && obj.get("name").isJsonPrimitive()) {
+                            String nameKey = obj.get("name").getAsString();
+                            String display = I18n.get(nameKey);
+                            if (display == null || display.isEmpty() || display.equals(nameKey)) {
+                                display = nameKey;
+                            }
+                            stack.setHoverName(Component.literal(display));
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+                list.add(stack);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static Item firstItem(String... ids) {
+        for (String id : ids) {
+            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(id));
+            if (item != null && item != Items.AIR) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /** 返回上一个界面(取消/关闭/Esc) */
+    @Override
+    public void onClose() {
+        Minecraft.getInstance().setScreen(previous);
+    }
+
+    private void rebuild() {
+        this.clearWidgets();
+
+        // 顶行:模式切换(居中)+ 关闭(右);返回按钮在底部中间
+        addRenderableWidget(new QButton(left + 81, top + 6, 88, 14,
+                Component.translatable(allMode ? "qshop.gui.all_items" : "qshop.gui.inventory_items"), b -> {
+                    allMode = !allMode;
+                    // 切换后同步按钮文字:显示背包物品时按钮显示"背包物品"
+                    b.setMessage(Component.translatable(allMode ? "qshop.gui.all_items" : "qshop.gui.inventory_items"));
+                    scroll = 0;
+                    rowAnim = 0;
+                    refreshVisible();
+                }));
+        addRenderableWidget(new QIconButton(left + GUI_W - 20, top + 6, ShopTextures.Icon.CLOSE, this::onClose));
+        addRenderableWidget(new QButton(left + 70, top + 190, 110, 16,
+                Component.translatable("qshop.gui.back"), b -> onClose()));
+
+        searchBox = new EditBox(this.font, left + 14, top + 28, 222, 14, Component.literal(""));
+        searchBox.setMaxLength(40);
+        searchBox.setBordered(false);
+        searchBox.setValue(search);
+        searchBox.setResponder(s -> {
+            search = s == null ? "" : s;
+            scroll = 0;
+            rowAnim = 0;
+            refreshVisible();
+        });
+        addRenderableWidget(searchBox);
+
+        refreshVisible();
+    }
+
+    private void refreshVisible() {
+        visible.clear();
+        List<ItemStack> source;
+        if (allMode) {
+            source = allItems;
+        } else {
+            source = new ArrayList<>();
+            var player = Minecraft.getInstance().player;
+            if (player != null) {
+                var inv = player.getInventory();
+                for (int i = 0; i < inv.getContainerSize(); i++) {
+                    ItemStack s = inv.getItem(i);
+                    if (!s.isEmpty()) {
+                        source.add(s.copy());
+                    }
+                }
+            }
+        }
+        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        if (query.startsWith("#")) {
+            // 标签搜索:如 #minecraft:planks 或 #planks
+            String tagId = query.substring(1);
+            if (!tagId.contains(":")) {
+                tagId = "minecraft:" + tagId;
+            }
+            ResourceLocation tagRl = ResourceLocation.tryParse(tagId);
+            if (tagRl != null) {
+                TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagRl);
+                for (ItemStack s : source) {
+                    if (s.is(tagKey)) {
+                        visible.add(s);
+                    }
+                }
+            }
+        } else if (query.startsWith("@")) {
+            // 命名空间搜索:如 @tacz
+            String ns = query.substring(1);
+            for (ItemStack s : source) {
+                ResourceLocation id = BuiltInRegistries.ITEM.getKey(s.getItem());
+                if (id.getNamespace().startsWith(ns)) {
+                    visible.add(s);
+                }
+            }
+        } else {
+            for (ItemStack s : source) {
+                if (query.isEmpty() || s.getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
+                    visible.add(s);
+                }
+            }
+        }
+    }
+
+    private int maxScroll() {
+        // 允许滚动到最后一行完整对齐:最大滚动 = ceil(size/COLS)*COLS - 可见数
+        return Math.max(0, (int) Math.ceil(visible.size() / (float) COLS) * COLS - COLS * ROWS);
+    }
+
+    /** 由鼠标坐标计算悬浮/点击的条目序号,-1 表示不在网格内(向下取整,避免网格上方误判) */
+    private int indexAt(double mouseX, double mouseY) {
+        int gx = left + 13;
+        int gy = top + 46;
+        int baseRow = (int) Math.floor(rowAnim);
+        float frac = rowAnim - baseRow;
+        int c = (int) Math.floor((mouseX - gx) / CELL);
+        int r = (int) Math.floor((mouseY - gy + frac * CELL) / CELL);
+        int index = (baseRow + r) * COLS + c;
+        if (c < 0 || c >= COLS || r < 0 || r >= ROWS || index < 0 || index >= visible.size()) {
+            return -1;
+        }
+        return index;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // 先全部取消聚焦,再聚焦被点击的输入框
+        if (searchBox != null) {
+            searchBox.setFocused(false);
+            if (searchBox.mouseClicked(mouseX, mouseY, button)) {
+                searchBox.setFocused(true);
+                return true;
+            }
+        }
+        int index = indexAt(mouseX, mouseY);
+        if (index >= 0) {
+            if (picker != null) {
+                picker.onPick(visible.get(index).copy());
+            }
+            onClose();
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (searchBox != null && searchBox.isFocused() && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (searchBox != null && searchBox.isFocused() && searchBox.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int direction = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+        int ns = Mth.clamp(scroll - direction * COLS, 0, maxScroll());
+        if (ns != scroll) {
+            scroll = ns;
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        renderBackground(g);
+        ShopTextures.panelPicker(g, left, top);
+
+        // 滚动动画(以"行"为单位插值,时间基准,帧率无关)
+        float target = scroll / (float) COLS;
+        float delta = Minecraft.getInstance().getDeltaFrameTime();
+        rowAnim += (target - rowAnim) * Math.min(1.0f, delta * 15f);
+        if (Math.abs(target - rowAnim) < 0.005f) {
+            rowAnim = target;
+        }
+
+        ShopTextures.input(g, left + 12, top + 27, 226, 12, searchBox.isFocused());
+
+        // 网格(手动渲染,平滑滚动;裁剪到网格视口)
+        int gx = left + 13;
+        int gy = top + 46;
+        int baseRow = (int) Math.floor(rowAnim);
+        float frac = rowAnim - baseRow;
+        int hovered = indexAt(mouseX, mouseY);
+        ShopTextures.enableScissor(g, gx, gy, COLS * CELL, ROWS * CELL);
+        for (int r = 0; r <= ROWS; r++) {
+            int y = gy + (int) (r * CELL - frac * CELL);
+            for (int c = 0; c < COLS; c++) {
+                int index = (baseRow + r) * COLS + c;
+                if (index < 0 || index >= visible.size()) {
+                    continue;
+                }
+                ItemStack s = visible.get(index);
+                boolean hover = index == hovered;
+                ShopTextures.slot(g, gx + c * CELL, y, CELL - 2, CELL - 2, hover, false);
+                g.renderItem(s, gx + c * CELL + 5, y + 5);
+                g.renderItemDecorations(this.font, s, gx + c * CELL + 5, y + 5);
+            }
+        }
+        ShopTextures.disableScissor(g);
+
+        super.render(g, mouseX, mouseY, partialTick);
+
+        // 悬浮物品 tooltip
+        if (hovered >= 0) {
+            ItemStack s = visible.get(hovered);
+            if (!s.isEmpty()) {
+                g.renderTooltip(this.font, s, mouseX, mouseY);
+            }
+        }
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+}

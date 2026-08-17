@@ -1,0 +1,153 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+}
+
+version = '1.0.2'
+group = 'com.qshop'
+base { archivesName = 'qshop' }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
+minecraft {
+    // 官方映射
+    mappings channel: 'official', version: '1.20.1'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            // 让 KubeJS 等第三方 mod 的 mixin(注解用 SRG 名)在 dev 环境通过 refmap 解析开发名
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            // Rhino(KubeJS 脚本引擎)反射访问 JDK 内部所需的 --add-opens
+            // (ALL-UNNAMED 覆盖 classpath 上的库;rhino 在 dev 环境是命名模块,需点名打开)
+            // Rhino(KubeJS 脚本引擎)所需的 --add-opens。
+            // 注意:userdev 下 ModLauncher 会把 deobf 依赖建成运行时命名模块(rhino),
+            // 启动期的 --add-opens 无法作用到它们,这是 dev 环境限制,生产环境不受影响。
+            jvmArg '--add-opens=java.base/java.util=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.text=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.io=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.net=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.util.zip=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.util.regex=ALL-UNNAMED'
+            mods {
+                qshop { source sourceSets.main }
+            }
+        }
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            jvmArg '--add-opens=java.base/java.util=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.text=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.io=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.net=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.util.zip=ALL-UNNAMED'
+            jvmArg '--add-opens=java.base/java.util.regex=ALL-UNNAMED'
+            mods {
+                qshop { source sourceSets.main }
+            }
+        }
+        data {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'qshop', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            mods {
+                qshop { source sourceSets.main }
+            }
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net' }
+    mavenCentral()
+    maven { url = 'https://maven.latvian.dev/releases' }      // KubeJS / Rhino
+    maven { url = 'https://maven.architectury.dev/' }         // Architectury(KubeJS 传递依赖)
+    maven { url = 'https://maven.fabricmc.net/' }             // fabric-loader(Rhino 传递依赖)
+    maven { url = 'https://maven.ftb.dev/releases' }          // FTB Quests / FTB Library / FTB Teams
+    maven { url = 'https://api.modrinth.com/maven' }          // 备用源
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:1.20.1-47.4.20"
+
+    // ---------------- KubeJS 集成(可选,运行时不是必须的) ----------------
+    // 如果这两个依赖在你的网络环境下解析失败,请:
+    //   1) 注释掉下面两行;
+    //   2) 删除 src/main/java/com/qshop/kubejs 目录;
+    //   3) 删除 src/main/resources/kubejs.plugins.txt 文件。
+    // 这样模组依然可以正常构建运行,只是少了 KubeJS 打开商店的功能。
+    // 注意:KubeJS 6(2001.6.x)通过 mod 资源里的 kubejs.plugins.txt 发现插件,
+    //      META-INF/services 方式对它无效。
+    compileOnly fg.deobf("dev.latvian.mods:kubejs-forge:2001.6.5-build.14")
+    compileOnly fg.deobf("dev.latvian.mods:rhino:2001.2.2-build.18")
+
+    // 仅开发测试:让 runClient/runServer 带上 KubeJS(不进发布 jar,发布后 KubeJS 仍为可选)
+    // Dev-only: puts KubeJS on the dev run classpath so the KubeJS integration can be tested;
+    // not included in the published jar, so KubeJS stays optional at runtime.
+    runtimeOnly fg.deobf("dev.latvian.mods:kubejs-forge:2001.6.5-build.14")
+    runtimeOnly fg.deobf("dev.latvian.mods:rhino:2001.2.2-build.18")
+    runtimeOnly fg.deobf("dev.latvian.mods:rhino-forge:2001.2.2-build.18")
+    runtimeOnly fg.deobf("dev.architectury:architectury-forge:9.1.12")
+    runtimeOnly fg.deobf("net.fabricmc:fabric-loader:0.14.21")
+    runtimeOnly fg.deobf("net.fabricmc:intermediary:1.20.1")
+
+    // ---------------- FTB Quests 集成(可选,运行时不是必须的) ----------------
+    // 编译期:提供 FTB Quests 的 API 类。运行时未安装 FTB Quests 时,
+    // com.qshop.ftb 下的类不会被加载(注册入口有 ClassNotFound/NoClassDefFound 保护)。
+    compileOnly fg.deobf("dev.ftb.mods:ftb-quests-forge:2001.4.22")
+    compileOnly fg.deobf("dev.ftb.mods:ftb-library-forge:2001.2.13")
+    compileOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
+
+    // 仅开发测试:让 runClient/runServer 带上 FTB Quests(不进发布 jar,发布后 FTB Quests 仍为可选)
+    // Dev-only: same reason as KubeJS above — dev runs use official names, so raw SRG-mapped
+    // FTB jars can't be dropped into run/mods; use fg.deobf'd runtime deps instead.
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-quests-forge:2001.4.22")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-library-forge:2001.2.13")
+    runtimeOnly fg.deobf("dev.ftb.mods:ftb-teams-forge:2001.3.1")
+}
+
+jar {
+    manifest {
+        attributes([
+                "Specification-Title"     : "qshop",
+                "Specification-Vendor"    : "qshop",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "qshop",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+jar.finalizedBy('reobfJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) { artifact jar }
+    }
+    repositories {
+        maven { url "file://${project.projectDir}/mcmodsrepo" }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach { it.options.encoding = 'UTF-8' }

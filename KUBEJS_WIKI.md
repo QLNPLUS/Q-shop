@@ -1,0 +1,630 @@
+# QShop KubeJS Wiki
+
+QShop is a Forge 1.20.1 server-shop mod with a KubeJS integration. The integration exposes a global `QShop` binding for shop management, currencies, sub-shops, trade entries, random tab refreshes, and trade events.
+
+This document describes the public KubeJS API shipped by QShop. Put examples that change server data in `kubejs/server_scripts/`, then run `/reload` when appropriate.
+
+## Requirements
+
+- Minecraft Forge 1.20.1
+- QShop
+- KubeJS 6 for Forge
+- Optional: FTB Quests for quest requirements and the QShop money task/reward integration
+
+The KubeJS integration is optional. Without KubeJS, the core shop GUI, commands, currencies, limits, and JSON configuration still work.
+
+## Script context
+
+Use QShop server-side. The normal entry point is a server event:
+
+```js
+ServerEvents.loaded(event => {
+  // ShopManager is ready here in normal server startup.
+  QShop.createShop('vip', 'VIP Shop', 'coins')
+})
+```
+
+For player actions, use a player event or command:
+
+```js
+PlayerEvents.loggedIn(event => {
+  QShop.open('starter', event.player)
+})
+```
+
+Most mutating methods save the shop or currency immediately. Avoid calling them every server tick unless that is intentional. `QShop.reload()` reloads the JSON configuration from disk and should normally be called after external file edits, not after every API mutation.
+
+## The global binding
+
+The plugin registers one global object:
+
+```js
+QShop
+```
+
+Methods return `true` or `false` when an operation can fail, so scripts should check the result when the shop, tab, currency, or entry may not exist.
+
+## Item values
+
+All item arguments accept the following forms:
+
+```js
+// Item id
+'minecraft:diamond'
+
+// Item object with count and SNBT
+{ item: 'minecraft:oak_log', count: 8, nbt: '{display:{Name:"Oak Bundle"}}' }
+
+// A KubeJS ItemStack is also accepted by the builder APIs.
+```
+
+For methods whose signature expects a `JsonObject`, use `JsonIO.of(...)`:
+
+```js
+QShop.addEntry('vip', JsonIO.of({
+  type: 'SELL',
+  item: { item: 'minecraft:diamond', count: 1 },
+  price: 100,
+  currency: 'coins'
+}))
+```
+
+Invalid item ids are parsed as an empty item. Non-command entries with no usable item are rejected.
+
+## Shop API
+
+### Open and inspect shops
+
+```js
+QShop.open(shopIdOrUuid, player)
+QShop.openByUuid(shopUuid, player)
+QShop.exists(shopId)
+QShop.getShopIds()
+QShop.getShopUuid(shopId)
+```
+
+`open` accepts either a shop id or a shop UUID. The player must be a server-side player; calls made with a client-only player are ignored.
+
+```js
+PlayerEvents.chat(event => {
+  if (event.message.trim() === '!shop') {
+    event.cancel()
+    QShop.open('starter', event.player)
+  }
+})
+```
+
+### Create and remove shops
+
+```js
+QShop.createShop('vip')
+QShop.createShop('vip', 'VIP Shop')
+QShop.createShop('vip', 'VIP Shop', 'coins')
+QShop.removeShop('vip')
+```
+
+`createShop` creates a UUID and at least one default sub-shop. The optional currency is the currency shown in the main shop screen. A blank currency defaults to `coins`. Creating an existing id returns `false`. `removeShop` also removes the shop JSON file.
+
+## Currency API
+
+Currencies are stored in the world serverconfig under `qshop/currencies.json`.
+
+```js
+QShop.getCurrencies()
+QShop.createCurrency('coins', 'Coins', '#FFD700')
+
+QShop.getBalance(player, 'coins')
+QShop.giveCurrency(player, 'coins', 100)
+QShop.takeCurrency(player, 'coins', 25)
+QShop.setCurrency(player, 'coins', 500)
+```
+
+`createCurrency` returns `false` for a duplicate id or invalid color. Amounts are numeric. Wallet updates are synchronized to the client immediately.
+
+Example command:
+
+```js
+ServerEvents.commandRegistry(event => {
+  const { commands: Commands } = event
+  event.register(
+    Commands.literal('vipcoins')
+      .requires(source => source.hasPermission(2))
+      .executes(ctx => {
+        const player = ctx.source.player
+        QShop.giveCurrency(player, 'coins', 100)
+        return 1
+      })
+  )
+})
+```
+
+## Sub-shops (tabs)
+
+Every shop has at least one sub-shop. The first sub-shop is index `0`. A tab can be referenced by its numeric index or stable UUID:
+
+```js
+const tabUuid = QShop.getShopTabUuid('vip', 0)
+QShop.getTabCount('vip')
+```
+
+### Add tabs
+
+Recommended options form:
+
+```js
+QShop.addTab('vip', {
+  name: 'Daily Offers',
+  icon: {
+    item: 'minecraft:paper',
+    count: 1,
+    nbt: '{display:{Name:"Daily Card"}}'
+  },
+  uuid: 'daily-offers',
+  description: 'Refreshes every day',
+  requiredQuests: ['chapter_1'],
+  requiredStages: ['vip_unlocked']
+})
+```
+
+Legacy overloads remain supported:
+
+```js
+QShop.addTab('vip', 'Weapons')
+QShop.addTab('vip', 'Weapons', JsonIO.of('minecraft:iron_sword'))
+QShop.addTab('vip', 'Weapons', JsonIO.of('minecraft:iron_sword'), 'weapons')
+```
+
+Tab option fields:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `name` | string | Tab label. Required in options form. |
+| `icon` | item | Icon shown in the tab list. |
+| `uuid` | string | Stable reference. Generated when omitted. |
+| `description` | string | Hover tooltip. Newlines are allowed. |
+| `requiredQuests` | string[] | FTB Quests task ids that must be complete. |
+| `requiredStages` | string[] | Stage ids that must be present. |
+
+When requirements are not satisfied, the tab and its entries are hidden from normal players. Edit mode may still show restricted content for administration.
+
+### Update tabs
+
+The options form only changes fields that are present:
+
+```js
+QShop.updateTab('vip', 'daily-offers', {
+  name: 'Today\'s Offers',
+  description: 'Limited stock',
+  requiredQuests: [],
+  requiredStages: ['vip_unlocked']
+})
+
+// icon: null clears the icon
+QShop.updateTab('vip', 0, { icon: null })
+```
+
+Legacy forms:
+
+```js
+QShop.updateTab('vip', 0, 'Equipment')
+QShop.updateTab('vip', 0, 'Equipment', JsonIO.of('minecraft:diamond_chestplate'))
+QShop.updateTabByUuid('vip', 'daily-offers', 'New Name')
+QShop.updateTabByUuid('vip', 'daily-offers', 'New Name', JsonIO.of('minecraft:clock'))
+```
+
+### Remove tabs
+
+```js
+QShop.removeTab('vip', 2)
+QShop.removeTabByUuid('vip', 'daily-offers')
+```
+
+The last remaining tab cannot be removed.
+
+## Trade entries
+
+Entries belong to a sub-shop. Omitting the tab reference targets the first tab.
+
+```js
+QShop.addEntry('vip', JsonIO.of({
+  type: 'SELL',
+  item: 'minecraft:diamond',
+  price: 100,
+  currency: 'coins'
+}))
+
+QShop.addEntry('vip', 'daily-offers', JsonIO.of({
+  type: 'BUY',
+  item: { item: 'minecraft:oak_log', count: 8 },
+  price: 2,
+  currency: 'coins'
+}))
+```
+
+Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab UUIDs, not tab names.
+
+### Entry schema
+
+| Field | Type | Applies to | Meaning |
+| --- | --- | --- | --- |
+| `uuid` | string | all | Stable entry reference. Generated when omitted. |
+| `type` | `BUY\|SELL\|BARTER\|COMMAND` | all | Trade behavior. Defaults to `BUY`. |
+| `displayName` | string | all | Optional custom name. |
+| `description` | string | all | Optional hover description. |
+| `displayItem` | item | all | Icon shown in the GUI, independent from the real item. |
+| `item` | item | BUY, SELL, COMMAND | Main trade item. COMMAND may use it as an icon. |
+| `give` | item[] | BARTER | Items paid by the player. |
+| `receive` | item[] | BARTER | Items received by the player. |
+| `currency` | string | BUY, SELL, COMMAND, optional BARTER fee | Currency id. Blank uses the shop default. |
+| `price` | number | all | Price per trade unit. BARTER treats it as an optional extra fee. |
+| `quantity` | int | all | Default units selected when the trade window opens. |
+| `globalLimit` | int | all | Server-wide item limit. `-1` means unlimited. |
+| `playerLimit` | int | all | Per-player item limit. `-1` means unlimited. |
+| `limitReset` | `NEVER\|DAILY\|WEEKLY\|MONTHLY` | limited entries | Counter reset period. |
+| `commands` | object[] | COMMAND or post-trade actions | Commands run after a successful trade. |
+| `requiredQuests` | string[] | all | FTB Quests requirements. |
+| `requiredStages` | string[] | all | Stage requirements. |
+
+`BUY` means the player pays currency and receives `item`. `SELL` means the player gives `item` and receives currency. `BARTER` exchanges `give` for `receive`, optionally charging `price` in `currency`. `COMMAND` charges the configured price and executes `commands`.
+
+### Commands in an entry
+
+```js
+commands: [
+  { command: 'give %player% minecraft:elytra 1', op: true, silent: true },
+  { command: 'say %player% purchased an elytra', op: false, silent: false }
+]
+```
+
+- `command`: command text without the leading `/`.
+- `op`: execute with operator level 4 when `true`; otherwise execute as a normal command source.
+- `silent`: suppress successful command output when `true`.
+
+Supported placeholders include `%player%`, `%player_uuid%`, `%shop%`, `%shop_uuid%`, `%entry%`, `%units%`, `%items%`, `%price%`, `%currency%`, and `%multiplier%`.
+
+### Entry CRUD
+
+```js
+QShop.getEntryCount('vip')
+QShop.getEntryCount('vip', 1)
+QShop.getShopEntryUuid('vip', 1, 0)
+
+QShop.updateEntry('vip', 0, JsonIO.of({
+  type: 'SELL',
+  item: 'minecraft:netherite_ingot',
+  price: 500,
+  currency: 'coins'
+}))
+
+QShop.updateEntry('vip', 1, 0, JsonIO.of({
+  type: 'BUY',
+  item: { item: 'minecraft:oak_log', count: 8 },
+  price: 2,
+  currency: 'coins'
+}))
+
+QShop.removeEntry('vip', 0)
+QShop.removeEntry('vip', 1, 0)
+```
+
+UUID-based operations are safer when entries can be reordered:
+
+```js
+const tabUuid = QShop.getShopTabUuid('vip', 1)
+const entryUuid = QShop.getShopEntryUuid('vip', 1, 0)
+
+QShop.updateEntryByUuid('vip', tabUuid, entryUuid, JsonIO.of({
+  type: 'SELL',
+  item: 'minecraft:diamond',
+  price: 75,
+  currency: 'coins'
+}))
+QShop.removeEntryByUuid('vip', tabUuid, entryUuid)
+```
+
+`updateEntryByUuid` preserves the original entry UUID. Index-based replacement uses the UUID in the replacement JSON if one is supplied, otherwise a new UUID is generated.
+
+## Builder API
+
+Builders are an alternative to JSON and can be chained. The final `.add()` returns a boolean.
+
+### EntryBuilder
+
+```js
+QShop.entry('vip', 'daily-offers')
+  .sell('minecraft:diamond')
+  .price(100, 'coins')
+  .displayName('Shiny Diamond')
+  .description('One diamond')
+  .playerLimit(10, 'DAILY')
+  .globalLimit(100)
+  .uuid('daily-diamond')
+  .add()
+```
+
+Available methods:
+
+```text
+buy(item)                  sell(item)
+command()                  barter(give, receive)
+item(item)                 give(item)
+receive(item)              price(number)
+price(number, currency)    currency(id)
+globalLimit(number)        playerLimit(number)
+playerLimit(number, reset) limitReset(reset)
+displayName(text)          description(text)
+displayItem(item)          uuid(id)
+quest(id)                  stage(id)
+cmd(command)               cmd(command, op)
+cmd(command, op, silent)   add()
+```
+
+Calling `cmd(...)` changes a BUY or SELL builder to `COMMAND`. `give(...)` and `receive(...)` append additional barter items.
+
+### TabBuilder
+
+```js
+QShop.tab('vip')
+  .name('Daily Offers')
+  .icon('minecraft:paper')
+  .description('Refreshes every day')
+  .uuid('daily-offers')
+  .quest('chapter_1')
+  .stage('vip_unlocked')
+  .add()
+```
+
+Available methods:
+
+```text
+name(text)       icon(item)
+description(text) uuid(id)
+quest(id)        stage(id)
+add()
+```
+
+## Random tab refresh
+
+`refreshTab` clears a tab and draws a new set of entries from a weighted pool. Every generated entry receives a new UUID and its limit counters start from zero.
+
+```js
+QShop.refreshTab('vip', 'daily-offers', 5, [
+  {
+    type: 'BUY',
+    item: { item: 'minecraft:diamond', count: 1 },
+    price: 100,
+    currency: 'coins',
+    playerLimit: 5,
+    limitReset: 'DAILY',
+    weight: 20
+  },
+  {
+    type: 'BARTER',
+    give: [{ item: 'minecraft:emerald', count: 3 }],
+    receive: [{ item: 'minecraft:netherite_ingot', count: 1 }],
+    weight: 10
+  },
+  {
+    type: 'COMMAND',
+    commands: [{ command: 'give %player% minecraft:elytra 1', op: true, silent: true }],
+    price: 5000,
+    currency: 'coins',
+    weight: 5
+  }
+])
+```
+
+Options form:
+
+```js
+QShop.refreshTab('vip', 0, {
+  count: 10,
+  type: 'BUY',
+  currency: 'coins',
+  pool: [
+    { item: 'minecraft:iron_ingot', price: 2, weight: 50 },
+    { item: 'minecraft:gold_ingot', price: 5, weight: 10 }
+  ]
+})
+```
+
+Pool entries use the normal entry schema plus `weight`. A missing `weight` is `1`. Negative weights count as zero. If every weight is zero, one entry is chosen uniformly. Unknown item ids and invalid entries are skipped. At least one valid pool entry is required.
+
+## Purchase limits
+
+Limits are counted in item units, not clicks. For BUY/SELL entries this uses `item.count`; for BARTER it uses the total received item count. A trade may complete partially when wallet balance, inventory space, stock, or limits allow fewer units than requested.
+
+```js
+QShop.entry('vip')
+  .sell({ item: 'minecraft:diamond', count: 1 })
+  .price(100, 'coins')
+  .globalLimit(1000)
+  .playerLimit(10, 'WEEKLY')
+  .add()
+```
+
+Reset values are `NEVER`, `DAILY`, `WEEKLY`, and `MONTHLY`. Counters survive death and dimension changes. The server resets them when the configured period changes.
+
+To clear counters:
+
+```js
+QShop.clearEntryLimits(shopId, tabUuid, entryUuid)
+QShop.clearTabLimits(shopId, tabUuid)
+QShop.clearShopLimits(shopId)
+```
+
+These methods clear the global counter and online players' personal counters. Offline player data is cleaned when that player is online again.
+
+## Requirements: FTB Quests and stages
+
+Both tabs and entries support:
+
+```js
+requiredQuests: ['quest_id']
+requiredStages: ['stage_id']
+```
+
+Quest checks are used only when FTB Quests is available. Stage checks support the installed stage integration. Missing optional integrations are treated as no additional restriction. Requirements are checked server-side and restricted tabs/entries are hidden from normal players.
+
+## Trade events
+
+The plugin registers the `QShopEvents` event group:
+
+```js
+QShopEvents.beforeTrade(event => { ... })
+QShopEvents.afterTrade(event => { ... })
+```
+
+### beforeTrade
+
+This event runs before payment, item removal, rewards, and commands. Cancel it to reject the trade:
+
+```js
+QShopEvents.beforeTrade(event => {
+  if (event.entryUuid === 'maintenance-entry') {
+    event.cancel()
+    event.player.tell('This entry is temporarily unavailable.')
+  }
+})
+```
+
+Available properties:
+
+```text
+player, playerName, shopId, shopUuid
+tabIndex, entryIndex, entryUuid, entryType
+entryName, price, currency, units
+```
+
+`units` is the number requested by the player, before inventory, balance, and limit adjustments.
+
+### afterTrade
+
+This event runs after a successful trade and all configured post-trade commands:
+
+```js
+QShopEvents.afterTrade(event => {
+  console.log(
+    `${event.playerName} bought ${event.entryName} x${event.tradedUnits}`
+  )
+  if (event.partial) {
+    event.player.tell(`Only ${event.tradedUnits} unit(s) were available.`)
+  }
+})
+```
+
+Available properties:
+
+```text
+player, playerName, shopId, shopUuid
+tabIndex, entryIndex, entryUuid, entryType
+entryName, price, currency
+tradedUnits, totalItems, paidPrice, partial
+```
+
+`paidPrice` is `price * tradedUnits`. `partial` is `true` when fewer units completed than requested.
+
+## Configuration files and reload
+
+Shop data is stored per world:
+
+```text
+<world>/serverconfig/qshop/currencies.json
+<world>/serverconfig/qshop/shops/<shop-id>.json
+```
+
+The API writes these files when it mutates data. After manually editing JSON:
+
+```js
+QShop.reload()
+```
+
+or run:
+
+```text
+/qshop reload
+```
+
+The first tab is kept as the legacy `entries` list for compatibility with older configuration files.
+
+## Complete example
+
+Save as `kubejs/server_scripts/qshop_example.js`:
+
+```js
+ServerEvents.loaded(event => {
+  if (!QShop.exists('adventurer')) {
+    QShop.createShop('adventurer', 'Adventurer Shop', 'coins')
+  }
+
+  const tabs = QShop.getTabCount('adventurer')
+  if (tabs < 2) {
+    QShop.addTab('adventurer', {
+      name: 'Daily Deals',
+      icon: 'minecraft:clock',
+      uuid: 'daily-deals',
+      description: 'Rotating daily offers',
+      requiredStages: ['adventurer_unlocked']
+    })
+  }
+
+  if (QShop.getEntryCount('adventurer', 0) === 0) {
+    QShop.entry('adventurer')
+      .sell('minecraft:diamond')
+      .price(100, 'coins')
+      .playerLimit(10, 'DAILY')
+      .displayName('Diamond')
+      .add()
+  }
+
+  if (QShop.getEntryCount('adventurer', 1) === 0) {
+    QShop.addEntry('adventurer', 'daily-deals', JsonIO.of({
+      type: 'BUY',
+      item: { item: 'minecraft:oak_log', count: 8 },
+      price: 2,
+      currency: 'coins',
+      playerLimit: 20,
+      limitReset: 'DAILY'
+    }))
+  }
+})
+
+QShopEvents.beforeTrade(event => {
+  if (event.entryType === 'COMMAND' && event.player.isCrouching()) {
+    event.cancel()
+    event.player.tell('Do not crouch while buying this command entry.')
+  }
+})
+
+QShopEvents.afterTrade(event => {
+  if (event.partial) {
+    event.player.tell(`Completed ${event.tradedUnits} unit(s).`)
+  }
+})
+```
+
+## Troubleshooting
+
+### `QShop` is undefined
+
+Confirm that KubeJS and QShop are installed on the server, and that the QShop KubeJS plugin resource is present. Restart the server after installing a new mod; `/reload` does not reload Java plugins.
+
+### A method returns `false`
+
+Check the shop id, tab index/UUID, entry index/UUID, and JSON item format. Non-command entries need at least one valid item. A tab cannot be removed when it is the last tab.
+
+### A tab or entry is hidden
+
+Check `requiredQuests` and `requiredStages`. These restrictions are intentional for normal players; use edit mode or remove the requirement while testing.
+
+### Refresh produces fewer entries than requested
+
+Invalid pool entries are skipped. Check item ids, `type`, `item`/`give`/`receive`, and `commands` for COMMAND entries.
+
+### Changes do not appear immediately
+
+The server sends shop refresh packets after saved mutations. For manual JSON edits, call `QShop.reload()` or use `/qshop reload`. A currently open trade dialog is closed when the shop data is refreshed so a player cannot purchase stale content.
+
+## License
+
+QShop and its assets are All Rights Reserved (ARR). See [`LICENSE`](LICENSE). Redistribution, modification, or inclusion in another project requires prior written permission from the copyright holder.

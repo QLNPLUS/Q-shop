@@ -1,0 +1,50 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="ARR"
+
+[[mods]]
+modId="qshop"
+version="${file.jarVersion}"
+displayName="QShop"
+description='''A flexible server shop mod for Forge 1.20.1.
+
+Features:
+- Trade GUI with buy / sell / barter
+- Multiple custom (non-item) currencies stored in player data
+- Per-shop entries with configurable per-click quantity
+- In-game editing of shops (GUI + commands)
+- Multiple shops identified by id or uuid
+- KubeJS integration to open shops
+- FTB Quests integration: money tasks & rewards (optional)
+- Global & per-player purchase limits with daily/weekly/monthly reset
+- Commands executed on purchase (optional OP level and silent mode)
+'''
+authors="QLN"
+
+[[dependencies.qshop]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.qshop]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.qshop]]
+modId="kubejs"
+mandatory=false
+versionRange="[6,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.qshop]]
+modId="ftbquests"
+mandatory=false
+versionRange="[2001.4,)"
+ordering="AFTER"
+side="BOTH"
