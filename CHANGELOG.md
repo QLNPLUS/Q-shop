@@ -15,6 +15,7 @@
 ### 文档
 
 - 更新同步机制说明和 1.0.4 构建产物版本号。
+- 新增 GitHub Actions CurseForge 自动发布工作流：发布 GitHub Release 后自动构建并上传 Forge 1.20.1 JAR。
 
 ## 1.0.3 - 2026-08-18
 
