@@ -189,9 +189,9 @@ Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`
 
 ## Documentation
 
-- [English KubeJS Wiki](KUBEJS_WIKI.md)
-- [Chinese KubeJS Wiki](KUBEJS_WIKI_CN.md)
-- [Changelog](CHANGELOG.md)
+- [English KubeJS Wiki](https://github.com/QLNPLUS/Q-shop/blob/master/KUBEJS_WIKI.md)
+- [Chinese KubeJS Wiki](https://github.com/QLNPLUS/Q-shop/blob/master/KUBEJS_WIKI_CN.md)
+- [Changelog](https://github.com/QLNPLUS/Q-shop/blob/master/CHANGELOG.md)
 
 ## License
 
