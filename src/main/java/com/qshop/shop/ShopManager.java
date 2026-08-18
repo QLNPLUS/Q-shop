@@ -114,6 +114,7 @@ public final class ShopManager {
             LOGGER.error("QShop: 读取商店目录失败", e);
         }
         LOGGER.info("QShop: 已加载 {} 个商店", SHOPS.size());
+        broadcastAllShops();
     }
 
     /** 保存商店到文件并更新内存 */
@@ -129,10 +130,11 @@ public final class ShopManager {
         if (shop.uuid == null) {
             shop.uuid = UUID.randomUUID();
         }
-        shop.dataVersion++; // 内容变更:客户端轮询据此刷新打开中的界面
+        shop.dataVersion++;
         writeShopFile(shop);
         SHOPS.put(shop.id, shop);
         BY_UUID.put(shop.uuid, shop);
+        broadcastShopUpdate(shop);
     }
 
     /** 仅写文件(不更新内存) */
@@ -208,7 +210,7 @@ public final class ShopManager {
         openShop(player, shop, false);
     }
 
-    /** openShop 的轮询刷新变体:refresh=true 时客户端仅在仍处于该商店界面时应用 */
+    /** 向在线客户端推送商店变化；客户端只会应用当前打开该商店的刷新包。 */
     public static void openShop(ServerPlayer player, Shop shop, boolean refresh) {
         if (player == null || shop == null) {
             return;
@@ -269,6 +271,26 @@ public final class ShopManager {
         QShopNetwork.sendToPlayer(player, new OpenShopPacket(
                 shop.id, shop.displayNameOrId(), displayCurrency, icon, tabs, balances, currencies, editing,
                 shop.dataVersion, refresh));
+    }
+
+    /** 将一个已保存的商店变化主动推送给所有在线玩家。 */
+    private static void broadcastShopUpdate(Shop shop) {
+        if (server == null || shop == null) {
+            return;
+        }
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            openShop(player, shop, true);
+        }
+    }
+
+    /** 手动 reload 后同步所有仍打开商店界面的客户端。 */
+    private static void broadcastAllShops() {
+        if (server == null || server.getPlayerList().getPlayers().isEmpty()) {
+            return;
+        }
+        for (Shop shop : SHOPS.values()) {
+            broadcastShopUpdate(shop);
+        }
     }
 
     /**

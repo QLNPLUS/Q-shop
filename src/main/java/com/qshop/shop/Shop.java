@@ -35,8 +35,7 @@ public class Shop {
     public final List<ShopTab> tabs = new ArrayList<>();
 
     /**
-     * 数据版本(仅内存):每次 save() 自增。客户端轮询时用它判断内容是否变化,
-     * 变化则重新发送 OpenShopPacket,让打开着的商店界面实时同步修改。
+     * 数据版本(仅内存):每次 save() 自增,用于标记服务端主动推送的商店内容版本。
      */
     public int dataVersion = 0;
 

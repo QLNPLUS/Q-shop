@@ -19,10 +19,10 @@ public final class ClientPacketHandler {
         if (current instanceof ShopScreen old && old.data.shopId.equals(pkt.shopId)) {
             // 数据刷新会使交易条目的索引/物品失效，先打断旧交易窗再替换界面。
             old.interruptForDataRefresh();
-            // 保留滚动/编辑模式/tab 状态,避免交易后界面重置(也用于轮询实时同步)
+            // 保留滚动/编辑模式/tab 状态;服务端刷新时交易窗口已经被打断
             mc.setScreen(new ShopScreen(pkt, old.scroll, old.editMode, old.activeServerTabIndex()));
         } else if (pkt.refresh) {
-            // 轮询刷新响应,但玩家已不在该商店界面(关闭/切到其他界面):忽略
+            // 服务端刷新包,但玩家已不在该商店界面(关闭/切到其他界面):忽略
             return;
         } else {
             mc.setScreen(new ShopScreen(pkt));

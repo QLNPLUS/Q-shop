@@ -30,9 +30,9 @@ public class OpenShopPacket {
     public final Map<String, Double> balances = new HashMap<>();
     public final List<Currency> currencies = new ArrayList<>();
     public boolean editing = false;
-    /** 商店数据版本(客户端轮询同步用;内容变化后自增) */
+    /** 商店数据版本(服务端主动推送时用于标记内容版本) */
     public int dataVersion = 0;
-    /** true = 轮询刷新响应(玩家不在商店界面时客户端应忽略) */
+    /** true = 服务端刷新包(玩家不在该商店界面时客户端应忽略) */
     public boolean refresh = false;
 
     public OpenShopPacket() {

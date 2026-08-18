@@ -681,7 +681,7 @@ Invalid pool entries are skipped. Check item ids, `type`, `item`/`give`/`receive
 
 ### Changes do not appear immediately
 
-The server sends shop refresh packets after saved mutations. For manual JSON edits, call `QShop.reload()` or use `/qshop reload`. A currently open trade dialog is closed when the shop data is refreshed so a player cannot purchase stale content.
+The server immediately pushes shop refresh packets after saved mutations. The client no longer polls for changes. For manual JSON edits, call `QShop.reload()` or use `/qshop reload`. A currently open trade dialog is closed when the shop data is refreshed so a player cannot purchase stale content.
 
 ## License
 

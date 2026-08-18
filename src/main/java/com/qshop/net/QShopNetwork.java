@@ -71,9 +71,6 @@ public final class QShopNetwork {
         CHANNEL.registerMessage(nextId++, EditShopInfoPacket.class,
                 EditShopInfoPacket::encode, EditShopInfoPacket::decode, EditShopInfoPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        CHANNEL.registerMessage(nextId++, ShopRefreshPacket.class,
-                ShopRefreshPacket::encode, ShopRefreshPacket::decode, ShopRefreshPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
     }
 
     public static void sendToPlayer(ServerPlayer player, Object message) {

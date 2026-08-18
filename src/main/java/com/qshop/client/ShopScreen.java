@@ -12,7 +12,6 @@ import com.qshop.net.QShopNetwork;
 import com.qshop.net.RemoveEntryPacket;
 import com.qshop.net.RemoveTabPacket;
 import com.qshop.net.ReorderEntryPacket;
-import com.qshop.net.ShopRefreshPacket;
 import com.qshop.net.SwapEntryPacket;
 import com.qshop.net.TradePacket;
 import com.qshop.shop.ShopEntryType;
@@ -111,10 +110,6 @@ public class ShopScreen extends Screen {
     private EditBox tradeUnitsBox;
     private QSlider tradeSlider;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
-
-    // ---- 商店数据实时同步(轮询:内容被 KubeJS/其他管理员修改后约 2 秒内刷新) ----
-    private static final int POLL_INTERVAL = 40; // 帧(约 2 秒)
-    private int pollAccum = 0;
 
     public ShopScreen(OpenShopPacket data) {
         super(QText.parse(data.shopName.isEmpty() ? data.shopId : data.shopName));
@@ -352,13 +347,6 @@ public class ShopScreen extends Screen {
             g.pose().popPose();
         }
 
-        // 商店数据实时同步:每 2 秒轮询一次(浮层打开时不打扰),服务端仅在内容变化时响应
-        if (++pollAccum >= POLL_INTERVAL) {
-            pollAccum = 0;
-            if (menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0) {
-                QShopNetwork.sendToServer(new ShopRefreshPacket(data.shopId, data.dataVersion));
-            }
-        }
     }
 
     private void renderWidgets(GuiGraphics g, int mouseX, int mouseY, float partialTick, boolean tradeLayer) {
