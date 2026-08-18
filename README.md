@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.0.3**（Forge 1.20.1）
+当前版本：**1.0.4**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -31,7 +31,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.0.3.jar
+# 产物在 build/libs/qshop-1.0.4.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -162,7 +162,7 @@ GameStages（模组 ID：`gamestages`）；QShop 也会兼容 KubeJS PlayerStage
 
 > 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
 
-### 1.0.3 当前 API
+### 1.0.4 当前 API
 
 ```js
 QShop.createShop('vip', 'VIP 商店', 'coins')
@@ -198,9 +198,9 @@ QShopEvents.afterTrade(event => {
 
 相同 UUID 的 `EntryBuilder.add()` 会替换已有交易项目；相同 UUID 的 `TabBuilder.add()` 会更新子商店信息并保留已有交易项目。
 
-### 历史 JSON API（1.0.3 不可用）
+### 历史 JSON API（1.0.4 不可用）
 
-下面的 JSON CRUD 示例仅保留用于迁移旧脚本，不能在 1.0.3 中直接调用。新脚本请使用上面的 Builder API和中文/英文 Wiki。
+下面的 JSON CRUD 示例仅保留用于迁移旧脚本，不能在 1.0.4 中直接调用。新脚本请使用上面的 Builder API和中文/英文 Wiki。
 
 本节中早期 JSON 示例仅保留作历史记录。
 
@@ -281,7 +281,7 @@ QShop.refreshTab('card', 'daily-tab-uuid', 10, [
 // 每次生成全新 uuid(限购从零开始);未知物品跳过并警告。
 ```
 
-### 历史 JSON 字段参考（1.0.3 不可用于写入）
+### 历史 JSON 字段参考（1.0.4 不可用于写入）
 
 **交易条目(ShopEntry)共 16 个字段**,`addEntry/updateEntry/updateEntryByUuid/refreshTab` 池条目与商店 JSON 文件均用同一套 schema:
 
