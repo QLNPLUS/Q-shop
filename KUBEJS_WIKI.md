@@ -624,7 +624,21 @@ Shop data is stored per world:
 ```text
 <world>/serverconfig/qshop/currencies.json
 <world>/serverconfig/qshop/shops/<shop-id>.json
+config/qshop-common.toml
 ```
+
+### Currency loss on death
+
+The common config is `config/qshop-common.toml`. By default, `loseCurrencyOnDeath = false`, so a death keeps the complete wallet. When enabled, `defaultCurrencyRetention` applies to currencies without an override and `currencyRetention` can define per-currency ratios:
+
+```toml
+[death]
+loseCurrencyOnDeath = true
+defaultCurrencyRetention = 0.0
+currencyRetention = ["coins=0.2", "points=0.5"]
+```
+
+`coins=0.2` keeps 20% of coins after death. Ratios are clamped to `0.0..1.0`; `coins:0.2` is also accepted. The ratios are ignored while `loseCurrencyOnDeath` is disabled.
 
 The API writes these files when it mutates data. After manually editing JSON:
 

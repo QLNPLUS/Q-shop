@@ -1,6 +1,7 @@
 package com.qshop;
 
 import com.qshop.cmd.QShopCommands;
+import com.qshop.config.QShopCommonConfig;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.ShopManager;
@@ -43,11 +44,29 @@ public final class ForgeEvents {
         Player original = event.getOriginal();
         Player player = event.getEntity();
         original.getCapability(WalletCapability.WALLET).ifPresent(oldWallet ->
-                player.getCapability(WalletCapability.WALLET).ifPresent(newWallet -> newWallet.copyFrom(oldWallet)));
+                player.getCapability(WalletCapability.WALLET).ifPresent(newWallet -> {
+                    newWallet.copyFrom(oldWallet);
+                    if (event.isWasDeath() && QShopCommonConfig.loseCurrencyOnDeath()) {
+                        for (var entry : oldWallet.snapshot().entrySet()) {
+                            newWallet.setBalance(entry.getKey(), entry.getValue()
+                                    * QShopCommonConfig.currencyRetention(entry.getKey()));
+                        }
+                    }
+                }));
     }
 
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer sp) {
+            IWallet wallet = WalletCapability.get(sp);
+            if (wallet != null) {
+                QShopNetwork.sendToPlayer(sp, new SyncWalletPacket(wallet.snapshot()));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
             IWallet wallet = WalletCapability.get(sp);
             if (wallet != null) {

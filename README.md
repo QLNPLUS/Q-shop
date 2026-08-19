@@ -68,6 +68,28 @@ serverconfig/qshop/
 首次启动会自动生成默认 `currencies.json` 和示例商店 `starter.json`。
 修改后执行 `/qshop reload` 热加载。
 
+## 死亡货币配置
+
+通用配置文件为 `config/qshop-common.toml`，首次启动后自动生成。默认情况下玩家死亡不会减少货币：
+
+```toml
+[death]
+loseCurrencyOnDeath = false
+defaultCurrencyRetention = 0.0
+currencyRetention = []
+```
+
+开启后，`defaultCurrencyRetention` 是未单独配置货币的保留比例；`0.2` 表示死亡后保留 20%。可使用 `currencyRetention` 为不同货币设置覆盖值：
+
+```toml
+[death]
+loseCurrencyOnDeath = true
+defaultCurrencyRetention = 0.0
+currencyRetention = ["coins=0.2", "points=0.5"]
+```
+
+上例表示死亡后保留 20% 的 `coins`、50% 的 `points`，其他货币全部清空。比例范围为 `0.0` 到 `1.0`；也接受 `coins:0.2` 写法。
+
 ### currencies.json
 
 ```json

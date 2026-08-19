@@ -82,6 +82,8 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, or the Base64 format written by QShop.
 
+The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
+
 ## KubeJS integration
 
 Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.5 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.

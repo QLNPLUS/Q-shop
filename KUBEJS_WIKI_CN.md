@@ -464,7 +464,21 @@ getNewValue()   变化后的有效余额
 ```text
 <world>/serverconfig/qshop/currencies.json
 <world>/serverconfig/qshop/shops/<shop-id>.json
+config/qshop-common.toml
 ```
+
+### 死亡货币
+
+通用配置位于 `config/qshop-common.toml`。默认 `loseCurrencyOnDeath = false`，玩家死亡时完整保留货币。开启后使用 `defaultCurrencyRetention` 设置未列出货币的保留比例，并可用 `currencyRetention` 按货币覆盖：
+
+```toml
+[death]
+loseCurrencyOnDeath = true
+defaultCurrencyRetention = 0.0
+currencyRetention = ["coins=0.2", "points=0.5"]
+```
+
+`coins=0.2` 表示死亡后保留 20% 的 coins。比例范围为 `0.0` 到 `1.0`，也支持 `coins:0.2`。关闭 `loseCurrencyOnDeath` 时这些比例不会生效。
 
 手动编辑 JSON 后执行：
 
