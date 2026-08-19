@@ -161,6 +161,9 @@ QShop.takeCurrency(player, 'coins', 25)
 QShop.setCurrency(player, 'coins', 500)
 ```
 
+这三个 KubeJS 修改方法只修改余额并同步客户端，**不会触发**货币变动事件。
+货币变动事件由交易、FTB 货币奖励/任务扣款，以及 `/qshop currency` 指令触发。
+
 ## 子商店和 TabBuilder
 
 每个商店至少有一个子商店。第一个子商店的索引是 `0`。
@@ -353,6 +356,7 @@ requiredStages: ['stage_id']
 ```js
 QShopEvents.beforeTrade(event => { ... })
 QShopEvents.afterTrade(event => { ... })
+QShopEvents.currencyChanged(event => { ... })
 ```
 
 ### beforeTrade
@@ -416,6 +420,44 @@ tradedUnits, totalItems, paidPrice, partial
 ```
 
 `paidPrice` 是 `entry.price * tradedUnits`。`partial` 表示实际完成数量小于请求数量；也可以调用 `event.isPartial()`。
+
+### currencyChanged
+
+玩家的有效货币余额发生变化后触发：
+
+```js
+QShopEvents.currencyChanged(event => {
+  const player = event.getPlayer()
+  console.log(`${player.getGameProfile().getName()} ${event.getCurrency()}: `
+    + `${event.getOldValue()} -> ${event.getNewValue()}`)
+})
+```
+
+事件提供以下方法：
+
+```text
+getPlayer()     发生变化的 ServerPlayer
+getCurrency()   货币 id
+getOldValue()   变化前的有效余额
+getNewValue()   变化后的有效余额
+```
+
+以下来源会触发事件：
+
+- BUY/COMMAND 扣除货币，以及 SELL 获得货币；
+- FTB Quests 的 `qshop:money` 货币奖励；
+- FTB Quests 的 `qshop:money` 货币任务提交时的货币消耗；
+- `/qshop currency give/take/set <玩家> <货币> <数量> [true|false]`，默认触发。
+
+指令可以在数量后追加 `false` 禁用事件，或追加 `true` 明确启用，例如：
+
+```text
+/qshop currency give Steve coins 100 false
+/qshop currency take Steve coins 25 true
+```
+
+`QShop.giveCurrency/takeCurrency/setCurrency` 属于脚本直接修改，不会触发
+`currencyChanged`，但仍会立即同步客户端余额。
 
 ## 配置文件和重载
 

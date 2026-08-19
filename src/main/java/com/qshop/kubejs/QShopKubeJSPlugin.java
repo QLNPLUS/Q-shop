@@ -9,7 +9,7 @@ import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.util.ClassFilter;
 
 /**
- * KubeJS 插件:注册 QShop 绑定与购买前/后事件。
+ * KubeJS 插件:注册 QShop 绑定与购买前/后、货币变动事件。
  * 仅在安装了 KubeJS 时由 KubeJS 通过 kubejs.plugins.txt 加载。
  */
 public class QShopKubeJSPlugin extends KubeJSPlugin {
@@ -20,6 +20,8 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
             QSHOP_EVENTS.server("beforeTrade", () -> BeforeTradeEvent.class).hasResult();
     public static final EventHandler AFTER_TRADE =
             QSHOP_EVENTS.server("afterTrade", () -> AfterTradeEvent.class);
+    public static final EventHandler CURRENCY_CHANGED =
+            QSHOP_EVENTS.server("currencyChanged", () -> CurrencyChangedEvent.class);
 
     @Override
     public void init() {
@@ -34,6 +36,8 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
                     tradedUnits, totalItems, partial);
             AFTER_TRADE.post(event);
         };
+        QShopCurrencyEvents.hook = (player, currency, oldValue, newValue) ->
+                CURRENCY_CHANGED.post(new CurrencyChangedEvent(player, currency, oldValue, newValue));
     }
 
     @Override
@@ -49,6 +53,7 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
         filter.allow("com.qshop.kubejs.TabBuilder");
         filter.allow("com.qshop.kubejs.BeforeTradeEvent");
         filter.allow("com.qshop.kubejs.AfterTradeEvent");
+        filter.allow("com.qshop.kubejs.CurrencyChangedEvent");
         filter.allow("com.qshop.shop");
         filter.allow("com.qshop.currency");
     }

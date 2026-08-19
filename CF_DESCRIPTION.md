@@ -62,7 +62,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 /qshop reload
 /qshop currency list
 /qshop currency create <id> <name> [color]
-/qshop currency give|take|set <player> <currency> <amount>
+/qshop currency give|take|set <player> <currency> <amount> [true|false]
 /qshop shop create <id> [displayName] [currency]
 /qshop edit <shop> add <type> [price] [currency]
 /qshop edit <shop> remove <index>
@@ -183,9 +183,13 @@ QShopEvents.afterTrade(event => {
     event.player.tell(`Completed ${event.tradedUnits} unit(s).`)
   }
 })
+
+QShopEvents.currencyChanged(event => {
+  console.log(`${event.getCurrency()}: ${event.getOldValue()} -> ${event.getNewValue()}`)
+})
 ```
 
-Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`. Event-only data includes `units` for `beforeTrade`, and `tradedUnits`, `totalItems`, `paidPrice` and `partial` for `afterTrade`.
+Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`. Event-only data includes `units` for `beforeTrade`, and `tradedUnits`, `totalItems`, `paidPrice` and `partial` for `afterTrade`. `currencyChanged` provides `getPlayer()`, `getCurrency()`, `getOldValue()` and `getNewValue()`. It fires for trade currency changes, FTB money rewards/tasks, and `/qshop currency` commands by default; append `false` to a command to suppress it. Direct `QShop.giveCurrency/takeCurrency/setCurrency` calls do not fire this event.
 
 ## Documentation
 

@@ -186,6 +186,8 @@ QShop.takeCurrency(player, 'coins', 25)
 QShop.setCurrency(player, 'coins', 500)
 ```
 
+These three KubeJS mutation methods update the wallet and sync the client, but **do not fire** the currency-change event. The event is reserved for trades, FTB money reward/task changes, and `/qshop currency` commands.
+
 `createCurrency` returns `false` for a duplicate id or invalid color. Amounts are numeric. Wallet updates are synchronized to the client immediately.
 
 Example command:
@@ -506,6 +508,7 @@ The plugin registers the `QShopEvents` event group:
 ```js
 QShopEvents.beforeTrade(event => { ... })
 QShopEvents.afterTrade(event => { ... })
+QShopEvents.currencyChanged(event => { ... })
 ```
 
 ### beforeTrade
@@ -583,6 +586,36 @@ QShopEvents.afterTrade(event => {
   console.log(`${entry.type} ${entry.displayName} count=${entry.count}`)
 })
 ```
+
+### currencyChanged
+
+This event runs after a player's effective currency balance changes:
+
+```js
+QShopEvents.currencyChanged(event => {
+  const player = event.getPlayer()
+  console.log(`${player.getGameProfile().getName()} ${event.getCurrency()}: `
+    + `${event.getOldValue()} -> ${event.getNewValue()}`)
+})
+```
+
+The event provides:
+
+```text
+getPlayer()     the affected ServerPlayer
+getCurrency()   the currency id
+getOldValue()   the effective balance before the change
+getNewValue()   the effective balance after the change
+```
+
+It fires for BUY/COMMAND currency payments, SELL income, the FTB Quests `qshop:money` reward, the FTB Quests `qshop:money` task's consumed balance, and `/qshop currency give/take/set` (enabled by default). Append `false` after the amount to disable it, or `true` to enable it explicitly:
+
+```text
+/qshop currency give Steve coins 100 false
+/qshop currency take Steve coins 25 true
+```
+
+`QShop.giveCurrency/takeCurrency/setCurrency` intentionally do not fire this event; they only mutate and synchronize the wallet.
 
 ## Configuration files and reload
 

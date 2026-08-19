@@ -4,10 +4,12 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.qshop.currency.Currency;
 import com.qshop.currency.CurrencyRegistry;
+import com.qshop.kubejs.QShopCurrencyEvents;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.LimitReset;
@@ -65,17 +67,26 @@ public final class QShopCommands {
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
-                                                        .executes(ctx -> currencyChange(ctx, true))))))
+                                                        .executes(ctx -> currencyChange(ctx, true, true))
+                                                        .then(Commands.argument("trigger", BoolArgumentType.bool())
+                                                                .executes(ctx -> currencyChange(ctx, true,
+                                                                        BoolArgumentType.getBool(ctx, "trigger"))))))))
                         .then(Commands.literal("take").requires(s -> s.hasPermission(2))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
-                                                        .executes(ctx -> currencyChange(ctx, false))))))
+                                                        .executes(ctx -> currencyChange(ctx, false, true))
+                                                        .then(Commands.argument("trigger", BoolArgumentType.bool())
+                                                                .executes(ctx -> currencyChange(ctx, false,
+                                                                        BoolArgumentType.getBool(ctx, "trigger"))))))))
                         .then(Commands.literal("set").requires(s -> s.hasPermission(2))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
-                                                        .executes(ctx -> currencySet(ctx)))))))
+                                                        .executes(ctx -> currencySet(ctx, true))
+                                                        .then(Commands.argument("trigger", BoolArgumentType.bool())
+                                                                .executes(ctx -> currencySet(ctx,
+                                                                        BoolArgumentType.getBool(ctx, "trigger")))))))))
                 // ---------------- 商店管理 ----------------
                 .then(Commands.literal("shop")
                         .then(Commands.literal("list").executes(QShopCommands::list))
@@ -176,7 +187,8 @@ public final class QShopCommands {
 
     // ---------------- 货币 ----------------
 
-    private static int currencyChange(CommandContext<CommandSourceStack> ctx, boolean give) throws CommandSyntaxException {
+    private static int currencyChange(CommandContext<CommandSourceStack> ctx, boolean give, boolean trigger)
+            throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         String currency = StringArgumentType.getString(ctx, "currency");
         double amount = DoubleArgumentType.getDouble(ctx, "amount");
@@ -185,11 +197,19 @@ public final class QShopCommands {
             return 0;
         }
         if (give) {
+            double oldBalance = wallet.getBalance(currency);
             wallet.add(currency, amount);
+            if (trigger) {
+                QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
+            }
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_give",
                     player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         } else {
-            wallet.take(currency, amount);
+            double oldBalance = wallet.getBalance(currency);
+            boolean changed = wallet.take(currency, amount);
+            if (trigger && changed) {
+                QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
+            }
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_take",
                     player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         }
@@ -197,7 +217,7 @@ public final class QShopCommands {
         return 1;
     }
 
-    private static int currencySet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    private static int currencySet(CommandContext<CommandSourceStack> ctx, boolean trigger) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         String currency = StringArgumentType.getString(ctx, "currency");
         double amount = DoubleArgumentType.getDouble(ctx, "amount");
@@ -205,7 +225,11 @@ public final class QShopCommands {
         if (wallet == null) {
             return 0;
         }
+        double oldBalance = wallet.getBalance(currency);
         wallet.setBalance(currency, amount);
+        if (trigger) {
+            QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
+        }
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_set",
                 player.getGameProfile().getName(), CurrencyRegistry.displayName(currency), CurrencyRegistry.format(amount)), true);
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));

@@ -147,7 +147,7 @@ serverconfig/qshop/
 | `/qshop list` | 无 | 列出所有商店(id、uuid、条目数) |
 | `/qshop balance` | 无 | 查看自己的货币余额 |
 | `/qshop currency list` | 无 | 列出货币 |
-| `/qshop currency give/take/set <玩家> <货币> <数量>` | op2 | 货币管理 |
+| `/qshop currency give/take/set <玩家> <货币> <数量> [true\|false]` | op2 | 货币管理；最后参数控制是否触发货币变动事件，省略时为 `true` |
 | `/qshop reload` | op2 | 重新加载商店/货币配置 |
 | `/qshop edit <商店> add <buy\|sell\|barter\|command> [价格] [货币]` | op2 | 用手持物品添加条目(BARTER:主手=获得物,副手=付出物;COMMAND:无需物品) |
 | `/qshop edit <商店> remove <序号>` | op2 | 删除条目 |
@@ -206,6 +206,21 @@ QShopEvents.afterTrade(event => {
   console.log(`${entry.type.name()} x${entry.count}, paid=${event.paidPrice}`)
 })
 ```
+
+货币变动事件：
+
+```js
+QShopEvents.currencyChanged(event => {
+  console.log(`${event.getPlayer().getGameProfile().getName()} ${event.getCurrency()}: `
+    + `${event.getOldValue()} -> ${event.getNewValue()}`)
+})
+```
+
+`currencyChanged` 在交易购买/出售、FTB 货币奖励、FTB 货币任务消耗，以及
+`/qshop currency give/take/set`（末尾参数省略或为 `true`）后触发。事件提供
+`getPlayer()`、`getCurrency()`、`getOldValue()`、`getNewValue()`。通过
+`QShop.giveCurrency/takeCurrency/setCurrency` 修改余额不会触发此事件；如需脚本逻辑，
+请在脚本中自行调用对应处理。
 
 相同 UUID 的 `EntryBuilder.add()` 会替换已有交易项目；相同 UUID 的 `TabBuilder.add()` 会更新子商店信息并保留已有交易项目。
 

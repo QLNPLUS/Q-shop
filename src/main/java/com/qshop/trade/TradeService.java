@@ -4,6 +4,7 @@ import com.qshop.config.QShopServerConfig;
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.data.QShopSavedData;
 import com.qshop.kubejs.QShopTradeEvents;
+import com.qshop.kubejs.QShopCurrencyEvents;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.Shop;
@@ -144,7 +145,9 @@ public final class TradeService {
                 }
                 double cost = e.price * units;
                 if (cost > 0) {
+                    double oldBalance = wallet.getBalance(e.currencyId);
                     wallet.take(e.currencyId, cost);
+                    QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
                 }
                 ItemHelper.give(player, result);
             }
@@ -161,7 +164,9 @@ public final class TradeService {
                 }
                 double cost = e.price * units;
                 if (cost > 0) {
+                    double oldBalance = wallet.getBalance(e.currencyId);
                     wallet.add(e.currencyId, cost);
+                    QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
                 }
             }
             case COMMAND -> {
@@ -186,7 +191,9 @@ public final class TradeService {
                     }
                     double cost = e.price * units;
                     if (cost > 0) {
+                        double oldBalance = wallet.getBalance(e.currencyId);
                         wallet.take(e.currencyId, cost);
+                        QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
                     }
                 }
             }

@@ -1,5 +1,16 @@
 # 更新日志
 
+## Unreleased
+
+### 新增
+
+- 新增 KubeJS `QShopEvents.currencyChanged` 玩家货币变动事件，提供 `getPlayer()`、`getCurrency()`、`getOldValue()`、`getNewValue()`。
+- 交易、FTB 货币奖励/任务扣款和 `/qshop currency` 指令默认触发事件；指令支持追加 `true/false` 控制是否触发。
+
+### 说明
+
+- `QShop.giveCurrency/takeCurrency/setCurrency` 仍不会触发货币变动事件。
+
 ## 1.0.4 - 2026-08-18
 
 ### 变更

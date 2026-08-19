@@ -1,6 +1,7 @@
 package com.qshop.ftb;
 
 import com.qshop.currency.CurrencyRegistry;
+import com.qshop.kubejs.QShopCurrencyEvents;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
 import dev.ftb.mods.ftblibrary.config.ConfigGroup;
@@ -118,6 +119,7 @@ public class QShopMoneyTask extends Task implements ISingleLongValueTask {
         long progress = Math.min((long) bal, Math.max(0, remaining));
         if (progress > 0) {
             wallet.setBalance(id, bal - progress);
+            QShopCurrencyEvents.post(player, id, bal, wallet.getBalance(id));
             teamData.addProgress(this, progress);
         }
     }
