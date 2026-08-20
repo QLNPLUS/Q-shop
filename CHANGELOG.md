@@ -1,16 +1,16 @@
-# 更新日志
+# Changelog
 
-## Unreleased
+## 1.0.6 - 2026-08-20
 
-### 变更
+### Changed
 
-- `QShop.clearEntryLimits` 和 `QShop.clearTabLimits` 现在支持数字索引或 UUID；名称仍不支持。
-- 明确 `QShop.refreshTab` 的 tab 参数支持数字索引或 tab UUID，不支持 tab 名称。
+- `QShop.clearEntryLimits` and `QShop.clearTabLimits` now accept zero-based indexes or UUIDs; names are still not accepted.
+- Documented that the `refreshTab` tab reference accepts a zero-based index or tab UUID, not a tab name.
 
-### 新增
+### Added
 
-- 新增 `config/qshop-common.toml` 死亡货币配置，可设置是否扣除货币、默认保留比例和按货币覆盖比例。
-- 新增死亡后钱包同步，避免重生客户端继续显示死亡前余额。
+- Added `config/qshop-common.toml` currency-on-death settings with a global toggle, default retention ratio, and per-currency overrides.
+- Added wallet synchronization after respawn so the client does not keep showing the pre-death balance.
 
 ## 1.0.5 - 2026-08-19
 

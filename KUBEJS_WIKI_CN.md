@@ -1,6 +1,6 @@
 # QShop KubeJS 中文 Wiki
 
-本文档对应 QShop `1.0.5`。QShop 是 Forge 1.20.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
+本文档对应 QShop `1.0.6`。QShop 是 Forge 1.20.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
 
 ## 环境要求
 

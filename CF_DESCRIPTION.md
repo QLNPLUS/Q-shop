@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.0.5
+# QShop 1.0.6
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -86,7 +86,7 @@ The common config `config/qshop-common.toml` can optionally reduce currencies on
 
 ## KubeJS integration
 
-Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.5 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
+Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.6 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
 
 ### Create or update data
 
