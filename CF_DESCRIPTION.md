@@ -161,7 +161,7 @@ QShop.refreshTab('vip', 'daily-offers', 10, [
 ])
 ```
 
-Every generated entry receives a new UUID and starts with empty limit counters.
+The second argument is a zero-based tab index or the tab UUID (`daily-offers` in this example), not the tab display name. Every generated entry receives a new UUID and starts with empty limit counters. The limit-clearing methods accept tab/entry indexes or UUIDs (not names); the shop reference can be a shop ID or shop UUID.
 
 ### Trade events
 

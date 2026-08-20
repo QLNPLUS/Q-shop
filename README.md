@@ -313,8 +313,9 @@ QShop.updateTab('vip', 'daily-tab-uuid', {
 // 旧式写法仍可用:QShop.addTab('vip', '武器', 'minecraft:iron_sword', 'uuid');
 //           QShop.updateTab('vip', 0, '新名'); / QShop.updateTabByUuid('vip', uuid, '新名', null);
 
-// 刷新子商店:清空并从权重池随机生成 count 条交易
+// 刷新子商店:第二个参数是 tab UUID 或从 0 开始的数字索引,不是 tab 名称
 // 池条目 = 标准 ShopEntry JSON(与 addEntry 同格式,支持全部 16 个字段)+ weight(权重)
+// 'daily-tab-uuid' 必须是子商店的 uuid
 QShop.refreshTab('card', 'daily-tab-uuid', 10, [
   { type: 'BUY', item: { item: 'minecraft:diamond', count: 1, nbt: '{...}' },
     price: 1000000, currency: 'coins', globalLimit: 50, playerLimit: 5,
@@ -325,8 +326,17 @@ QShop.refreshTab('card', 'daily-tab-uuid', 10, [
     price: 5000, weight: 5 },
   { type: 'SELL', item: 'minecraft:iron_ingot', price: 100, weight: 30 }
 ]);
+// 数字索引形式:0 表示第一个子商店
 // 选项形式:QShop.refreshTab('card', 0, { count: 10, currency: 'coins', pool: [...] });
 // 每次生成全新 uuid(限购从零开始);未知物品跳过并警告。
+```
+
+限购清理方法的 `tabRef` / `entryRef` 支持数字索引或 UUID，不支持名称；`shopRef` 支持商店 ID 或商店 UUID：
+
+```js
+QShop.clearEntryLimits('card', 0, 0) // 第一个 tab 的第一个条目
+QShop.clearTabLimits('card', 0)      // 第一个 tab 的全部条目
+QShop.clearShopLimits('card')
 ```
 
 ### 历史 JSON 字段参考（1.0.4 不可用于写入）

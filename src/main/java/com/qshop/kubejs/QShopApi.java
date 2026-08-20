@@ -149,16 +149,16 @@ public final class QShopApi {
         return true;
     }
 
-    public boolean clearEntryLimits(String shopId, String tabUuid, String entryUuid) {
-        return QShopBindings.INSTANCE.clearEntryLimits(shopId, tabUuid, entryUuid);
+    public boolean clearEntryLimits(String shopRef, Object tabRef, Object entryRef) {
+        return QShopBindings.INSTANCE.clearEntryLimits(shopRef, tabRef, entryRef);
     }
 
-    public boolean clearTabLimits(String shopId, String tabUuid) {
-        return QShopBindings.INSTANCE.clearTabLimits(shopId, tabUuid);
+    public boolean clearTabLimits(String shopRef, Object tabRef) {
+        return QShopBindings.INSTANCE.clearTabLimits(shopRef, tabRef);
     }
 
-    public boolean clearShopLimits(String shopId) {
-        return QShopBindings.INSTANCE.clearShopLimits(shopId);
+    public boolean clearShopLimits(String shopRef) {
+        return QShopBindings.INSTANCE.clearShopLimits(shopRef);
     }
 
     public boolean refreshTab(String shopRef, Object tabRef, int count, Object pool) {

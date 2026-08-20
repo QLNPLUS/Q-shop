@@ -420,6 +420,13 @@ add()
 
 `refreshTab` clears a tab and draws a new set of entries from a weighted pool. Every generated entry receives a new UUID and its limit counters start from zero.
 
+The second argument, `tabRef`, accepts a zero-based numeric index or the tab UUID. In `QShop.refreshTab('vip', 'daily-offers', ...)`, `daily-offers` must be the tab's `uuid`, not its display name. Tab names are not accepted for lookup. For long-lived scripts, read the UUID from the tab object:
+
+```js
+const tab = QShop.getTab('vip', 0)
+QShop.refreshTab('vip', tab.uuid, 5, pool)
+```
+
 ```js
 QShop.refreshTab('vip', 'daily-offers', 5, [
   {
@@ -486,7 +493,23 @@ QShop.clearTabLimits(shopRef, tabUuid)
 QShop.clearShopLimits(shopRef)
 ```
 
-`clearEntryLimits` and `clearTabLimits` identify the tab and entry by UUID (`shopId` may be either the shop id or shop UUID). Use `getTab(...).uuid` and `getEntry(...).uuid` when the UUIDs are not known in advance.
+`clearEntryLimits` and `clearTabLimits` identify the tab and entry by index or UUID (`shopId` may be either the shop id or shop UUID). Use `getTab(...).uuid` and `getEntry(...).uuid` when stable UUID references are preferred.
+
+`shopRef` accepts either the shop ID or shop UUID. The tab reference accepts a zero-based numeric index or tab UUID, and the entry reference accepts a zero-based numeric index or entry UUID. Names are not accepted. The older parameter names `tabUuid` and `entryUuid` in examples are kept for compatibility, but UUIDs and indexes are both supported:
+
+```js
+const tab = QShop.getTab('vip', 0)
+const entry = QShop.getEntry('vip', tab.uuid, 0)
+QShop.clearEntryLimits('vip', tab.uuid, entry.uuid)
+QShop.clearTabLimits('vip', tab.uuid)
+```
+
+Numeric index form:
+
+```js
+QShop.clearEntryLimits('vip', 0, 0) // first entry in the first tab
+QShop.clearTabLimits('vip', 0)      // all entries in the first tab
+```
 
 These methods clear the global counter and online players' personal counters. Offline player data is cleaned when that player is online again.
 

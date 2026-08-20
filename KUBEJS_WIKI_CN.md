@@ -273,6 +273,13 @@ QShop.removeEntry('vip', 'daily-offers', 'oak-bundle')
 
 `refreshTab` 会清空目标子商店，并根据权重池生成新项目。新项目会生成新的 UUID，限购计数从零开始。
 
+第二个参数 `tabRef` 支持两种写法：数字索引（从 `0` 开始）或子商店 UUID。例如 `'daily-offers'` 必须是 tab 的 `uuid`，不是子商店名称。子商店名称不能用于查找。长期脚本建议使用 UUID：
+
+```js
+const tab = QShop.getTab('vip', 0)
+QShop.refreshTab('vip', tab.uuid, 5, pool)
+```
+
 ```js
 QShop.refreshTab('vip', 'daily-offers', 5, [
   {
@@ -329,7 +336,21 @@ QShop.clearTabLimits(shopRef, tabUuid)
 QShop.clearShopLimits(shopRef)
 ```
 
-这里的 `tabUuid` 和 `entryUuid` 必须使用 UUID；`shopRef` 可以使用商店 ID 或 UUID。
+这里的参数规则是：`shopRef` 支持商店 ID 或商店 UUID；`tabRef` 支持从 `0` 开始的数字索引或子商店 UUID，不支持子商店名称；`entryRef` 支持从 `0` 开始的数字索引或交易项目 UUID，不支持交易项目名称。参数名虽然写作 `tabUuid`/`entryUuid` 的旧示例仍可使用 UUID，但现在也可以直接传数字索引：
+
+```js
+const tab = QShop.getTab('vip', 0)
+const entry = QShop.getEntry('vip', tab.uuid, 0)
+QShop.clearEntryLimits('vip', tab.uuid, entry.uuid)
+QShop.clearTabLimits('vip', tab.uuid)
+```
+
+数字索引示例：
+
+```js
+QShop.clearEntryLimits('vip', 0, 0) // 第一个子商店的第一个交易项目
+QShop.clearTabLimits('vip', 0)      // 第一个子商店的全部交易项目
+```
 
 ## FTB Quests 和阶段检测
 

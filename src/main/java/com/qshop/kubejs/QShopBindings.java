@@ -682,6 +682,21 @@ final class QShopBindings {
         return null;
     }
 
+    /** 解析交易项目引用:零基数字索引或 UUID,不支持名称。 */
+    private static ShopEntry resolveEntry(ShopTab tab, Object entryRef) {
+        if (tab == null || entryRef == null) {
+            return null;
+        }
+        if (entryRef instanceof Number n) {
+            int index = n.intValue();
+            return index >= 0 && index < tab.entries.size() ? tab.entries.get(index) : null;
+        }
+        if (entryRef instanceof String uuid) {
+            return entryByUuid(tab, uuid);
+        }
+        return null;
+    }
+
     /** 按 uuid 修改子商店名称(图标不变) */
     public boolean updateTabByUuid(String shopId, String tabUuid, String name) {
         return updateTabByUuid(shopId, tabUuid, name, null);
@@ -828,11 +843,14 @@ final class QShopBindings {
 
     // ---------------- 限购记录清理 ----------------
 
-    /** 删除某个交易项目的全部限购记录(全服 + 所有在线玩家个人),返回是否成功 */
-    public boolean clearEntryLimits(String shopId, String tabUuid, String entryUuid) {
+    /**
+     * 删除某个交易项目的全部限购记录(全服 + 所有在线玩家个人),返回是否成功。
+     * shopId 可为商店 ID 或 UUID; tabRef/entryRef 可为零基索引或 UUID,不支持名称。
+     */
+    public boolean clearEntryLimits(String shopId, Object tabRef, Object entryRef) {
         Shop shop = ShopManager.get(shopId);
-        ShopTab t = tabByUuid(shop, tabUuid);
-        ShopEntry e = entryByUuid(t, entryUuid);
+        ShopTab t = resolveTab(shop, tabRef);
+        ShopEntry e = resolveEntry(t, entryRef);
         if (e == null) {
             return false;
         }
@@ -840,10 +858,13 @@ final class QShopBindings {
         return true;
     }
 
-    /** 删除某个子商店内全部条目的限购记录 */
-    public boolean clearTabLimits(String shopId, String tabUuid) {
+    /**
+     * 删除某个子商店内全部条目的限购记录。
+     * shopId 可为商店 ID 或 UUID; tabRef 可为零基索引或子商店 UUID,不支持名称。
+     */
+    public boolean clearTabLimits(String shopId, Object tabRef) {
         Shop shop = ShopManager.get(shopId);
-        ShopTab t = tabByUuid(shop, tabUuid);
+        ShopTab t = resolveTab(shop, tabRef);
         if (t == null) {
             return false;
         }
@@ -891,6 +912,7 @@ final class QShopBindings {
     /**
      * 刷新指定子商店的交易内容:清空该子商店现有条目,按权重从物品池中抽取
      * {@code count} 条重新生成(每条独立随机,允许重复出现)。
+     * tabRef 支持零基数字索引或子商店 UUID,不支持子商店名称。
      *
      * <p>两种写法(server_scripts):
      * <pre>

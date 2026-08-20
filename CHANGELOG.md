@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### 变更
+
+- `QShop.clearEntryLimits` 和 `QShop.clearTabLimits` 现在支持数字索引或 UUID；名称仍不支持。
+- 明确 `QShop.refreshTab` 的 tab 参数支持数字索引或 tab UUID，不支持 tab 名称。
+
 ### 新增
 
 - 新增 `config/qshop-common.toml` 死亡货币配置，可设置是否扣除货币、默认保留比例和按货币覆盖比例。
