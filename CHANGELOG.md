@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.7 - 2026-08-20
+
+### Added
+
+- Added automatic first-load import from `defaultconfigs/qshop/` into a new world's `serverconfig/qshop/` directory.
+- Existing world shop and currency files are never overwritten by the default import.
+
 ## 1.0.6 - 2026-08-20
 
 ### Changed

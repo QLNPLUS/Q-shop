@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -53,9 +54,39 @@ public final class ShopManager {
     public static void load(MinecraftServer srv) {
         server = srv;
         Path qshop = server.getWorldPath(LevelResource.ROOT).resolve("serverconfig").resolve("qshop");
+        importDefaultConfig(qshop);
         CurrencyRegistry.load(qshop.resolve("currencies.json"));
         ensureDefaults(qshop);
         reload();
+    }
+
+    /**
+     * Imports the bundled server shop JSON files for a new world.
+     * Existing world configuration is never overwritten.
+     */
+    private static void importDefaultConfig(Path target) {
+        if (Files.exists(target) || server == null || server.getServerDirectory() == null) {
+            return;
+        }
+        Path source = server.getServerDirectory().toPath().resolve("defaultconfigs").resolve("qshop");
+        if (!Files.isDirectory(source)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(source)) {
+            for (Path path : paths.sorted().toList()) {
+                Path relative = source.relativize(path);
+                Path destination = target.resolve(relative);
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else if (Files.isRegularFile(path)) {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(path, destination);
+                }
+            }
+            LOGGER.info("QShop: imported default configuration from {} to {}", source, target);
+        } catch (IOException | UncheckedIOException e) {
+            LOGGER.error("QShop: failed to import default configuration from {}", source, e);
+        }
     }
 
     private static void ensureDefaults(Path qshop) {

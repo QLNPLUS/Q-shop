@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.0.6
+# QShop 1.0.7
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -82,11 +82,13 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, or the Base64 format written by QShop.
 
+Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration.
+
 The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
 
 ## KubeJS integration
 
-Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.6 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
+Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.7 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
 
 ### Create or update data
 

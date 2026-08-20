@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.0.6**（Forge 1.20.1）
+当前版本：**1.0.7**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -31,7 +31,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.0.6.jar
+# 产物在 build/libs/qshop-1.0.7.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -67,6 +67,18 @@ serverconfig/qshop/
 
 首次启动会自动生成默认 `currencies.json` 和示例商店 `starter.json`。
 修改后执行 `/qshop reload` 热加载。
+
+### 新存档默认导入
+
+如果服务器根目录存在 `defaultconfigs/qshop/`，QShop 会在新存档首次加载时将其中的货币和商店 JSON 自动复制到该世界的 `serverconfig/qshop/`。已有世界配置不会被覆盖。
+
+```text
+defaultconfigs/qshop/
+├── currencies.json
+└── shops/
+    ├── sdm.json
+    └── vip.json
+```
 
 ## 死亡货币配置
 
@@ -195,7 +207,7 @@ GameStages（模组 ID：`gamestages`）；QShop 也会兼容 KubeJS PlayerStage
 
 > 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
 
-### 1.0.6 当前 API
+### 1.0.7 当前 API
 
 ```js
 QShop.createShop('vip', 'VIP 商店', 'coins')

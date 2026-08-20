@@ -650,6 +650,16 @@ Shop data is stored per world:
 config/qshop-common.toml
 ```
 
+When the server root contains `defaultconfigs/qshop/`, QShop copies that directory into a new world's `serverconfig/qshop/` directory on first load. Existing world files are never overwritten. Use this layout for pack-provided default shops:
+
+```text
+defaultconfigs/qshop/
+├── currencies.json
+└── shops/
+    ├── sdm.json
+    └── vip.json
+```
+
 ### Currency loss on death
 
 The common config is `config/qshop-common.toml`. By default, `loseCurrencyOnDeath = false`, so a death keeps the complete wallet. When enabled, `defaultCurrencyRetention` applies to currencies without an override and `currencyRetention` can define per-currency ratios:
