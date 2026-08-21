@@ -1,5 +1,6 @@
 package com.qshop;
 
+import com.qshop.api.CurrencyService;
 import com.qshop.cmd.QShopCommands;
 import com.qshop.config.QShopCommonConfig;
 import com.qshop.net.QShopNetwork;
@@ -48,8 +49,14 @@ public final class ForgeEvents {
                     newWallet.copyFrom(oldWallet);
                     if (event.isWasDeath() && QShopCommonConfig.loseCurrencyOnDeath()) {
                         for (var entry : oldWallet.snapshot().entrySet()) {
-                            newWallet.setBalance(entry.getKey(), entry.getValue()
-                                    * QShopCommonConfig.currencyRetention(entry.getKey()));
+                            double retained = entry.getValue()
+                                    * QShopCommonConfig.currencyRetention(entry.getKey());
+                            if (player instanceof ServerPlayer sp) {
+                                CurrencyService.INSTANCE.set(sp, entry.getKey(), retained,
+                                        CurrencyService.SOURCE_DEATH, null);
+                            } else {
+                                newWallet.setBalance(entry.getKey(), retained);
+                            }
                         }
                     }
                 }));

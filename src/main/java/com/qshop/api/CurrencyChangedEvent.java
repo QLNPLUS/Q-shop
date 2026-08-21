@@ -1,34 +1,30 @@
-package com.qshop.kubejs;
+package com.qshop.api;
 
-import dev.latvian.mods.kubejs.event.EventJS;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.eventbus.api.Event;
 
 import javax.annotation.Nullable;
 
-/** Event fired after a player's effective currency balance changes. */
-public class CurrencyChangedEvent extends EventJS {
+/**
+ * Forge event posted after a player's effective currency balance changes.
+ * The event is server-side and is not cancellable because the balance has
+ * already been committed when it is delivered.
+ */
+public class CurrencyChangedEvent extends Event {
 
     private final ServerPlayer player;
     private final String currency;
     private final double oldValue;
     private final double newValue;
-    @Nullable
     private final ResourceLocation source;
     @Nullable
     private final BlockPos sourcePos;
 
-    public CurrencyChangedEvent() {
-        this(null, "", 0, 0, null, null);
-    }
-
-    public CurrencyChangedEvent(ServerPlayer player, String currency, double oldValue, double newValue) {
-        this(player, currency, oldValue, newValue, null, null);
-    }
-
-    public CurrencyChangedEvent(ServerPlayer player, String currency, double oldValue, double newValue,
-                                @Nullable ResourceLocation source, @Nullable BlockPos sourcePos) {
+    public CurrencyChangedEvent(ServerPlayer player, String currency,
+                                double oldValue, double newValue,
+                                ResourceLocation source, @Nullable BlockPos sourcePos) {
         this.player = player;
         this.currency = currency == null ? "" : currency;
         this.oldValue = oldValue;
@@ -57,7 +53,6 @@ public class CurrencyChangedEvent extends EventJS {
         return newValue - oldValue;
     }
 
-    @Nullable
     public ResourceLocation getSource() {
         return source;
     }

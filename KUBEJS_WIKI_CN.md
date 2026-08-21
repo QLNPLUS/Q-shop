@@ -1,6 +1,6 @@
 # QShop KubeJS 中文 Wiki
 
-本文档对应 QShop `1.0.7`。QShop 是 Forge 1.20.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
+本文档对应 QShop `1.1.0`。QShop 是 Forge 1.20.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
 
 ## 环境要求
 
@@ -161,8 +161,9 @@ QShop.takeCurrency(player, 'coins', 25)
 QShop.setCurrency(player, 'coins', 500)
 ```
 
-这三个 KubeJS 修改方法只修改余额并同步客户端，**不会触发**货币变动事件。
-货币变动事件由交易、FTB 货币奖励/任务扣款，以及 `/qshop currency` 指令触发。
+这三个 KubeJS 修改方法会修改余额、同步客户端，并在余额实际变化时触发货币变动事件。
+货币变动事件还会由交易、FTB 货币奖励/任务扣款、配置的死亡货币保留、Java 附属 API
+以及 `/qshop currency` 指令触发。
 
 ## 子商店和 TabBuilder
 
@@ -461,6 +462,9 @@ getPlayer()     发生变化的 ServerPlayer
 getCurrency()   货币 id
 getOldValue()   变化前的有效余额
 getNewValue()   变化后的有效余额
+getDelta()      newValue - oldValue
+getSource()     变动来源 ResourceLocation
+getSourcePos()  来源方块坐标，没有方块来源时为 null
 ```
 
 以下来源会触发事件：
@@ -469,6 +473,7 @@ getNewValue()   变化后的有效余额
 - FTB Quests 的 `qshop:money` 货币奖励；
 - FTB Quests 的 `qshop:money` 货币任务提交时的货币消耗；
 - `/qshop currency give/take/set <玩家> <货币> <数量> [true|false]`，默认触发。
+- `QShop.giveCurrency/takeCurrency/setCurrency`、配置的死亡货币保留和 Java 附属 API 货币修改。
 
 指令可以在数量后追加 `false` 禁用事件，或追加 `true` 明确启用，例如：
 
@@ -477,8 +482,26 @@ getNewValue()   变化后的有效余额
 /qshop currency take Steve coins 25 true
 ```
 
-`QShop.giveCurrency/takeCurrency/setCurrency` 属于脚本直接修改，不会触发
-`currencyChanged`，但仍会立即同步客户端余额。
+`QShop.giveCurrency/takeCurrency/setCurrency` 在余额实际变化时也会触发
+`currencyChanged`，并立即同步客户端余额。配置的死亡货币保留和 Java 附属 API
+货币修改也会触发该事件。
+
+## Java 附属模组 API
+
+1.1.0 提供 `com.qshop.api` 正式 Java API，入口为 `QShopAddonApi`：
+
+```java
+QShopAddonApi.currency().deposit(player, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+
+TradeResult result = QShopAddonApi.sell(
+        player, itemHandler, "vip", 0, 0, 16,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+```
+
+`sell` 和 `buy` 支持 Forge `IItemHandler` 容器库存，会检查交易项目要求和限购，
+并触发交易前/后事件及货币变动事件。容器需要保存放置者 UUID；当前钱包保存在玩家
+Capability 中，因此玩家离线时不会执行需要钱包的容器交易。
 
 ## 配置文件和重载
 

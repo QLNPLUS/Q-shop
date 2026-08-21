@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 - 2026-08-21
+
+### Added
+
+- Added the official Java addon API under `com.qshop.api`.
+- Added centralized currency mutations with client synchronization and Forge `CurrencyChangedEvent` dispatch.
+- Added `IItemHandler`-based addon BUY/SELL transactions for server-side container mods.
+- Added source and block-position metadata to Java and KubeJS currency-change events.
+
+### Changed
+
+- Existing trades, commands, FTB money integration, KubeJS currency methods, and configured death retention now use the centralized currency service.
+- KubeJS `QShop.giveCurrency/takeCurrency/setCurrency` now fire `currencyChanged` when the effective balance changes.
+
 ## 1.0.7 - 2026-08-20
 
 ### Added

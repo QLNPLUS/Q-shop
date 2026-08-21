@@ -186,7 +186,7 @@ QShop.takeCurrency(player, 'coins', 25)
 QShop.setCurrency(player, 'coins', 500)
 ```
 
-These three KubeJS mutation methods update the wallet and sync the client, but **do not fire** the currency-change event. The event is reserved for trades, FTB money reward/task changes, and `/qshop currency` commands.
+These three KubeJS mutation methods update the wallet, sync the client, and fire the currency-change event when the effective balance changes. The event also includes `getDelta()`, `getSource()`, and `getSourcePos()`.
 
 `createCurrency` returns `false` for a duplicate id or invalid color. Amounts are numeric. Wallet updates are synchronized to the client immediately.
 
@@ -629,16 +629,34 @@ getPlayer()     the affected ServerPlayer
 getCurrency()   the currency id
 getOldValue()   the effective balance before the change
 getNewValue()   the effective balance after the change
+getDelta()      newValue - oldValue
+getSource()     source ResourceLocation, or null for legacy/manual calls
+getSourcePos()  source block position, or null when not block-related
 ```
 
-It fires for BUY/COMMAND currency payments, SELL income, the FTB Quests `qshop:money` reward, the FTB Quests `qshop:money` task's consumed balance, and `/qshop currency give/take/set` (enabled by default). Append `false` after the amount to disable it, or `true` to enable it explicitly:
+It fires for BUY/COMMAND currency payments, SELL income, the FTB Quests `qshop:money` reward, the FTB Quests `qshop:money` task's consumed balance, `/qshop currency give/take/set`, KubeJS currency methods, configured death retention, and Java addon currency services. Append `false` after the amount to disable the command event, or `true` to enable it explicitly:
 
 ```text
 /qshop currency give Steve coins 100 false
 /qshop currency take Steve coins 25 true
 ```
 
-`QShop.giveCurrency/takeCurrency/setCurrency` intentionally do not fire this event; they only mutate and synchronize the wallet.
+`QShop.giveCurrency/takeCurrency/setCurrency` now fire this event when the effective balance changes. The event is also emitted for configured death retention and Java addon currency services.
+
+## Java addon API
+
+Forge addon mods can use the stable facade in `com.qshop.api`:
+
+```java
+QShopAddonApi.currency().deposit(player, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+
+TradeResult result = QShopAddonApi.sell(
+        player, itemHandler, "vip", 0, 0, 16,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+```
+
+`sell` and `buy` accept Forge `IItemHandler` inventories and return `TradeResult`. They support tab/entry indexes or UUID references, enforce requirements and limits, and trigger the normal trade and currency events. The owner must be online because QShop wallets are currently stored on player capabilities.
 
 ## Configuration files and reload
 

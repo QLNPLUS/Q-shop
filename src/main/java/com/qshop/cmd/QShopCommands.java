@@ -9,7 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.qshop.currency.Currency;
 import com.qshop.currency.CurrencyRegistry;
-import com.qshop.kubejs.QShopCurrencyEvents;
+import com.qshop.api.CurrencyService;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.LimitReset;
@@ -197,19 +197,13 @@ public final class QShopCommands {
             return 0;
         }
         if (give) {
-            double oldBalance = wallet.getBalance(currency);
-            wallet.add(currency, amount);
-            if (trigger) {
-                QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
-            }
+            CurrencyService.INSTANCE.deposit(player, currency, amount,
+                    CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_give",
                     player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         } else {
-            double oldBalance = wallet.getBalance(currency);
-            boolean changed = wallet.take(currency, amount);
-            if (trigger && changed) {
-                QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
-            }
+            CurrencyService.INSTANCE.withdraw(player, currency, amount,
+                    CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_take",
                     player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         }
@@ -225,11 +219,8 @@ public final class QShopCommands {
         if (wallet == null) {
             return 0;
         }
-        double oldBalance = wallet.getBalance(currency);
-        wallet.setBalance(currency, amount);
-        if (trigger) {
-            QShopCurrencyEvents.post(player, currency, oldBalance, wallet.getBalance(currency));
-        }
+        CurrencyService.INSTANCE.set(player, currency, amount,
+                CurrencyService.SOURCE_COMMAND, null, trigger);
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_set",
                 player.getGameProfile().getName(), CurrencyRegistry.displayName(currency), CurrencyRegistry.format(amount)), true);
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));

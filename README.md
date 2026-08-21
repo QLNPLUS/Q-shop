@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.0.7**（Forge 1.20.1）
+当前版本：**1.1.0**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -31,7 +31,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.0.7.jar
+# 产物在 build/libs/qshop-1.1.0.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -207,7 +207,7 @@ GameStages（模组 ID：`gamestages`）；QShop 也会兼容 KubeJS PlayerStage
 
 > 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
 
-### 1.0.7 当前 API
+### 1.1.0 当前 API
 
 ```js
 QShop.createShop('vip', 'VIP 商店', 'coins')
@@ -250,13 +250,31 @@ QShopEvents.currencyChanged(event => {
 })
 ```
 
-`currencyChanged` 在交易购买/出售、FTB 货币奖励、FTB 货币任务消耗，以及
-`/qshop currency give/take/set`（末尾参数省略或为 `true`）后触发。事件提供
-`getPlayer()`、`getCurrency()`、`getOldValue()`、`getNewValue()`。通过
-`QShop.giveCurrency/takeCurrency/setCurrency` 修改余额不会触发此事件；如需脚本逻辑，
-请在脚本中自行调用对应处理。
+`currencyChanged` 在所有实际余额变化后触发，包括交易购买/出售、FTB 货币奖励、
+FTB 货币任务消耗、KubeJS 货币方法、配置的死亡货币保留，以及
+`/qshop currency give/take/set`（末尾参数省略或为 `true`）。事件提供
+`getPlayer()`、`getCurrency()`、`getOldValue()`、`getNewValue()`、`getDelta()`、
+`getSource()` 和 `getSourcePos()`。通过 `QShop.giveCurrency/takeCurrency/setCurrency`
+修改余额也会触发此事件(余额实际发生变化时)。
 
 相同 UUID 的 `EntryBuilder.add()` 会替换已有交易项目；相同 UUID 的 `TabBuilder.add()` 会更新子商店信息并保留已有交易项目。
+
+## Java 附属模组 API
+
+1.1.0 提供面向 Forge 附属模组的正式 API，入口为 `com.qshop.api.QShopAddonApi`：
+
+```java
+QShopAddonApi.currency().deposit(player, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+
+TradeResult result = QShopAddonApi.sell(
+        player, itemHandler, "vip", tabIndex, entryIndex, 16,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+```
+
+`sell` 和 `buy` 支持 `IItemHandler`，会复用条目要求、限购、交易前/后事件和货币变动事件。容器附属应保存放置者 UUID；当前钱包绑定在线玩家，离线玩家不会执行需要钱包的容器交易。
+
+Java 附属可以监听 Forge `com.qshop.api.CurrencyChangedEvent`。事件提供玩家、货币、变化前后余额、差值、来源 `ResourceLocation` 和可选的来源方块坐标。
 
 ### 历史 JSON API（1.0.4 不可用）
 

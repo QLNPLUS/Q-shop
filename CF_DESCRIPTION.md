@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.0.7
+# QShop 1.1.0
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -88,7 +88,7 @@ The common config `config/qshop-common.toml` can optionally reduce currencies on
 
 ## KubeJS integration
 
-Install KubeJS on the server to enable the global `QShop` binding. The public 1.0.7 API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
+Install KubeJS on the server to enable the global `QShop` binding. The public 1.1.0 KubeJS API is Builder-first. JSON CRUD methods and direct `JsonIO` writes are not part of the public global API.
 
 ### Create or update data
 
@@ -193,7 +193,9 @@ QShopEvents.currencyChanged(event => {
 })
 ```
 
-Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`. Event-only data includes `units` for `beforeTrade`, and `tradedUnits`, `totalItems`, `paidPrice` and `partial` for `afterTrade`. `currencyChanged` provides `getPlayer()`, `getCurrency()`, `getOldValue()` and `getNewValue()`. It fires for trade currency changes, FTB money rewards/tasks, and `/qshop currency` commands by default; append `false` to a command to suppress it. Direct `QShop.giveCurrency/takeCurrency/setCurrency` calls do not fire this event.
+Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`. Event-only data includes `units` for `beforeTrade`, and `tradedUnits`, `totalItems`, `paidPrice` and `partial` for `afterTrade`. `currencyChanged` provides `getPlayer()`, `getCurrency()`, `getOldValue()`, `getNewValue()`, `getDelta()`, `getSource()` and `getSourcePos()`. It fires for all effective currency changes, including trades, FTB money rewards/tasks, commands, KubeJS currency methods, configured death retention, and Java addon services. Append `false` to a command to suppress it.
+
+Forge addon mods can use the official `com.qshop.api.QShopAddonApi` facade. Its `currency()` service centralizes wallet mutations, and its `buy`/`sell` methods accept Forge `IItemHandler` inventories for server-side container integrations. Java addons can listen for `com.qshop.api.CurrencyChangedEvent` on the Forge event bus.
 
 ## Documentation
 

@@ -1,10 +1,11 @@
 package com.qshop.trade;
 
+import com.qshop.api.CurrencyService;
+import com.qshop.api.TradeResult;
 import com.qshop.config.QShopServerConfig;
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.data.QShopSavedData;
 import com.qshop.kubejs.QShopTradeEvents;
-import com.qshop.kubejs.QShopCurrencyEvents;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.Shop;
@@ -12,15 +13,20 @@ import com.qshop.shop.ShopCommand;
 import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.shop.ShopManager;
+import com.qshop.shop.ShopTab;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.items.IItemHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -145,9 +151,8 @@ public final class TradeService {
                 }
                 double cost = e.price * units;
                 if (cost > 0) {
-                    double oldBalance = wallet.getBalance(e.currencyId);
-                    wallet.take(e.currencyId, cost);
-                    QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
+                    CurrencyService.INSTANCE.withdraw(player, e.currencyId, cost,
+                            CurrencyService.SOURCE_TRADE, null);
                 }
                 ItemHelper.give(player, result);
             }
@@ -164,9 +169,8 @@ public final class TradeService {
                 }
                 double cost = e.price * units;
                 if (cost > 0) {
-                    double oldBalance = wallet.getBalance(e.currencyId);
-                    wallet.add(e.currencyId, cost);
-                    QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
+                    CurrencyService.INSTANCE.deposit(player, e.currencyId, cost,
+                            CurrencyService.SOURCE_TRADE, null);
                 }
             }
             case COMMAND -> {
@@ -191,9 +195,8 @@ public final class TradeService {
                     }
                     double cost = e.price * units;
                     if (cost > 0) {
-                        double oldBalance = wallet.getBalance(e.currencyId);
-                        wallet.take(e.currencyId, cost);
-                        QShopCurrencyEvents.post(player, e.currencyId, oldBalance, wallet.getBalance(e.currencyId));
+                        CurrencyService.INSTANCE.withdraw(player, e.currencyId, cost,
+                                CurrencyService.SOURCE_TRADE, null);
                     }
                 }
             }
@@ -295,6 +298,291 @@ public final class TradeService {
         // ---- 刷新界面与钱包 ----
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
         ShopManager.openShop(player, shop);
+    }
+
+    /**
+     * Executes a server-side BUY or SELL transaction against an addon-provided
+     * Forge item handler. This path deliberately does not send chat messages,
+     * reopen the shop screen, or execute command entries.
+     */
+    public static TradeResult tradeHandler(ServerPlayer player, IItemHandler inventory,
+                                            String shopRef, Object tabRef, Object entryRef,
+                                            int requestedUnits, ShopEntryType expectedType,
+                                            ResourceLocation source, @Nullable BlockPos sourcePos) {
+        if (player == null || inventory == null || shopRef == null || expectedType == null
+                || requestedUnits < 1) {
+            return TradeResult.failure(TradeResult.Status.INVALID_ARGUMENT, requestedUnits,
+                    "Invalid addon trade arguments");
+        }
+
+        Shop shop = ShopManager.get(shopRef);
+        if (shop == null) {
+            return TradeResult.failure(TradeResult.Status.SHOP_NOT_FOUND, requestedUnits,
+                    "Shop not found");
+        }
+        int tabIndex = resolveTabIndex(shop, tabRef);
+        if (tabIndex < 0 || tabIndex >= shop.tabs.size()) {
+            return TradeResult.failure(TradeResult.Status.TAB_NOT_FOUND, requestedUnits,
+                    "Tab not found");
+        }
+        ShopTab tab = shop.tabs.get(tabIndex);
+        int entryIndex = resolveEntryIndex(tab, entryRef);
+        if (entryIndex < 0 || entryIndex >= tab.entries.size()) {
+            return TradeResult.failure(TradeResult.Status.ENTRY_NOT_FOUND, requestedUnits,
+                    "Entry not found");
+        }
+        ShopEntry e = tab.entries.get(entryIndex);
+        if (e.type != expectedType || e.item.isEmpty() || !e.commands.isEmpty()
+                || !Double.isFinite(e.price) || e.price < 0
+                || (e.price > 0 && (e.currencyId == null || e.currencyId.isBlank()))) {
+            return TradeResult.failure(TradeResult.Status.UNSUPPORTED_ENTRY, requestedUnits,
+                    "Addon handler trades require a command-free BUY or SELL entry");
+        }
+        if (!RequirementCheck.satisfied(player, e)) {
+            return TradeResult.failure(TradeResult.Status.REQUIREMENTS_NOT_MET, requestedUnits,
+                    "Entry requirements are not satisfied");
+        }
+
+        IWallet wallet = WalletCapability.get(player);
+        if (wallet == null) {
+            return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                    "Player wallet is unavailable");
+        }
+
+        String key = e.uuid != null && !e.uuid.isEmpty()
+                ? shop.id + "|" + e.uuid
+                : shop.id + "|" + tabIndex + "|" + entryIndex;
+        String period = e.reset.periodKey();
+        QShopSavedData data = null;
+        int usedGlobal = 0;
+        int usedPlayer = 0;
+        boolean track = e.globalLimit > 0 || e.playerLimit > 0;
+        if (e.globalLimit > 0) {
+            data = QShopSavedData.get(player.getServer());
+            usedGlobal = data.globalCounts.getCount(key, period);
+        }
+        if (e.playerLimit > 0) {
+            usedPlayer = wallet.getLimitCount(key, period);
+        }
+
+        int itemsPerUnit = e.item.getCount();
+        if (itemsPerUnit <= 0) {
+            return TradeResult.failure(TradeResult.Status.UNSUPPORTED_ENTRY, requestedUnits,
+                    "Entry item count is invalid");
+        }
+        int units = requestedUnits;
+        if (e.globalLimit > 0) {
+            units = Math.min(units, Math.max(0, e.globalLimit - usedGlobal) / itemsPerUnit);
+        }
+        if (e.playerLimit > 0) {
+            units = Math.min(units, Math.max(0, e.playerLimit - usedPlayer) / itemsPerUnit);
+        }
+        if (units <= 0) {
+            return TradeResult.failure(TradeResult.Status.LIMIT_REACHED, requestedUnits,
+                    "Trade limit reached");
+        }
+
+        if (!QShopTradeEvents.postBefore(player, shop, tabIndex, entryIndex, e, requestedUnits)) {
+            return TradeResult.failure(TradeResult.Status.CANCELLED, requestedUnits,
+                    "Trade cancelled by an event handler");
+        }
+
+        int totalItems;
+        double totalPrice;
+        if (expectedType == ShopEntryType.SELL) {
+            int byStock = countHandlerItems(inventory, e.item) / itemsPerUnit;
+            units = Math.min(units, byStock);
+            if (units <= 0) {
+                return TradeResult.failure(TradeResult.Status.NOT_ENOUGH_ITEMS, requestedUnits,
+                        "Addon inventory does not contain enough items");
+            }
+            long totalItemsLong = (long) itemsPerUnit * units;
+            if (totalItemsLong > Integer.MAX_VALUE) {
+                return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                        "Requested item count is too large");
+            }
+            totalItems = (int) totalItemsLong;
+            if (!extractHandlerItems(inventory, e.item, totalItems)) {
+                return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                        "Addon inventory refused item extraction");
+            }
+            totalPrice = e.price * units;
+            if (!Double.isFinite(totalPrice)) {
+                return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                        "Trade price is too large");
+            }
+            if (totalPrice > 0) {
+                CurrencyService.INSTANCE.deposit(player, e.currencyId, totalPrice,
+                        source, sourcePos);
+            }
+        } else {
+            long byBalance = e.price > 0
+                    ? (long) (wallet.getBalance(e.currencyId) / e.price)
+                    : Integer.MAX_VALUE;
+            units = (int) Math.min(units, Math.min(byBalance, Integer.MAX_VALUE));
+            if (units <= 0) {
+                return TradeResult.failure(TradeResult.Status.NOT_ENOUGH_CURRENCY, requestedUnits,
+                        "Player wallet does not contain enough currency");
+            }
+            long requestedItems = (long) itemsPerUnit * units;
+            if (requestedItems > Integer.MAX_VALUE) {
+                return TradeResult.failure(TradeResult.Status.NO_SPACE, requestedUnits,
+                        "Requested item count is too large");
+            }
+            long capacity = handlerCapacity(inventory, e.item);
+            units = Math.min(units, (int) Math.min(Integer.MAX_VALUE, capacity / itemsPerUnit));
+            if (units <= 0) {
+                return TradeResult.failure(TradeResult.Status.NO_SPACE, requestedUnits,
+                        "Addon inventory has no space");
+            }
+            totalItems = itemsPerUnit * units;
+            totalPrice = e.price * units;
+            if (!Double.isFinite(totalPrice)) {
+                return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                        "Trade price is too large");
+            }
+            double oldBalance = wallet.getBalance(e.currencyId);
+            if (totalPrice > 0 && !CurrencyService.INSTANCE.withdraw(player, e.currencyId,
+                    totalPrice, source, sourcePos)) {
+                return TradeResult.failure(TradeResult.Status.NOT_ENOUGH_CURRENCY, requestedUnits,
+                        "Player wallet does not contain enough currency");
+            }
+            ItemStack output = e.item.copy();
+            output.setCount(totalItems);
+            int inserted = insertHandlerItems(inventory, output);
+            if (inserted != totalItems) {
+                if (inserted > 0) {
+                    extractHandlerItems(inventory, e.item, inserted);
+                }
+                if (totalPrice > 0) {
+                    CurrencyService.INSTANCE.set(player, e.currencyId, oldBalance,
+                            source, sourcePos, false);
+                }
+                return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                        "Addon inventory refused item insertion");
+            }
+        }
+
+        int tradedItems = itemsPerUnit * units;
+        if (track) {
+            if (e.globalLimit > 0) {
+                data.globalCounts.addCount(key, tradedItems, period);
+                data.setDirty();
+            }
+            if (e.playerLimit > 0) {
+                wallet.addLimitCount(key, tradedItems, period);
+            }
+        }
+        QShopTradeEvents.postAfter(player, shop, tabIndex, entryIndex, e, units,
+                tradedItems, units < requestedUnits);
+        return TradeResult.success(requestedUnits, units, totalItems, totalPrice);
+    }
+
+    private static int countHandlerItems(IItemHandler inventory, ItemStack target) {
+        int count = 0;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (ItemStack.isSameItemSameTags(stack, target)) {
+                count = Math.min(Integer.MAX_VALUE, count + stack.getCount());
+            }
+        }
+        return count;
+    }
+
+    private static int resolveTabIndex(Shop shop, Object ref) {
+        if (ref instanceof Number n) {
+            return n.intValue();
+        }
+        if (ref == null) {
+            return -1;
+        }
+        String value = String.valueOf(ref);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ignored) {
+            // UUID reference below.
+        }
+        for (int i = 0; i < shop.tabs.size(); i++) {
+            if (value.equals(shop.tabs.get(i).uuid)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int resolveEntryIndex(ShopTab tab, Object ref) {
+        if (ref instanceof Number n) {
+            return n.intValue();
+        }
+        if (ref == null) {
+            return -1;
+        }
+        String value = String.valueOf(ref);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ignored) {
+            // UUID reference below.
+        }
+        for (int i = 0; i < tab.entries.size(); i++) {
+            if (value.equals(tab.entries.get(i).uuid)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean extractHandlerItems(IItemHandler inventory, ItemStack target, int amount) {
+        if (amount < 0 || countHandlerItems(inventory, target) < amount) {
+            return false;
+        }
+        int remaining = amount;
+        for (int slot = 0; slot < inventory.getSlots() && remaining > 0; slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (!ItemStack.isSameItemSameTags(stack, target)) {
+                continue;
+            }
+            ItemStack extracted = inventory.extractItem(slot, Math.min(remaining, stack.getCount()), false);
+            if (ItemStack.isSameItemSameTags(extracted, target)) {
+                remaining -= extracted.getCount();
+            }
+        }
+        if (remaining > 0) {
+            ItemStack rollback = target.copy();
+            rollback.setCount(amount - remaining);
+            if (!rollback.isEmpty()) {
+                insertHandlerItems(inventory, rollback);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private static long handlerCapacity(IItemHandler inventory, ItemStack target) {
+        long capacity = 0;
+        int stackLimit = target.getMaxStackSize();
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack existing = inventory.getStackInSlot(slot);
+            if (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, target)) {
+                continue;
+            }
+            if (!inventory.isItemValid(slot, target)) {
+                continue;
+            }
+            int limit = Math.min(stackLimit, Math.max(0, inventory.getSlotLimit(slot)));
+            capacity += existing.isEmpty() ? limit : Math.max(0, limit - existing.getCount());
+        }
+        return capacity;
+    }
+
+    private static int insertHandlerItems(IItemHandler inventory, ItemStack stack) {
+        int inserted = 0;
+        ItemStack remaining = stack.copy();
+        for (int slot = 0; slot < inventory.getSlots() && !remaining.isEmpty(); slot++) {
+            int before = remaining.getCount();
+            remaining = inventory.insertItem(slot, remaining, false);
+            inserted += before - remaining.getCount();
+        }
+        return inserted;
     }
 
     private static int totalCount(List<ItemStack> stacks) {

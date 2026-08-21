@@ -36,8 +36,9 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
                     tradedUnits, totalItems, partial);
             AFTER_TRADE.post(event);
         };
-        QShopCurrencyEvents.hook = (player, currency, oldValue, newValue) ->
-                CURRENCY_CHANGED.post(new CurrencyChangedEvent(player, currency, oldValue, newValue));
+        QShopCurrencyEvents.hook = (player, currency, oldValue, newValue, source, sourcePos) ->
+                CURRENCY_CHANGED.post(new CurrencyChangedEvent(
+                        player, currency, oldValue, newValue, source, sourcePos));
     }
 
     @Override

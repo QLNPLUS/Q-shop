@@ -5,10 +5,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.qshop.QShopMod;
+import com.qshop.api.CurrencyService;
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.data.QShopSavedData;
-import com.qshop.net.QShopNetwork;
-import com.qshop.net.SyncWalletPacket;
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopEntryType;
@@ -172,44 +171,31 @@ final class QShopBindings {
         if (!(player instanceof ServerPlayer)) {
             return 0;
         }
-        IWallet wallet = WalletCapability.get(player);
-        return wallet == null ? 0 : wallet.getBalance(currencyId);
+        return CurrencyService.INSTANCE.getBalance((ServerPlayer) player, currencyId);
     }
 
     public void giveCurrency(Player player, String currencyId, double amount) {
         if (!(player instanceof ServerPlayer sp)) {
             return;
         }
-        IWallet wallet = WalletCapability.get(sp);
-        if (wallet == null) {
-            return;
-        }
-        wallet.add(currencyId, amount);
-        QShopNetwork.sendToPlayer(sp, new SyncWalletPacket(wallet.snapshot()));
+        CurrencyService.INSTANCE.deposit(sp, currencyId, amount,
+                CurrencyService.SOURCE_KUBEJS, null);
     }
 
     public void takeCurrency(Player player, String currencyId, double amount) {
         if (!(player instanceof ServerPlayer sp)) {
             return;
         }
-        IWallet wallet = WalletCapability.get(sp);
-        if (wallet == null) {
-            return;
-        }
-        wallet.take(currencyId, amount);
-        QShopNetwork.sendToPlayer(sp, new SyncWalletPacket(wallet.snapshot()));
+        CurrencyService.INSTANCE.withdraw(sp, currencyId, amount,
+                CurrencyService.SOURCE_KUBEJS, null);
     }
 
     public void setCurrency(Player player, String currencyId, double amount) {
         if (!(player instanceof ServerPlayer sp)) {
             return;
         }
-        IWallet wallet = WalletCapability.get(sp);
-        if (wallet == null) {
-            return;
-        }
-        wallet.setBalance(currencyId, amount);
-        QShopNetwork.sendToPlayer(sp, new SyncWalletPacket(wallet.snapshot()));
+        CurrencyService.INSTANCE.set(sp, currencyId, amount,
+                CurrencyService.SOURCE_KUBEJS, null);
     }
 
     public List<String> getCurrencies() {

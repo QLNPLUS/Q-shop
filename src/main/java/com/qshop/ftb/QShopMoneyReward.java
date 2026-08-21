@@ -1,7 +1,7 @@
 package com.qshop.ftb;
 
 import com.qshop.currency.CurrencyRegistry;
-import com.qshop.kubejs.QShopCurrencyEvents;
+import com.qshop.api.CurrencyService;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
 import dev.ftb.mods.ftblibrary.config.ConfigGroup;
@@ -91,9 +91,8 @@ public class QShopMoneyReward extends Reward {
         if (randomBonus > 0) {
             amount += player.serverLevel().random.nextInt(randomBonus + 1);
         }
-        double oldBalance = wallet.getBalance(id);
-        wallet.setBalance(id, oldBalance + amount);
-        QShopCurrencyEvents.post(player, id, oldBalance, wallet.getBalance(id));
+        CurrencyService.INSTANCE.deposit(player, id, amount,
+                CurrencyService.SOURCE_FTB_REWARD, null);
     }
 
     @Override
