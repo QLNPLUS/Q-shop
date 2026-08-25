@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.1.0**（Forge 1.20.1）
+当前版本：**1.1.2**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -16,7 +16,7 @@
 | 5. 游戏内编辑 | **仅创造模式**显示编辑模式(GUI):点击条目编辑价格/货币/数量/限购/重置周期/指令(提权、静默用**勾选框**);"添加条目"按钮支持购买/出售/交换/指令四种类型,字段随类型联动;垃圾桶图标删除条目;另有 `/qshop edit` 指令 |
 | 6. 多商店 | 一个商店一个 JSON 文件,以 `id` 或自动生成的 `uuid` 区分 |
 | 7. KubeJS 打开商店 | 脚本绑定 `QShop.open('id', player)` / `QShop.openByUuid('uuid', player)` |
-| 8. 限购 | 每个条目可设 `globalLimit`(全服)和 `playerLimit`(个人),按物品件数统计,支持每日/每周/每月自动重置 |
+| 8. 限购 | 每个条目可设 `globalLimit`(全服)和`playerLimit`(个人),按交易单位/购买次数统计,支持每日/每周/每月自动重置 |
 | 9. 购买指令 | 交易完成后执行指令,每条可设 `op`(提权到 4 级)和 `silent`(静默) |
 | 10. KubeJS 商店管理 | Builder-first: `QShop.entry(...).add()` / `QShop.tab(...).add()` / `QShop.getShop/getTab/getEntry` |
 | 11. 材质 GUI | 界面元素全部使用**拆分贴图**(`assets/qshop/textures/gui/` 下一个元素一个 PNG:面板/格子/按钮/输入框/滑块/勾选框/图标),可直接单独修改;带边框元素九宫格绘制不拉伸 |
@@ -31,7 +31,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.1.0.jar
+# 产物在 build/libs/qshop-1.1.2.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -65,12 +65,14 @@ serverconfig/qshop/
     └── my_shop.json
 ```
 
-首次启动会自动生成默认 `currencies.json` 和示例商店 `starter.json`。
+首次启动在没有导入或已有商店配置时，会自动生成默认 `currencies.json` 和示例商店 `starter.json`。
 修改后执行 `/qshop reload` 热加载。
 
 ### 新存档默认导入
 
 如果服务器根目录存在 `defaultconfigs/qshop/`，QShop 会在新存档首次加载时将其中的货币和商店 JSON 自动复制到该世界的 `serverconfig/qshop/`。已有世界配置不会被覆盖。
+
+如果 `defaultconfigs/qshop/shops/` 中存在除 `starter.json` 之外的其他商店文件，导入时会跳过示例商店 `starter.json`；这样整合包可以只导入自己的商店。只有 `starter.json` 时才会正常导入示例商店。
 
 ```text
 defaultconfigs/qshop/
@@ -152,8 +154,8 @@ currencyRetention = ["coins=0.2", "points=0.5"]
 | `give` / `receive` | BARTER 的付出/获得物品列表(数组,元素写法同上) |
 | `currency` | (条目级)价格货币 id(BARTER 中留空 `""` 表示无额外费用) |
 | `price` | 每个交易单位的价格(整数;BARTER 为附加费用) |
-| `globalLimit` | 全服限购(按物品件数),`-1` 不限;到周期自动重置 |
-| `playerLimit` | 个人限购(按物品件数),`-1` 不限 |
+| `globalLimit` | 全服限购(按交易单位/购买次数),`-1` 不限;到周期自动重置 |
+| `playerLimit` | 个人限购(按交易单位/购买次数),`-1` 不限 |
 | `limitReset` | `NEVER` / `DAILY` / `WEEKLY` / `MONTHLY` |
 | `commands` | 交易完成后执行的指令,见下 |
 
@@ -267,14 +269,22 @@ FTB 货币任务消耗、KubeJS 货币方法、配置的死亡货币保留，以
 QShopAddonApi.currency().deposit(player, "coins", 25,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 
+// UUID works for both online and offline players. The server is required to
+// locate the world's playerdata/<uuid>.dat when the owner is offline.
+QShopAddonApi.currency().deposit(server, ownerUuid, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+double balance = QShopAddonApi.currency().getBalance(server, ownerUuid, "coins");
+int used = QShopAddonApi.currency().getLimitCount(
+        server, ownerUuid, "vip|entry-uuid", "DAILY");
+
 TradeResult result = QShopAddonApi.sell(
         player, itemHandler, "vip", tabIndex, entryIndex, 16,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 ```
 
-`sell` 和 `buy` 支持 `IItemHandler`，会复用条目要求、限购、交易前/后事件和货币变动事件。容器附属应保存放置者 UUID；当前钱包绑定在线玩家，离线玩家不会执行需要钱包的容器交易。
+`sell` 和 `buy` 支持 `IItemHandler`，会复用条目要求、限购、交易前/后事件和货币变动事件。容器附属应保存放置者 UUID；自动结算时可以通过 `currency().deposit(server, ownerUuid, ...)` 或 `withdraw(...)` 修改在线/离线玩家余额。离线 UUID API 会直接读写该玩家的 `playerdata/<uuid>.dat`，并且可以读取个人限购计数。
 
-Java 附属可以监听 Forge `com.qshop.api.CurrencyChangedEvent`。事件提供玩家、货币、变化前后余额、差值、来源 `ResourceLocation` 和可选的来源方块坐标。
+Java 附属可以监听 Forge `com.qshop.api.CurrencyChangedEvent`。事件提供 `getPlayerUuid()`、在线玩家的 `getPlayer()`、货币、变化前后余额、差值、来源 `ResourceLocation` 和可选的来源方块坐标。离线变更时 `getPlayer()` 为 `null`，但 `getPlayerUuid()` 仍可用；离线变更不会发送客户端同步包，也不会触发需要 `ServerPlayer` 的 KubeJS 玩家事件。
 
 ### 历史 JSON API（1.0.4 不可用）
 
@@ -410,7 +420,7 @@ QShop.clearShopLimits('card')
 
 ## 限制系统说明
 
-- 限购按**物品件数**统计:BUY/SELL 以 `item.count` 计,BARTER 以 receive 总件数计
+- 限购按**交易单位/购买次数**统计:一次购买一个交易项目算 1 次,即使该项目包含多个物品
 - 全服计数保存在世界存档(`qshop_data`),个人计数保存在玩家数据
 - `limitReset` 决定计数周期:`DAILY` 每天 0 点、`WEEKLY` 每周一、`MONTHLY` 每月 1 号自动清零
 - 交易时若余额/库存/限额不足,会自动按可交易的最大数量成交并提示"实际完成 N 个交易单位"

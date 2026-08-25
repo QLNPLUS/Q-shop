@@ -83,6 +83,7 @@
   "qshop.msg.bought": "购买成功: %s ×%s,花费 %s %s",
   "qshop.msg.sold": "出售成功: %s ×%s,获得 %s %s",
   "qshop.msg.bartered": "交换成功: %s ×%s",
+  "qshop.msg.invalid_entry": "该交易项目无效",
   "qshop.msg.partial": "数量/余额不足,实际完成 %s 个交易单位",
   "qshop.msg.limit_reached": "已达到购买/出售限制",
   "qshop.msg.not_enough_currency": "货币不足",

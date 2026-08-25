@@ -14,7 +14,7 @@ import java.util.List;
  * <p>{@link #price} 是每个交易单位的价格(以 {@link #currencyId} 货币计);
  * 对 BARTER 而言是可选的额外货币费用。
  *
- * <p>{@link #globalLimit} / {@link #playerLimit} 按"物品件数"统计,-1 表示不限,
+ * <p>{@link #globalLimit} / {@link #playerLimit} 按交易单位(购买次数)统计,-1 表示不限,
  * 按 {@link #reset} 周期自动重置。
  */
 public class ShopEntry {
@@ -48,10 +48,10 @@ public class ShopEntry {
     /** 每个交易单位的价格 */
     public double price = 0;
 
-    /** 全服限制(按物品件数),-1 不限 */
+    /** 全服限制(按交易单位/购买次数),-1 不限 */
     public int globalLimit = -1;
 
-    /** 玩家个人限制(按物品件数),-1 不限 */
+    /** 玩家个人限制(按交易单位/购买次数),-1 不限 */
     public int playerLimit = -1;
 
     /** 限制重置周期 */

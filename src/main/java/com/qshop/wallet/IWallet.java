@@ -23,7 +23,7 @@ public interface IWallet {
     /** 全部货币余额快照 */
     Map<String, Double> snapshot();
 
-    // ---- 个人限购(按 "shopId|entryIndex" 为键,按周期键区分) ----
+    // ---- 个人限购(按交易单位/购买次数计数,按 "shopId|entryUuid" 为键,按周期键区分) ----
 
     int getLimitCount(String key, String period);
 

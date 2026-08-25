@@ -20,12 +20,17 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * KubeJS 脚本绑定 QShop。
@@ -830,7 +835,7 @@ final class QShopBindings {
     // ---------------- 限购记录清理 ----------------
 
     /**
-     * 删除某个交易项目的全部限购记录(全服 + 所有在线玩家个人),返回是否成功。
+     * 删除某个交易项目的全部限购记录(全服 + 所有在线/离线玩家个人),返回是否成功。
      * shopId 可为商店 ID 或 UUID; tabRef/entryRef 可为零基索引或 UUID,不支持名称。
      */
     public boolean clearEntryLimits(String shopId, Object tabRef, Object entryRef) {
@@ -878,7 +883,7 @@ final class QShopBindings {
         return true;
     }
 
-    /** 清空全服计数与所有在线玩家的个人计数(离线玩家下次上线时按存档内数据保留) */
+    /** 清空全服计数与所有在线/离线玩家的个人计数 */
     private static void clearLimitKey(String key) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) {
@@ -892,6 +897,28 @@ final class QShopBindings {
             if (w != null) {
                 w.clearLimitCount(key);
             }
+        }
+        Path playerDataDir = server.getWorldPath(LevelResource.PLAYER_DATA_DIR);
+        if (!Files.isDirectory(playerDataDir)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(playerDataDir)) {
+            files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".dat"))
+                    .forEach(path -> {
+                        String name = path.getFileName().toString();
+                        String uuidText = name.substring(0, name.length() - 4);
+                        try {
+                            UUID playerUuid = UUID.fromString(uuidText);
+                            if (server.getPlayerList().getPlayer(playerUuid) == null) {
+                                CurrencyService.INSTANCE.clearLimitCount(server, playerUuid, key);
+                            }
+                        } catch (IllegalArgumentException ignored) {
+                            // Ignore unrelated .dat files in the playerdata directory.
+                        }
+                    });
+        } catch (IOException e) {
+            QShopMod.LOGGER.warn("QShop: failed to scan offline player limit data", e);
         }
     }
 

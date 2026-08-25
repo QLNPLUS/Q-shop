@@ -295,8 +295,8 @@ Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab U
 | `currency` | string | BUY, SELL, COMMAND, optional BARTER fee | Currency id. Blank uses the shop default. |
 | `price` | number | all | Price per trade unit. BARTER treats it as an optional extra fee. |
 | `count` | int | all | Read-only convenience property: item count per trade unit (`item.count` for normal entries, received-item total for BARTER). |
-| `globalLimit` | int | all | Server-wide item limit. `-1` means unlimited. |
-| `playerLimit` | int | all | Per-player item limit. `-1` means unlimited. |
+| `globalLimit` | int | all | Server-wide trade-unit/purchase-count limit. `-1` means unlimited. |
+| `playerLimit` | int | all | Per-player trade-unit/purchase-count limit. `-1` means unlimited. |
 | `limitReset` | `NEVER\|DAILY\|WEEKLY\|MONTHLY` | limited entries | Counter reset period. |
 | `commands` | object[] | COMMAND or post-trade actions | Commands run after a successful trade. |
 | `requiredQuests` | string[] | all | FTB Quests requirements. |
@@ -472,7 +472,7 @@ Pool entries use the normal entry schema plus `weight`. A missing `weight` is `1
 
 ## Purchase limits
 
-Limits are counted in item units, not clicks. For BUY/SELL entries this uses `item.count`; for BARTER it uses the total received item count. A trade may complete partially when wallet balance, inventory space, stock, or limits allow fewer units than requested.
+Limits are counted in trade units (purchase count), not item stacks. One completed BUY/SELL/BARTER/COMMAND unit consumes one limit even when that unit contains multiple items. A trade may complete partially when wallet balance, inventory space, stock, or limits allow fewer units than requested.
 
 ```js
 QShop.entry('vip')
@@ -511,7 +511,7 @@ QShop.clearEntryLimits('vip', 0, 0) // first entry in the first tab
 QShop.clearTabLimits('vip', 0)      // all entries in the first tab
 ```
 
-These methods clear the global counter and online players' personal counters. Offline player data is cleaned when that player is online again.
+These methods clear the global counter and personal counters for both online and offline players. Online players are updated through their live Capability; offline players are updated directly in `world/playerdata/<uuid>.dat` and do not need to log in.
 
 ## Requirements: FTB Quests and stages
 
@@ -651,12 +651,23 @@ Forge addon mods can use the stable facade in `com.qshop.api`:
 QShopAddonApi.currency().deposit(player, "coins", 25,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 
+// UUID works for both online and offline players.
+QShopAddonApi.currency().deposit(server, ownerUuid, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+double balance = QShopAddonApi.currency().getBalance(server, ownerUuid, "coins");
+int used = QShopAddonApi.currency().getLimitCount(
+        server, ownerUuid, "vip|entry-uuid", "DAILY");
+
 TradeResult result = QShopAddonApi.sell(
         player, itemHandler, "vip", 0, 0, 16,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 ```
 
-`sell` and `buy` accept Forge `IItemHandler` inventories and return `TradeResult`. They support tab/entry indexes or UUID references, enforce requirements and limits, and trigger the normal trade and currency events. The owner must be online because QShop wallets are currently stored on player capabilities.
+`sell` and `buy` accept Forge `IItemHandler` inventories and return `TradeResult`. They support tab/entry indexes or UUID references, enforce requirements and limits, and trigger the normal trade and currency events. For scheduled container settlement, save the owner's UUID and call `currency().deposit(server, ownerUuid, ...)` or `withdraw(...)`; these methods work for online and offline players by reading/writing `playerdata/<uuid>.dat`. `getLimitCount(server, uuid, key, period)` reads the same offline personal-limit data.
+
+UUID mutations require a `MinecraftServer`, because the server is needed to locate the current world's playerdata directory. If the player is online, the live Capability is used and the client wallet is synchronized. If the playerdata file does not exist, the operation returns zero/false and does not create a partial player file.
+
+The Java `CurrencyChangedEvent` always includes `getPlayerUuid()`. For offline mutations `getPlayer()` is `null`; no client packet or KubeJS player event is emitted because there is no `ServerPlayer` instance. The Forge event is still posted with the UUID and source metadata.
 
 ## Configuration files and reload
 
@@ -669,6 +680,8 @@ config/qshop-common.toml
 ```
 
 When the server root contains `defaultconfigs/qshop/`, QShop copies that directory into a new world's `serverconfig/qshop/` directory on first load. Existing world files are never overwritten. Use this layout for pack-provided default shops:
+
+If `defaultconfigs/qshop/shops/` contains any shop JSON other than `starter.json`, the built-in `starter.json` is skipped during import. This lets a modpack provide its own shops without also receiving the example shop. If `starter.json` is the only shop, it is imported normally.
 
 ```text
 defaultconfigs/qshop/

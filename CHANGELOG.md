@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.2 - 2026-08-24
+
+### Fixed
+
+- Fixed purchased and bartered items exceeding their native stack size, such as ender pearls being placed in stacks of 64.
+
+## 1.1.1 - 2026-08-23
+
+### Fixed
+
+- Fixed the QShop item picker not showing TACZ guns, attachments and ammo added by server datapacks.
+- The picker now reads TACZ's server-synchronized index cache and builds the corresponding item stacks without making TACZ a required dependency.
+- Fixed wallet balances being lost after player death when `loseCurrencyOnDeath = false` by restoring the original player's capability before cloning.
+- Fixed purchased and bartered items exceeding their native stack size, such as ender pearls being placed in stacks of 64.
+
 ## 1.1.0 - 2026-08-21
 
 ### Added
@@ -13,6 +28,14 @@
 
 - Existing trades, commands, FTB money integration, KubeJS currency methods, and configured death retention now use the centralized currency service.
 - KubeJS `QShop.giveCurrency/takeCurrency/setCurrency` now fire `currencyChanged` when the effective balance changes.
+- Purchase limits are counted in trade units/purchase counts instead of item quantities. One completed trade unit consumes one limit even when it contains multiple items.
+- `QShop.clearEntryLimits`, `QShop.clearTabLimits` and `QShop.clearShopLimits` now clear personal counters for both online and offline players.
+- New-world `defaultconfigs/qshop/` import skips the example `starter.json` when another default shop JSON is present; `starter.json` is imported normally when it is the only shop.
+
+### Fixed
+
+- Fixed offline players retaining personal purchase-limit records after a KubeJS limit-clear operation.
+- Fixed custom default shop packs receiving the example starter shop unexpectedly.
 
 ## 1.0.7 - 2026-08-20
 

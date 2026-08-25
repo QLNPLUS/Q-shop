@@ -1202,10 +1202,10 @@ public class ShopScreen extends Screen {
         }
         int max = Integer.MAX_VALUE;
         if (e.globalLimit > 0) {
-            max = Math.min(max, (e.globalLimit - e.usedGlobal) / itemsPerUnit);
+            max = Math.min(max, Math.max(0, e.globalLimit - e.usedGlobal));
         }
         if (e.playerLimit > 0) {
-            max = Math.min(max, (e.playerLimit - e.usedPlayer) / itemsPerUnit);
+            max = Math.min(max, Math.max(0, e.playerLimit - e.usedPlayer));
         }
         double balance = data.balances.getOrDefault(e.currencyId, 0D);
         switch (e.type) {

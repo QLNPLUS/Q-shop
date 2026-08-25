@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.1.0
+# QShop 1.1.2
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -43,7 +43,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 ### Purchase limits
 
 - Global server-wide and per-player limits for each entry.
-- Limits are counted in item units, not clicks.
+- Limits are counted in trade units/purchase counts, not item quantities. One completed trade unit consumes one limit even when it contains multiple items.
 - Reset periods: `NEVER`, `DAILY`, `WEEKLY` and `MONTHLY`.
 
 ### Requirements
@@ -82,7 +82,7 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, or the Base64 format written by QShop.
 
-Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration.
+Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration. If the directory contains any shop JSON other than the example `starter.json`, QShop skips `starter.json` so the pack's own shops are imported without the example shop. If `starter.json` is the only shop, it is imported normally.
 
 The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
 
@@ -163,7 +163,7 @@ QShop.refreshTab('vip', 'daily-offers', 10, [
 ])
 ```
 
-The second argument is a zero-based tab index or the tab UUID (`daily-offers` in this example), not the tab display name. Every generated entry receives a new UUID and starts with empty limit counters. The limit-clearing methods accept tab/entry indexes or UUIDs (not names); the shop reference can be a shop ID or shop UUID.
+The second argument is a zero-based tab index or the tab UUID (`daily-offers` in this example), not the tab display name. Every generated entry receives a new UUID and starts with empty limit counters. The limit-clearing methods accept tab/entry indexes or UUIDs (not names); the shop reference can be a shop ID or shop UUID. They clear the global counter and personal counters for both online and offline players; offline counters are edited directly in `world/playerdata/<uuid>.dat`.
 
 ### Trade events
 

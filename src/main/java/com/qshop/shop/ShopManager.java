@@ -72,9 +72,14 @@ public final class ShopManager {
         if (!Files.isDirectory(source)) {
             return;
         }
+        boolean skipStarter = hasNonStarterShop(source);
         try (Stream<Path> paths = Files.walk(source)) {
             for (Path path : paths.sorted().toList()) {
                 Path relative = source.relativize(path);
+                if (skipStarter && isStarterShop(relative)) {
+                    LOGGER.info("QShop: skipped default starter shop because another default shop is present");
+                    continue;
+                }
                 Path destination = target.resolve(relative);
                 if (Files.isDirectory(path)) {
                     Files.createDirectories(destination);
@@ -87,6 +92,27 @@ public final class ShopManager {
         } catch (IOException | UncheckedIOException e) {
             LOGGER.error("QShop: failed to import default configuration from {}", source, e);
         }
+    }
+
+    private static boolean hasNonStarterShop(Path source) {
+        Path shops = source.resolve("shops");
+        if (!Files.isDirectory(shops)) {
+            return false;
+        }
+        try (Stream<Path> files = Files.list(shops)) {
+            return files.anyMatch(path -> Files.isRegularFile(path)
+                    && path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".json")
+                    && !path.getFileName().toString().equalsIgnoreCase("starter.json"));
+        } catch (IOException e) {
+            LOGGER.warn("QShop: failed to inspect default shop files in {}", shops, e);
+            return false;
+        }
+    }
+
+    private static boolean isStarterShop(Path relative) {
+        return relative.getNameCount() == 2
+                && relative.getName(0).toString().equalsIgnoreCase("shops")
+                && relative.getName(1).toString().equalsIgnoreCase("starter.json");
     }
 
     private static void ensureDefaults(Path qshop) {

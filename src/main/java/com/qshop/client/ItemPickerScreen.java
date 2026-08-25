@@ -17,8 +17,10 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraftforge.fml.ModList;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,10 +100,140 @@ public class ItemPickerScreen extends Screen {
     }
 
     /**
-     * TACZ(永恒枪械工坊)兼容:读取其注册在 assets/&lt;ns&gt;/custom/&lt;pack&gt;/data/&lt;ns&gt;/index/
-     * {guns,attachments,ammo}/ 下的枪械/配件/弹药索引,生成带 GunId/AttachmentId/AmmoId NBT 的物品。
+     * TACZ(永恒枪械工坊)兼容。优先读取 TACZ 的 TimelessAPI，因为服务器数据包内容
+     * 会在登录后同步到 TACZ 的客户端缓存，而不是 Minecraft 客户端资源管理器的 custom 路径。
      */
     private static void addTaczItems(List<ItemStack> list) {
+        if (!ModList.get().isLoaded("tacz")) {
+            return;
+        }
+        if (addTaczApiItems(list)) {
+            return;
+        }
+        addTaczResourceItems(list);
+    }
+
+    /**
+     * 通过反射调用 TACZ 的公开 API，避免把 TACZ 变成 QShop 的强制依赖。
+     * Builder 会根据 index 的 item_type 创建正确的枪械物品，并写入完整 NBT。
+     */
+    private static boolean addTaczApiItems(List<ItemStack> list) {
+        int before = list.size();
+        try {
+            Class<?> api = Class.forName("com.tacz.guns.api.TimelessAPI");
+            Class<?> gunBuilder = Class.forName("com.tacz.guns.api.item.builder.GunItemBuilder");
+            addTaczGunIndexes(list, invokeStatic(api, "getAllCommonGunIndex"), gunBuilder);
+
+            addTaczSimpleIndexes(list, invokeStatic(api, "getAllCommonAttachmentIndex"),
+                    Class.forName("com.tacz.guns.api.item.builder.AttachmentItemBuilder"));
+            addTaczSimpleIndexes(list, invokeStatic(api, "getAllCommonAmmoIndex"),
+                    Class.forName("com.tacz.guns.api.item.builder.AmmoItemBuilder"));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            return false;
+        }
+        return list.size() > before;
+    }
+
+    private static void addTaczGunIndexes(List<ItemStack> list, Object indexes, Class<?> builderClass)
+            throws ReflectiveOperationException {
+        if (!(indexes instanceof Iterable<?> iterable)) {
+            return;
+        }
+        for (Object value : iterable) {
+            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof ResourceLocation id)) {
+                continue;
+            }
+            try {
+                Object index = entry.getValue();
+                Object data = invoke(index, "getGunData");
+                Object modes = invoke(data, "getFireModeSet");
+                if (!(modes instanceof List<?> fireModes) || fireModes.isEmpty()) {
+                    continue;
+                }
+                Object builder = invokeStatic(builderClass, "create");
+                builder = invoke(builder, "setId", id);
+                builder = invoke(builder, "setFireMode", fireModes.get(0));
+                builder = invoke(builder, "setAmmoCount", ((Number) invoke(data, "getAmmoAmount")).intValue());
+                builder = invoke(builder, "setHeatData", invoke(data, "hasHeatData"));
+                builder = invoke(builder, "setAmmoInBarrel", true);
+                Object result = invoke(builder, "build");
+                if (result instanceof ItemStack stack && !stack.isEmpty()) {
+                    list.add(stack);
+                }
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                // 单个损坏的 index 不应阻止其他数据包物品显示。
+            }
+        }
+    }
+
+    private static void addTaczSimpleIndexes(List<ItemStack> list, Object indexes, Class<?> builderClass)
+            throws ReflectiveOperationException {
+        if (!(indexes instanceof Iterable<?> iterable)) {
+            return;
+        }
+        for (Object value : iterable) {
+            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof ResourceLocation id)) {
+                continue;
+            }
+            try {
+                Object builder = invokeStatic(builderClass, "create");
+                builder = invoke(builder, "setId", id);
+                Object result = invoke(builder, "build");
+                if (result instanceof ItemStack stack && !stack.isEmpty()) {
+                    list.add(stack);
+                }
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                // 单个损坏的 index 不应阻止其他数据包物品显示。
+            }
+        }
+    }
+
+    private static Object invokeStatic(Class<?> type, String name, Object... args) throws ReflectiveOperationException {
+        return findMethod(type, name, args).invoke(null, args);
+    }
+
+    private static Object invoke(Object target, String name, Object... args) throws ReflectiveOperationException {
+        return findMethod(target.getClass(), name, args).invoke(target, args);
+    }
+
+    private static Method findMethod(Class<?> type, String name, Object... args) throws NoSuchMethodException {
+        for (Method method : type.getMethods()) {
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            if (!method.getName().equals(name) || parameterTypes.length != args.length) {
+                continue;
+            }
+            boolean compatible = true;
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] == null ? parameterTypes[i].isPrimitive()
+                        : !wrapPrimitive(parameterTypes[i]).isInstance(args[i])) {
+                    compatible = false;
+                    break;
+                }
+            }
+            if (compatible) {
+                return method;
+            }
+        }
+        throw new NoSuchMethodException(type.getName() + "#" + name);
+    }
+
+    private static Class<?> wrapPrimitive(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == boolean.class) return Boolean.class;
+        if (type == byte.class) return Byte.class;
+        if (type == short.class) return Short.class;
+        if (type == int.class) return Integer.class;
+        if (type == long.class) return Long.class;
+        if (type == float.class) return Float.class;
+        if (type == double.class) return Double.class;
+        if (type == char.class) return Character.class;
+        return type;
+    }
+
+    /** 旧版 TACZ 的资源路径回退，兼容本地 custom 资源包。 */
+    private static void addTaczResourceItems(List<ItemStack> list) {
         try {
             ResourceManager rm = Minecraft.getInstance().getResourceManager();
             Item gunItem = firstItem("tacz:modern_kinetic_gun", "tacz:gun");

@@ -83,6 +83,7 @@
   "qshop.msg.bought": "Bought: %s x%s for %s %s",
   "qshop.msg.sold": "Sold: %s x%s for %s %s",
   "qshop.msg.bartered": "Traded: %s x%s",
+  "qshop.msg.invalid_entry": "This trade entry is invalid",
   "qshop.msg.partial": "Not enough items/balance, completed %s trade units",
   "qshop.msg.limit_reached": "Purchase limit reached",
   "qshop.msg.not_enough_currency": "Not enough currency",

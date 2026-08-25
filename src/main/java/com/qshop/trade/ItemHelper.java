@@ -99,15 +99,28 @@ public final class ItemHelper {
         return true;
     }
 
-    /** 给予物品,放不下则丢在地上 */
+    /**
+     * 给予物品,放不下则丢在地上。
+     *
+     * <p>一个交易单位可能被放大成很多物品,不能把超过物品自身堆叠上限的
+     * ItemStack 直接交给 Inventory.add,否则某些物品会被写成非法的超大堆叠。
+     * 这里按每个 ItemStack 的实际堆叠上限拆分后再放入背包。</p>
+     */
     public static void give(Player player, ItemStack stack) {
         if (stack.isEmpty()) {
             return;
         }
-        ItemStack copy = stack.copy();
-        boolean ok = player.getInventory().add(copy);
-        if (!ok || !copy.isEmpty()) {
-            player.drop(copy, false);
+        int maxStackSize = Math.max(1, stack.getMaxStackSize());
+        int remaining = stack.getCount();
+        while (remaining > 0) {
+            int amount = Math.min(remaining, maxStackSize);
+            ItemStack copy = stack.copy();
+            copy.setCount(amount);
+            boolean added = player.getInventory().add(copy);
+            if (!added || !copy.isEmpty()) {
+                player.drop(copy, false);
+            }
+            remaining -= amount;
         }
     }
 

@@ -318,7 +318,7 @@ QShop.refreshTab('vip', 0, {
 
 ## 限购
 
-`globalLimit` 是全服限购，`playerLimit` 是玩家限购，统计单位是物品数量而不是点击次数。周期为：`NEVER`、`DAILY`、`WEEKLY`、`MONTHLY`。
+`globalLimit` 是全服限购，`playerLimit` 是玩家限购，统计单位是交易单位/购买次数，而不是物品数量。一次购买一个交易项目算 1 次，即使该项目包含多个物品。周期为：`NEVER`、`DAILY`、`WEEKLY`、`MONTHLY`。
 
 ```js
 QShop.entry('vip')
@@ -352,6 +352,8 @@ QShop.clearTabLimits('vip', tab.uuid)
 QShop.clearEntryLimits('vip', 0, 0) // 第一个子商店的第一个交易项目
 QShop.clearTabLimits('vip', 0)      // 第一个子商店的全部交易项目
 ```
+
+这些方法会同时清理全服记录，以及在线和离线玩家的个人记录。在线玩家直接修改实时 Capability；离线玩家直接修改 `world/playerdata/<uuid>.dat`，不需要等玩家重新上线。
 
 ## FTB Quests 和阶段检测
 
@@ -494,14 +496,29 @@ getSourcePos()  来源方块坐标，没有方块来源时为 null
 QShopAddonApi.currency().deposit(player, "coins", 25,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 
+// UUID 同时支持在线和离线玩家
+QShopAddonApi.currency().deposit(server, ownerUuid, "coins", 25,
+        ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
+double balance = QShopAddonApi.currency().getBalance(server, ownerUuid, "coins");
+int used = QShopAddonApi.currency().getLimitCount(
+        server, ownerUuid, "vip|entry-uuid", "DAILY");
+
 TradeResult result = QShopAddonApi.sell(
         player, itemHandler, "vip", 0, 0, 16,
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 ```
 
 `sell` 和 `buy` 支持 Forge `IItemHandler` 容器库存，会检查交易项目要求和限购，
-并触发交易前/后事件及货币变动事件。容器需要保存放置者 UUID；当前钱包保存在玩家
-Capability 中，因此玩家离线时不会执行需要钱包的容器交易。
+并触发交易前/后事件及货币变动事件。容器应保存放置者 UUID，并在定时结算时调用
+`currency().deposit(server, ownerUuid, ...)` 或 `withdraw(...)`；这些方法支持在线和离线玩家，
+会直接读写 `playerdata/<uuid>.dat`。`getLimitCount(server, uuid, key, period)` 也可以读取离线玩家的个人限购计数。
+
+UUID 方法需要传入 `MinecraftServer`，因为服务端需要定位当前世界的玩家数据目录。玩家在线时使用实时
+Capability 并同步客户端；玩家离线时读写 NBT 文件。若该 UUID 没有已存在的玩家数据文件，操作返回 `0` 或
+`false`，不会创建不完整的玩家文件。
+
+Java `CurrencyChangedEvent` 始终提供 `getPlayerUuid()`。离线修改时 `getPlayer()` 为 `null`，不会发送客户端
+同步包，也不会触发依赖 `ServerPlayer` 的 KubeJS 玩家事件；Forge 事件仍会携带 UUID 和来源信息。
 
 ## 配置文件和重载
 
@@ -510,6 +527,8 @@ Capability 中，因此玩家离线时不会执行需要钱包的容器交易。
 <world>/serverconfig/qshop/shops/<shop-id>.json
 config/qshop-common.toml
 ```
+
+如果服务器根目录存在 `defaultconfigs/qshop/`，新存档首次加载时会导入其中的货币和商店。如果 `defaultconfigs/qshop/shops/` 中存在除 `starter.json` 之外的其他商店文件，会跳过示例商店 `starter.json`；这样整合包可以只导入自己的商店。只有 `starter.json` 时才会正常导入示例商店。
 
 ### 死亡货币
 

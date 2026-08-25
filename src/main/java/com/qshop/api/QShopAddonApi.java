@@ -87,10 +87,44 @@ public final class QShopAddonApi {
 
     /** Executes a BUY entry using a tab UUID/index and entry UUID/index reference. */
     public static TradeResult buy(ServerPlayer player, IItemHandler inventory,
-                                  String shopRef, Object tabRef, Object entryRef,
-                                  int requestedUnits, ResourceLocation source,
-                                  @Nullable BlockPos sourcePos) {
+                                   String shopRef, Object tabRef, Object entryRef,
+                                   int requestedUnits, ResourceLocation source,
+                                   @Nullable BlockPos sourcePos) {
         return TradeService.tradeHandler(player, inventory, shopRef, tabRef, entryRef,
                 requestedUnits, ShopEntryType.BUY, source, sourcePos);
+    }
+
+    /** Executes a BARTER entry using separate input and output handlers. */
+    public static TradeResult barter(ServerPlayer player, IItemHandler input,
+                                     IItemHandler output, String shopRef,
+                                     int tabIndex, int entryIndex, int requestedUnits) {
+        return barter(player, input, output, shopRef, tabIndex, entryIndex, requestedUnits,
+                CurrencyService.SOURCE_API, null);
+    }
+
+    /** Executes a BARTER entry with an addon source and block position. */
+    public static TradeResult barter(ServerPlayer player, IItemHandler input,
+                                     IItemHandler output, String shopRef,
+                                     int tabIndex, int entryIndex, int requestedUnits,
+                                     ResourceLocation source, @Nullable BlockPos sourcePos) {
+        return TradeService.barterHandler(player, input, output, shopRef, tabIndex, entryIndex,
+                requestedUnits, source, sourcePos);
+    }
+
+    /** Executes a BARTER entry using UUID/index references. */
+    public static TradeResult barter(ServerPlayer player, IItemHandler input,
+                                     IItemHandler output, String shopRef,
+                                     Object tabRef, Object entryRef, int requestedUnits) {
+        return barter(player, input, output, shopRef, tabRef, entryRef, requestedUnits,
+                CurrencyService.SOURCE_API, null);
+    }
+
+    /** Executes a BARTER entry using UUID/index references and an addon source. */
+    public static TradeResult barter(ServerPlayer player, IItemHandler input,
+                                     IItemHandler output, String shopRef,
+                                     Object tabRef, Object entryRef, int requestedUnits,
+                                     ResourceLocation source, @Nullable BlockPos sourcePos) {
+        return TradeService.barterHandler(player, input, output, shopRef, tabRef, entryRef,
+                requestedUnits, source, sourcePos);
     }
 }

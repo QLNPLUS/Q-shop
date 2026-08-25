@@ -73,6 +73,11 @@ public final class TradeService {
         if (requestedUnits < 1) {
             requestedUnits = 1;
         }
+        if (e.type == ShopEntryType.BARTER
+                && (!validBarterStacks(e.give) || !validBarterStacks(e.receive))) {
+            tell(player, Component.translatable("qshop.msg.invalid_entry"));
+            return;
+        }
 
         // ---- 前提要求检查(FTB 任务 / 阶段) ----
         if (!RequirementCheck.satisfied(player, e)) {
@@ -116,10 +121,10 @@ public final class TradeService {
 
         int units = requestedUnits;
         if (e.globalLimit > 0) {
-            units = Math.min(units, (e.globalLimit - usedGlobal) / itemsPerUnit);
+            units = Math.min(units, Math.max(0, e.globalLimit - usedGlobal));
         }
         if (e.playerLimit > 0) {
-            units = Math.min(units, (e.playerLimit - usedPlayer) / itemsPerUnit);
+            units = Math.min(units, Math.max(0, e.playerLimit - usedPlayer));
         }
         if (units <= 0) {
             tell(player, Component.translatable("qshop.msg.limit_reached"));
@@ -227,13 +232,12 @@ public final class TradeService {
 
         // ---- 记录限购 ----
         if (track) {
-            int itemsTraded = itemsPerUnit * finalUnits;
             if (e.globalLimit > 0) {
-                data.globalCounts.addCount(key, itemsTraded, period);
+                data.globalCounts.addCount(key, finalUnits, period);
                 data.setDirty();
             }
             if (e.playerLimit > 0) {
-                wallet.addLimitCount(key, itemsTraded, period);
+                wallet.addLimitCount(key, finalUnits, period);
             }
         }
 
@@ -372,10 +376,10 @@ public final class TradeService {
         }
         int units = requestedUnits;
         if (e.globalLimit > 0) {
-            units = Math.min(units, Math.max(0, e.globalLimit - usedGlobal) / itemsPerUnit);
+            units = Math.min(units, Math.max(0, e.globalLimit - usedGlobal));
         }
         if (e.playerLimit > 0) {
-            units = Math.min(units, Math.max(0, e.playerLimit - usedPlayer) / itemsPerUnit);
+            units = Math.min(units, Math.max(0, e.playerLimit - usedPlayer));
         }
         if (units <= 0) {
             return TradeResult.failure(TradeResult.Status.LIMIT_REACHED, requestedUnits,
@@ -466,16 +470,195 @@ public final class TradeService {
         int tradedItems = itemsPerUnit * units;
         if (track) {
             if (e.globalLimit > 0) {
-                data.globalCounts.addCount(key, tradedItems, period);
+                data.globalCounts.addCount(key, units, period);
                 data.setDirty();
             }
             if (e.playerLimit > 0) {
-                wallet.addLimitCount(key, tradedItems, period);
+                wallet.addLimitCount(key, units, period);
             }
         }
         QShopTradeEvents.postAfter(player, shop, tabIndex, entryIndex, e, units,
                 tradedItems, units < requestedUnits);
         return TradeResult.success(requestedUnits, units, totalItems, totalPrice);
+    }
+
+    /**
+     * Executes a server-side BARTER transaction using separate Forge handlers
+     * for the items supplied by the addon and the items received from QShop.
+     */
+    public static TradeResult barterHandler(ServerPlayer player, IItemHandler input,
+                                             IItemHandler output, String shopRef,
+                                             Object tabRef, Object entryRef, int requestedUnits,
+                                             ResourceLocation source, @Nullable BlockPos sourcePos) {
+        if (player == null || input == null || output == null || shopRef == null
+                || requestedUnits < 1) {
+            return TradeResult.failure(TradeResult.Status.INVALID_ARGUMENT, requestedUnits,
+                    "Invalid addon barter arguments");
+        }
+
+        Shop shop = ShopManager.get(shopRef);
+        if (shop == null) {
+            return TradeResult.failure(TradeResult.Status.SHOP_NOT_FOUND, requestedUnits,
+                    "Shop not found");
+        }
+        int tabIndex = resolveTabIndex(shop, tabRef);
+        if (tabIndex < 0 || tabIndex >= shop.tabs.size()) {
+            return TradeResult.failure(TradeResult.Status.TAB_NOT_FOUND, requestedUnits,
+                    "Tab not found");
+        }
+        ShopTab tab = shop.tabs.get(tabIndex);
+        int entryIndex = resolveEntryIndex(tab, entryRef);
+        if (entryIndex < 0 || entryIndex >= tab.entries.size()) {
+            return TradeResult.failure(TradeResult.Status.ENTRY_NOT_FOUND, requestedUnits,
+                    "Entry not found");
+        }
+        ShopEntry e = tab.entries.get(entryIndex);
+        if (e.type != ShopEntryType.BARTER || !validBarterStacks(e.give)
+                || !validBarterStacks(e.receive)
+                || !e.commands.isEmpty() || !Double.isFinite(e.price) || e.price < 0
+                || (e.price > 0 && (e.currencyId == null || e.currencyId.isBlank()))) {
+            return TradeResult.failure(TradeResult.Status.UNSUPPORTED_ENTRY, requestedUnits,
+                    "Addon barter trades require a command-free barter entry");
+        }
+        if (!RequirementCheck.satisfied(player, e)) {
+            return TradeResult.failure(TradeResult.Status.REQUIREMENTS_NOT_MET, requestedUnits,
+                    "Entry requirements are not satisfied");
+        }
+
+        IWallet wallet = WalletCapability.get(player);
+        if (wallet == null) {
+            return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                    "Player wallet is unavailable");
+        }
+
+        String key = e.uuid != null && !e.uuid.isEmpty()
+                ? shop.id + "|" + e.uuid
+                : shop.id + "|" + tabIndex + "|" + entryIndex;
+        String period = e.reset.periodKey();
+        QShopSavedData data = null;
+        int usedGlobal = 0;
+        int usedPlayer = 0;
+        boolean track = e.globalLimit > 0 || e.playerLimit > 0;
+        if (e.globalLimit > 0) {
+            data = QShopSavedData.get(player.getServer());
+            usedGlobal = data.globalCounts.getCount(key, period);
+        }
+        if (e.playerLimit > 0) {
+            usedPlayer = wallet.getLimitCount(key, period);
+        }
+
+        int itemsPerUnit = totalCount(e.receive);
+        if (itemsPerUnit <= 0) {
+            return TradeResult.failure(TradeResult.Status.UNSUPPORTED_ENTRY, requestedUnits,
+                    "Barter receive list is empty");
+        }
+        int units = requestedUnits;
+        if (e.globalLimit > 0) {
+            units = Math.min(units, Math.max(0, e.globalLimit - usedGlobal));
+        }
+        if (e.playerLimit > 0) {
+            units = Math.min(units, Math.max(0, e.playerLimit - usedPlayer));
+        }
+        if (units <= 0) {
+            return TradeResult.failure(TradeResult.Status.LIMIT_REACHED, requestedUnits,
+                    "Trade limit reached");
+        }
+
+        if (!QShopTradeEvents.postBefore(player, shop, tabIndex, entryIndex, e, requestedUnits)) {
+            return TradeResult.failure(TradeResult.Status.CANCELLED, requestedUnits,
+                    "Trade cancelled by an event handler");
+        }
+
+        for (ItemStack give : e.give) {
+            units = Math.min(units, countHandlerItems(input, give) / give.getCount());
+        }
+        for (ItemStack receive : e.receive) {
+            units = Math.min(units, (int) Math.min(Integer.MAX_VALUE,
+                    handlerCapacity(output, receive) / receive.getCount()));
+        }
+        if (units <= 0) {
+            return TradeResult.failure(TradeResult.Status.NOT_ENOUGH_ITEMS, requestedUnits,
+                    "Addon barter inventory lacks supplied items or output space");
+        }
+
+        double totalPrice = e.price * units;
+        if (!Double.isFinite(totalPrice)) {
+            return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                    "Trade price is too large");
+        }
+        double oldBalance = wallet.getBalance(e.currencyId);
+        if (totalPrice > 0 && !CurrencyService.INSTANCE.withdraw(player, e.currencyId,
+                totalPrice, source, sourcePos)) {
+            return TradeResult.failure(TradeResult.Status.NOT_ENOUGH_CURRENCY, requestedUnits,
+                    "Player wallet does not contain enough currency");
+        }
+
+        List<ItemStack> removed = new java.util.ArrayList<>();
+        boolean removedAll = true;
+        for (ItemStack give : e.give) {
+            int amount = give.getCount() * units;
+            if (!extractHandlerItems(input, give, amount)) {
+                removedAll = false;
+                break;
+            }
+            ItemStack rollback = give.copy();
+            rollback.setCount(amount);
+            removed.add(rollback);
+        }
+        if (!removedAll) {
+            for (ItemStack stack : removed) insertHandlerItems(input, stack);
+            if (totalPrice > 0) {
+                CurrencyService.INSTANCE.set(player, e.currencyId, oldBalance,
+                        source, sourcePos, false);
+            }
+            return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                    "Addon input inventory refused extraction");
+        }
+
+        boolean insertedAll = true;
+        List<ItemStack> inserted = new java.util.ArrayList<>();
+        for (ItemStack receive : e.receive) {
+            int amount = receive.getCount() * units;
+            ItemStack result = receive.copy();
+            result.setCount(amount);
+            int insertedCount = insertHandlerItems(output, result);
+            if (insertedCount != amount) {
+                insertedAll = false;
+                if (insertedCount > 0) {
+                    ItemStack partial = receive.copy();
+                    partial.setCount(insertedCount);
+                    inserted.add(partial);
+                }
+                break;
+            }
+            inserted.add(result);
+        }
+        if (!insertedAll) {
+            for (ItemStack stack : inserted) {
+                extractHandlerItems(output, stack, stack.getCount());
+            }
+            for (ItemStack stack : removed) insertHandlerItems(input, stack);
+            if (totalPrice > 0) {
+                CurrencyService.INSTANCE.set(player, e.currencyId, oldBalance,
+                        source, sourcePos, false);
+            }
+            return TradeResult.failure(TradeResult.Status.FAILED, requestedUnits,
+                    "Addon output inventory refused insertion");
+        }
+
+        int tradedItems = itemsPerUnit * units;
+        if (track) {
+            if (e.globalLimit > 0) {
+                data.globalCounts.addCount(key, units, period);
+                data.setDirty();
+            }
+            if (e.playerLimit > 0) {
+                wallet.addLimitCount(key, units, period);
+            }
+        }
+        QShopTradeEvents.postAfter(player, shop, tabIndex, entryIndex, e, units,
+                tradedItems, units < requestedUnits);
+        return TradeResult.success(requestedUnits, units, tradedItems, totalPrice);
     }
 
     private static int countHandlerItems(IItemHandler inventory, ItemStack target) {
@@ -591,5 +774,22 @@ public final class TradeService {
             total += s.getCount();
         }
         return total;
+    }
+
+    private static boolean validBarterStacks(List<ItemStack> stacks) {
+        if (stacks == null || stacks.isEmpty()) {
+            return false;
+        }
+        long total = 0;
+        for (ItemStack stack : stacks) {
+            if (stack == null || stack.isEmpty() || stack.getCount() <= 0) {
+                return false;
+            }
+            total += stack.getCount();
+            if (total > Integer.MAX_VALUE) {
+                return false;
+            }
+        }
+        return true;
     }
 }

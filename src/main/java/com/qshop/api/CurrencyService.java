@@ -1,28 +1,46 @@
 package com.qshop.api;
 
+import com.qshop.QShopMod;
 import com.qshop.kubejs.QShopCurrencyEvents;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
+import com.qshop.wallet.WalletImpl;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nullable;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
 /**
  * Official wallet mutation service for QShop addons.
  *
- * <p>All public mutations synchronize the client and publish a Forge event.
- * The overload with {@code triggerEvent} is intended for QShop's command
- * compatibility flag; addons should use the default overloads.</p>
+ * <p>Online mutations synchronize the client and publish a Forge event.
+ * UUID overloads also support offline players by reading/writing their
+ * playerdata NBT; offline mutations publish the UUID-bearing Forge event but
+ * cannot send a client packet or a KubeJS player event.</p>
  */
 public final class CurrencyService {
 
     public static final String API_VERSION = "1.1.0";
     public static final CurrencyService INSTANCE = new CurrencyService();
+    private static final String FORGE_CAPS_KEY = "ForgeCaps";
+    private static final String WALLET_CAPABILITY_KEY = "qshop:wallet";
+    private static final Object OFFLINE_WALLET_LOCK = new Object();
 
     public static final ResourceLocation SOURCE_API = ResourceLocation.fromNamespaceAndPath("qshop", "api");
     public static final ResourceLocation SOURCE_TRADE = ResourceLocation.fromNamespaceAndPath("qshop", "trade");
@@ -38,6 +56,64 @@ public final class CurrencyService {
     public double getBalance(ServerPlayer player, String currencyId) {
         IWallet wallet = wallet(player, currencyId);
         return wallet == null ? 0D : wallet.getBalance(currencyId);
+    }
+
+    /** Reads a balance for an online or offline player identified by UUID. */
+    public double getBalance(MinecraftServer server, UUID playerUuid, String currencyId) {
+        validateServerAndUuid(server, playerUuid);
+        if (currencyId == null || currencyId.isBlank()) {
+            return 0D;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            return getBalance(online, currencyId);
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            return offline == null ? 0D : offline.wallet().getBalance(currencyId);
+        }
+    }
+
+    /** Reads a per-player limit counter for an online or offline UUID. */
+    public int getLimitCount(MinecraftServer server, UUID playerUuid, String key, String period) {
+        validateServerAndUuid(server, playerUuid);
+        if (key == null || key.isBlank() || period == null || period.isBlank()) {
+            return 0;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            IWallet wallet = WalletCapability.get(online);
+            return wallet == null ? 0 : wallet.getLimitCount(key, period);
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            return offline == null ? 0 : offline.wallet().getLimitCount(key, period);
+        }
+    }
+
+    /** Clears every period of one player's personal limit counter. */
+    public boolean clearLimitCount(MinecraftServer server, UUID playerUuid, String key) {
+        validateServerAndUuid(server, playerUuid);
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            IWallet wallet = WalletCapability.get(online);
+            if (wallet == null) {
+                return false;
+            }
+            wallet.clearLimitCount(key);
+            return true;
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            if (offline == null) {
+                return false;
+            }
+            offline.wallet().clearLimitCount(key);
+            return saveOffline(offline);
+        }
     }
 
     /** Adds a non-negative amount and returns the resulting balance. */
@@ -65,6 +141,47 @@ public final class CurrencyService {
         double newValue = wallet.getBalance(currencyId);
         finish(player, wallet, currencyId, oldValue, newValue, source, sourcePos, triggerEvent);
         return newValue;
+    }
+
+    /** Adds currency for an online or offline player identified by UUID. */
+    public double deposit(MinecraftServer server, UUID playerUuid, String currencyId, double amount) {
+        return deposit(server, playerUuid, currencyId, amount, SOURCE_API, null, true);
+    }
+
+    /** Adds currency by UUID with addon source metadata. */
+    public double deposit(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                          ResourceLocation source, @Nullable BlockPos sourcePos) {
+        return deposit(server, playerUuid, currencyId, amount, source, sourcePos, true);
+    }
+
+    /** Adds currency by UUID with explicit event control. */
+    public double deposit(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                          ResourceLocation source, @Nullable BlockPos sourcePos,
+                          boolean triggerEvent) {
+        validateAmount(amount);
+        validateServerAndUuid(server, playerUuid);
+        if (currencyId == null || currencyId.isBlank()) {
+            return 0D;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            return deposit(online, currencyId, amount, source, sourcePos, triggerEvent);
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            if (offline == null) {
+                return 0D;
+            }
+            double oldValue = offline.wallet().getBalance(currencyId);
+            offline.wallet().add(currencyId, amount);
+            double newValue = offline.wallet().getBalance(currencyId);
+            if (!saveOffline(offline)) {
+                return oldValue;
+            }
+            finish(null, playerUuid, offline.wallet(), currencyId, oldValue, newValue,
+                    source, sourcePos, triggerEvent);
+            return newValue;
+        }
     }
 
     /** Removes a non-negative amount, returning false when the wallet is insufficient. */
@@ -96,6 +213,49 @@ public final class CurrencyService {
         return true;
     }
 
+    /** Removes currency for an online or offline player identified by UUID. */
+    public boolean withdraw(MinecraftServer server, UUID playerUuid, String currencyId, double amount) {
+        return withdraw(server, playerUuid, currencyId, amount, SOURCE_API, null, true);
+    }
+
+    /** Removes currency by UUID with addon source metadata. */
+    public boolean withdraw(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                            ResourceLocation source, @Nullable BlockPos sourcePos) {
+        return withdraw(server, playerUuid, currencyId, amount, source, sourcePos, true);
+    }
+
+    /** Removes currency by UUID with explicit event control. */
+    public boolean withdraw(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                            ResourceLocation source, @Nullable BlockPos sourcePos,
+                            boolean triggerEvent) {
+        validateAmount(amount);
+        validateServerAndUuid(server, playerUuid);
+        if (currencyId == null || currencyId.isBlank()) {
+            return false;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            return withdraw(online, currencyId, amount, source, sourcePos, triggerEvent);
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            if (offline == null) {
+                return false;
+            }
+            double oldValue = offline.wallet().getBalance(currencyId);
+            if (!offline.wallet().take(currencyId, amount)) {
+                return false;
+            }
+            double newValue = offline.wallet().getBalance(currencyId);
+            if (!saveOffline(offline)) {
+                return false;
+            }
+            finish(null, playerUuid, offline.wallet(), currencyId, oldValue, newValue,
+                    source, sourcePos, triggerEvent);
+            return true;
+        }
+    }
+
     /** Sets a non-negative balance and returns the resulting balance. */
     public double set(ServerPlayer player, String currencyId, double amount) {
         return set(player, currencyId, amount, SOURCE_API, null, true);
@@ -125,6 +285,49 @@ public final class CurrencyService {
         return newValue;
     }
 
+    /** Sets currency for an online or offline player identified by UUID. */
+    public double set(MinecraftServer server, UUID playerUuid, String currencyId, double amount) {
+        return set(server, playerUuid, currencyId, amount, SOURCE_API, null, true);
+    }
+
+    /** Sets currency by UUID with addon source metadata. */
+    public double set(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                      ResourceLocation source, @Nullable BlockPos sourcePos) {
+        return set(server, playerUuid, currencyId, amount, source, sourcePos, true);
+    }
+
+    /** Sets currency by UUID with explicit event control. */
+    public double set(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
+                      ResourceLocation source, @Nullable BlockPos sourcePos,
+                      boolean triggerEvent) {
+        if (!Double.isFinite(amount) || amount < 0) {
+            throw new IllegalArgumentException("Currency balance must be finite and non-negative");
+        }
+        validateServerAndUuid(server, playerUuid);
+        if (currencyId == null || currencyId.isBlank()) {
+            return 0D;
+        }
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUuid);
+        if (online != null) {
+            return set(online, currencyId, amount, source, sourcePos, triggerEvent);
+        }
+        synchronized (OFFLINE_WALLET_LOCK) {
+            OfflineWallet offline = loadOffline(server, playerUuid);
+            if (offline == null) {
+                return 0D;
+            }
+            double oldValue = offline.wallet().getBalance(currencyId);
+            offline.wallet().setBalance(currencyId, amount);
+            double newValue = offline.wallet().getBalance(currencyId);
+            if (!saveOffline(offline)) {
+                return oldValue;
+            }
+            finish(null, playerUuid, offline.wallet(), currencyId, oldValue, newValue,
+                    source, sourcePos, triggerEvent);
+            return newValue;
+        }
+    }
+
     private static IWallet wallet(ServerPlayer player, String currencyId) {
         if (player == null || currencyId == null || currencyId.isBlank()) {
             return null;
@@ -141,14 +344,83 @@ public final class CurrencyService {
     private static void finish(ServerPlayer player, IWallet wallet, String currencyId,
                                double oldValue, double newValue, ResourceLocation source,
                                @Nullable BlockPos sourcePos, boolean triggerEvent) {
-        QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
+        finish(player, player.getUUID(), wallet, currencyId, oldValue, newValue,
+                source, sourcePos, triggerEvent);
+    }
+
+    private static void finish(@Nullable ServerPlayer player, UUID playerUuid, IWallet wallet,
+                               String currencyId, double oldValue, double newValue,
+                               ResourceLocation source, @Nullable BlockPos sourcePos,
+                               boolean triggerEvent) {
+        if (player != null) {
+            QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
+        }
         if (!triggerEvent || Double.compare(oldValue, newValue) == 0) {
             return;
         }
         ResourceLocation actualSource = source == null ? SOURCE_API : source;
         BlockPos actualSourcePos = sourcePos == null ? null : sourcePos.immutable();
         MinecraftForge.EVENT_BUS.post(new CurrencyChangedEvent(
-                player, currencyId, oldValue, newValue, actualSource, actualSourcePos));
-        QShopCurrencyEvents.post(player, currencyId, oldValue, newValue, actualSource, actualSourcePos);
+                player, playerUuid, currencyId, oldValue, newValue, actualSource, actualSourcePos));
+        if (player != null) {
+            QShopCurrencyEvents.post(player, currencyId, oldValue, newValue, actualSource, actualSourcePos);
+        }
+    }
+
+    private static void validateServerAndUuid(MinecraftServer server, UUID playerUuid) {
+        if (server == null) {
+            throw new IllegalArgumentException("MinecraftServer must not be null");
+        }
+        if (playerUuid == null) {
+            throw new IllegalArgumentException("Player UUID must not be null");
+        }
+    }
+
+    @Nullable
+    private static OfflineWallet loadOffline(MinecraftServer server, UUID playerUuid) {
+        File file = server.getWorldPath(LevelResource.PLAYER_DATA_DIR)
+                .resolve(playerUuid + ".dat").toFile();
+        if (!file.isFile()) {
+            return null;
+        }
+        try {
+            CompoundTag playerData = NbtIo.readCompressed(file);
+            CompoundTag forgeCaps = playerData.getCompound(FORGE_CAPS_KEY);
+            WalletImpl wallet = new WalletImpl();
+            wallet.deserializeNBT(forgeCaps.getCompound(WALLET_CAPABILITY_KEY));
+            return new OfflineWallet(file, playerData, forgeCaps, wallet);
+        } catch (IOException | RuntimeException ex) {
+            QShopMod.LOGGER.warn("QShop: failed to read offline wallet for {}", playerUuid, ex);
+            return null;
+        }
+    }
+
+    private static boolean saveOffline(OfflineWallet offline) {
+        offline.forgeCaps().put(WALLET_CAPABILITY_KEY, offline.wallet().serializeNBT());
+        offline.playerData().put(FORGE_CAPS_KEY, offline.forgeCaps());
+        Path target = offline.file().toPath();
+        Path temp = target.resolveSibling(target.getFileName() + ".qshop.tmp");
+        try {
+            NbtIo.writeCompressed(offline.playerData(), temp.toFile());
+            try {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException ex) {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        } catch (IOException | RuntimeException ex) {
+            QShopMod.LOGGER.warn("QShop: failed to write offline wallet file {}", target, ex);
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException cleanupEx) {
+                QShopMod.LOGGER.debug("QShop: failed to clean temporary wallet file {}", temp, cleanupEx);
+            }
+            return false;
+        }
+    }
+
+    private record OfflineWallet(File file, CompoundTag playerData,
+                                 CompoundTag forgeCaps, WalletImpl wallet) {
     }
 }

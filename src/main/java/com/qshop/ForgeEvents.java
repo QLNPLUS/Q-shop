@@ -44,22 +44,29 @@ public final class ForgeEvents {
     public static void onPlayerClone(PlayerEvent.Clone event) {
         Player original = event.getOriginal();
         Player player = event.getEntity();
-        original.getCapability(WalletCapability.WALLET).ifPresent(oldWallet ->
-                player.getCapability(WalletCapability.WALLET).ifPresent(newWallet -> {
-                    newWallet.copyFrom(oldWallet);
-                    if (event.isWasDeath() && QShopCommonConfig.loseCurrencyOnDeath()) {
-                        for (var entry : oldWallet.snapshot().entrySet()) {
-                            double retained = entry.getValue()
-                                    * QShopCommonConfig.currencyRetention(entry.getKey());
-                            if (player instanceof ServerPlayer sp) {
-                                CurrencyService.INSTANCE.set(sp, entry.getKey(), retained,
-                                        CurrencyService.SOURCE_DEATH, null);
-                            } else {
-                                newWallet.setBalance(entry.getKey(), retained);
+        // Forge may invalidate the original player's capabilities before Clone is fired.
+        // Revive them temporarily so the wallet can be copied, then restore the lifecycle state.
+        original.reviveCaps();
+        try {
+            original.getCapability(WalletCapability.WALLET).ifPresent(oldWallet ->
+                    player.getCapability(WalletCapability.WALLET).ifPresent(newWallet -> {
+                        newWallet.copyFrom(oldWallet);
+                        if (event.isWasDeath() && QShopCommonConfig.loseCurrencyOnDeath()) {
+                            for (var entry : oldWallet.snapshot().entrySet()) {
+                                double retained = entry.getValue()
+                                        * QShopCommonConfig.currencyRetention(entry.getKey());
+                                if (player instanceof ServerPlayer sp) {
+                                    CurrencyService.INSTANCE.set(sp, entry.getKey(), retained,
+                                            CurrencyService.SOURCE_DEATH, null);
+                                } else {
+                                    newWallet.setBalance(entry.getKey(), retained);
+                                }
                             }
                         }
-                    }
-                }));
+                    }));
+        } finally {
+            original.invalidateCaps();
+        }
     }
 
     @SubscribeEvent
