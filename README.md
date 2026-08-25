@@ -104,6 +104,20 @@ currencyRetention = ["coins=0.2", "points=0.5"]
 
 上例表示死亡后保留 20% 的 `coins`、50% 的 `points`，其他货币全部清空。比例范围为 `0.0` 到 `1.0`；也接受 `coins:0.2` 写法。
 
+客户端界面设置也统一保存在同一个 `config/qshop-common.toml` 文件中：
+
+```toml
+[client]
+showFadeMasks = true
+fadeColor = "636363"
+enableLayoutDebug = false
+lastLayout = "standard"
+```
+
+`enableLayoutDebug = true` 后，在商店界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
+7x3 和 8x4 使用独立的偏移数据，切换布局不会互相影响；旧版共享偏移文件会自动迁移到 7x3。
+`lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
+
 ### currencies.json
 
 ```json

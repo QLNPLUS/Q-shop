@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.1 - 2026-08-25
+
+### Added
+
+- Added a 7x3 / 8x4 shop layout toggle with a separate wide panel texture.
+- Added optional F8 layout debugging with persisted offsets in `config/qshop_layout.json`.
+- Added independent `layout.png` and `layout_hover.png` icon materials for the layout toggle.
+
+### Changed
+
+- Merged client GUI settings into `config/qshop-common.toml` under the `client` section; `qshop-client.toml` is no longer registered.
+- Increased the 8x4 row pitch by 1 pixel while keeping the final row inside the panel viewport.
+- Limited entries at their global or personal cap are hidden outside edit mode.
+- Layout debug offsets are now stored independently for the 7x3 and 8x4 layouts; existing version 1 files are migrated to the 7x3 layout.
+- The selected 7x3/8x4 layout is persisted as `client.lastLayout` in `qshop-common.toml` and restored after restarting the game.
+
 ## 1.1.2 - 2026-08-24
 
 ### Fixed

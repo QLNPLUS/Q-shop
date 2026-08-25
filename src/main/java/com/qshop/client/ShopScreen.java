@@ -2,6 +2,7 @@ package com.qshop.client;
 
 import com.qshop.currency.Currency;
 import com.qshop.currency.CurrencyRegistry;
+import com.qshop.config.QShopCommonConfig;
 import com.qshop.net.AddTabPacket;
 import com.qshop.net.ClientShopEntry;
 import com.qshop.net.ClientTab;
@@ -20,24 +21,27 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * 商店主界面:列 x 行网格(随 GUI 缩放等级变化),平滑滚动动画;
+ * 商店主界面:可切换 7x3 / 8x4 的列 x 行网格,平滑滚动动画;
  * 点击条目打开交易子窗口;编辑模式支持拖拽交换排序、右键菜单(悬浮式,不替换界面)。
  */
 public class ShopScreen extends Screen {
 
     private static final int GUI_W = 250;
+    private static final int GUI_W_WIDE = 280;
     private static final int GUI_H = 200;
     // 原版 renderItemDecorations 会把基础层数量文字提升约 +200Z；幽灵必须高于它。
     private static final float DRAG_LAYER_Z = 350.0f;
@@ -73,9 +77,10 @@ public class ShopScreen extends Screen {
 
     private int left;
     private int top;
+    private boolean wideLayout;
     private float rowAnim = 0;
 
-    // ---- 缩放等级布局(init 时按 GUI 缩放计算) ----
+    // ---- 当前布局几何(标准 7x3 / 宽面板 8x4) ----
     private int cols = 6;
     private int rows = 3;
     private int cellW = 38;
@@ -114,6 +119,7 @@ public class ShopScreen extends Screen {
     public ShopScreen(OpenShopPacket data) {
         super(QText.parse(data.shopName.isEmpty() ? data.shopId : data.shopName));
         this.data = data;
+        this.wideLayout = QShopCommonConfig.lastLayoutWide();
         // 全新打开:恢复记忆的编辑模式(生存模式 editing=false 时强制关闭,优先级更高)
         this.editMode = data.editing && rememberedEditMode;
         if (!data.tabs.isEmpty()) {
@@ -136,32 +142,10 @@ public class ShopScreen extends Screen {
 
     @Override
     protected void init() {
-        // 为左侧 tab 栏让位(小窗口时面板右移)
-        this.left = Math.max(TAB_BAR_W + 8, (this.width - GUI_W) / 2);
-        this.top = (this.height - GUI_H) / 2;
-
+        ShopLayoutDebug.beginScreen(wideLayout);
+        configureLayout();
         applyVisibleTabs(requestedServerTab);
         applyActiveTabEntries();
-
-        // 不同 GUI 缩放等级:列数不同(行数固定 3,面板高度有限)
-        int scale = (int) Math.round(Minecraft.getInstance().getWindow().getGuiScale());
-        if (scale >= 3) {
-            cols = 7;
-            cellW = 32;
-        } else if (scale >= 2) {
-            cols = 6;
-            cellW = 38;
-        } else {
-            cols = 5;
-            cellW = 45;
-        }
-        stepX = cellW + 1;
-        // 方形槽(1:1,上限 37 保证 3 行放得下);价格文字在槽下方
-        int slot = Math.min(cellW - 1, 37);
-        cellH = slot;
-        stepY = slot + 13;
-        rows = 3;
-        visible = cols * rows;
         rowAnim = scroll / (float) cols;
         scrollActiveTabIntoView();
         tabScrollAnim = tabScroll;
@@ -169,19 +153,107 @@ public class ShopScreen extends Screen {
         layout();
     }
 
+    private void configureLayout() {
+        int width = wideLayout ? GUI_W_WIDE : GUI_W;
+        this.left = Math.max(TAB_BAR_W + 8, (this.width - width) / 2);
+        this.top = (this.height - GUI_H) / 2;
+        if (wideLayout) {
+            // 8x4:略缩小格子和行距，保留 200px 面板高度，并为滚动条留出右侧空间。
+            cols = 8;
+            rows = 4;
+            cellW = 31;
+            stepX = 32;
+            cellH = 29;
+            stepY = 41;
+        } else {
+            // 标准布局固定为 7x3，和原有高 GUI 缩放下的布局一致。
+            cols = 7;
+            rows = 3;
+            cellW = 32;
+            stepX = 33;
+            cellH = 31;
+            stepY = 44;
+        }
+        visible = cols * rows;
+    }
+
+    private int panelWidth() {
+        return wideLayout ? GUI_W_WIDE : GUI_W;
+    }
+
+    private int panelX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.PANEL, left);
+    }
+
+    private int panelY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.PANEL, top);
+    }
+
+    private int gridX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.GRID, left + (wideLayout ? 8 : 11));
+    }
+
+    private int gridY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.GRID, top + (wideLayout ? 37 : 40));
+    }
+
+    private int gridViewportHeight() {
+        return wideLayout ? GUI_H - 37 : rows * stepY;
+    }
+
+    private int tabBarX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.TAB_BAR, left - TAB_BAR_W - 6);
+    }
+
+    private int tabBarY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.TAB_BAR, top);
+    }
+
+    private int layoutButtonX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.LAYOUT_BUTTON, left + panelWidth() - 38);
+    }
+
+    private int layoutButtonY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.LAYOUT_BUTTON, top + 6);
+    }
+
+    private int closeButtonX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.CLOSE_BUTTON, left + panelWidth() - 20);
+    }
+
+    private int closeButtonY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.CLOSE_BUTTON, top + 6);
+    }
+
+    private int topControlX(int index) {
+        int layoutX = left + panelWidth() - 62;
+        int editX = layoutX - 58;
+        int addX = editX - 58;
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.TOP_CONTROLS,
+                switch (index) {
+                    case 0 -> addX;
+                    case 1 -> editX;
+                    default -> layoutX;
+                });
+    }
+
+    private int topControlY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.TOP_CONTROLS, top + 6);
+    }
+
     private void layout() {
         closeMenu();
         closeTrade();
         this.clearWidgets();
 
-        // 顶行右侧三个控件:添加条目 | 编辑模式 | 关闭(同一水平线)
+        // 顶行控件:添加条目 | 编辑模式 | 布局切换 | 关闭(同一水平线)
         if (data.editing && editMode) {
-            addRenderableWidget(new QButton(left + 104, top + 6, 60, 14,
+            addRenderableWidget(new QButton(topControlX(0), topControlY(), 56, 14,
                     Component.translatable("qshop.gui.add"),
                     btn -> openAdd()));
         }
         if (data.editing) {
-            addRenderableWidget(new QButton(left + 166, top + 6, 60, 14,
+            addRenderableWidget(new QButton(topControlX(1), topControlY(), 56, 14,
                     Component.translatable("qshop.gui.edit").copy()
                             .append(editMode ? Component.literal(" ✔") : Component.literal("")),
                     btn -> {
@@ -195,14 +267,32 @@ public class ShopScreen extends Screen {
                         layout();
                     }));
         }
-        // 关闭
-        addRenderableWidget(new QIconButton(left + GUI_W - 20, top + 6, ShopTextures.Icon.CLOSE, this::onClose));
+        QIconButton layoutButton = new QIconButton(layoutButtonX(), layoutButtonY(), ShopTextures.Icon.LAYOUT,
+                this::toggleLayout);
+        layoutButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.layout_switch")));
+        addRenderableWidget(layoutButton);
+        addRenderableWidget(new QIconButton(closeButtonX(), closeButtonY(), ShopTextures.Icon.CLOSE, this::onClose));
+    }
+
+    private void toggleLayout() {
+        wideLayout = !wideLayout;
+        QShopCommonConfig.setLastLayout(wideLayout);
+        ShopLayoutDebug.setLayout(wideLayout);
+        scroll = 0;
+        rowAnim = 0;
+        closeTrade();
+        configureLayout();
+        layout();
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
-        ShopTextures.panel(g, left, top);
+        if (wideLayout) {
+            ShopTextures.panelWide(g, panelX(), panelY());
+        } else {
+            ShopTextures.panel(g, panelX(), panelY());
+        }
 
         // 左侧子商店 tab 栏(顶部商店名,中间子商店,底部余额)
         renderTabBar(g, mouseX, mouseY);
@@ -210,7 +300,7 @@ public class ShopScreen extends Screen {
         // 空商店提示(网格区域居中)
         if (data.entries.isEmpty()) {
             g.drawCenteredString(this.font, Component.translatable("qshop.gui.empty"),
-                    left + 11 + (cols * stepX) / 2, top + 40 + (rows * stepY) / 2 - 4, 0xFFFFFF);
+                    gridX() + (cols * stepX) / 2, gridY() + gridViewportHeight() / 2 - 4, 0xFFFFFF);
         }
 
         // 滚动动画(以"行"为单位插值,时间基准,帧率无关)
@@ -225,11 +315,11 @@ public class ShopScreen extends Screen {
 
         // 网格(手动渲染,平滑滚动;裁剪到网格视口,防止溢出面板)
         int hovered = menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0 ? indexAt(mouseX, mouseY) : -1;
-        int gx = left + 11;
-        int gy = top + 40;
+        int gx = gridX();
+        int gy = gridY();
         int baseRow = (int) Math.floor(rowAnim);
         float frac = rowAnim - baseRow;
-        ShopTextures.enableScissor(g, gx, gy, cols * stepX, rows * stepY);
+        ShopTextures.enableScissor(g, gx, gy, cols * stepX, gridViewportHeight());
         for (int r = 0; r <= rows; r++) {
             int y = gy + (int) (r * stepY - frac * stepY);
             for (int c = 0; c < cols; c++) {
@@ -246,7 +336,7 @@ public class ShopScreen extends Screen {
         if (maxScroll() > 0) {
             int contentRows = Math.max(rows, (int) Math.ceil(data.entries.size() / (float) cols));
             int zoneY = gy;
-            int zoneH = rows * stepY;
+            int zoneH = gridViewportHeight();
             int knobH = Math.max(8, zoneH * rows / contentRows);
             int knobY = zoneY + (zoneH - knobH) * (scroll / cols) / Math.max(1, contentRows - rows);
             int sbX = gx + cols * stepX + 2;
@@ -260,7 +350,7 @@ public class ShopScreen extends Screen {
         // 悬浮 tooltip(菜单/交易窗打开时不显示,避免盖住它们)
         // 槽位部分 = 物品 tooltip;价格条部分 = 完整价格 / 交换数量(与余额 tooltip 同理)
         if (!dragActive && menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0 && hovered >= 0) {
-            int slot = Math.min(cellW - 1, 37);
+            int slot = cellH;
             int c = hovered % cols;
             int r = hovered / cols - baseRow;
             int cellY = gy + (int) (r * stepY - frac * stepY);
@@ -305,7 +395,7 @@ public class ShopScreen extends Screen {
                 int tc = tgt % cols;
                 int viewRow = tgt / cols - baseRow;
                 int ty = gy + (int) (viewRow * stepY - frac * stepY);
-                ShopTextures.slot(g, gx + tc * stepX, ty, Math.min(cellW - 1, 37), Math.min(cellW - 1, 37), true, true);
+                ShopTextures.slot(g, gx + tc * stepX, ty, cellH, cellH, true, true);
             }
             drawCell(g, pressedIndex, (int) mouseX - cellW / 2, (int) mouseY - 24, true, mouseX, mouseY, true);
             // 数量徽标:原版 renderItemDecorations 内部硬编码 z+200,会把数字顶到幽灵层之上;
@@ -313,7 +403,7 @@ public class ShopScreen extends Screen {
             ClientShopEntry ge = data.entries.get(pressedIndex);
             ItemStack gicon = cellIcon(ge);
             if (!gicon.isEmpty() && gicon.getCount() != 1) {
-                int gslot = Math.min(cellW - 1, 37);
+                int gslot = cellH;
                 int gix = (int) mouseX - cellW / 2 + (gslot - 16) / 2;
                 int giy = (int) mouseY - 24 + (gslot - 16) / 2;
                 String cnt = String.valueOf(gicon.getCount());
@@ -347,6 +437,66 @@ public class ShopScreen extends Screen {
             g.pose().popPose();
         }
 
+        renderLayoutDebug(g);
+
+    }
+
+    private void renderLayoutDebug(GuiGraphics g) {
+        if (!ShopLayoutDebug.isEnabled()) {
+            return;
+        }
+        ShopLayoutDebug.Widget widget = ShopLayoutDebug.selected();
+        int x;
+        int y;
+        int w;
+        int h;
+        switch (widget) {
+            case PANEL -> {
+                x = panelX();
+                y = panelY();
+                w = panelWidth();
+                h = GUI_H;
+            }
+            case TAB_BAR -> {
+                x = tabBarX();
+                y = tabBarY();
+                w = TAB_BAR_W;
+                h = GUI_H;
+            }
+            case GRID -> {
+                x = gridX();
+                y = gridY();
+                w = cols * stepX;
+                h = gridViewportHeight();
+            }
+            case TOP_CONTROLS -> {
+                x = topControlX(0);
+                y = topControlY();
+                w = panelWidth() - (x - left) - 62;
+                h = 14;
+            }
+            case LAYOUT_BUTTON -> {
+                x = layoutButtonX();
+                y = layoutButtonY();
+                w = 16;
+                h = 16;
+            }
+            case CLOSE_BUTTON -> {
+                x = closeButtonX();
+                y = closeButtonY();
+                w = 12;
+                h = 12;
+            }
+            default -> {
+                return;
+            }
+        }
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, MENU_LAYER_Z + 50.0f);
+        ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
+        g.flush();
+        g.pose().popPose();
     }
 
     private void renderWidgets(GuiGraphics g, int mouseX, int mouseY, float partialTick, boolean tradeLayer) {
@@ -365,8 +515,8 @@ public class ShopScreen extends Screen {
 
     /** 左侧子商店 tab 栏:顶部商店名,中间可滚动的子商店列表,底部余额 */
     private void renderTabBar(GuiGraphics g, int mouseX, int mouseY) {
-        int x = left - TAB_BAR_W - 6;
-        int y = top;
+        int x = tabBarX();
+        int y = tabBarY();
         ShopTextures.tabBar(g, x, y);
 
         // 顶部:商店图标 + 名称
@@ -472,7 +622,7 @@ public class ShopScreen extends Screen {
 
     /** 编辑模式“添加子商店”按钮位置：作为列表末尾的一项参与平滑滚动。 */
     private int tabAddY() {
-        int ty0 = top + 38;
+        int ty0 = tabBarY() + 38;
         return Math.round(ty0 + visibleTabs.size() * TAB_PITCH - tabScrollAnim);
     }
 
@@ -482,8 +632,8 @@ public class ShopScreen extends Screen {
      * 遮罩左右各缩进 2px(总宽减少 4px);仅在确有内容被遮挡时显示。
      */
     private void renderTabMasks(GuiGraphics g) {
-        int x = left - TAB_BAR_W - 6;
-        int ty0 = top + 38;
+        int x = tabBarX();
+        int ty0 = tabBarY() + 38;
         int endY = ty0 + TAB_LIST_H;
         int mx = x + 2;
         int mw = TAB_BAR_W - 4;
@@ -500,8 +650,8 @@ public class ShopScreen extends Screen {
     }
 
     private int tabIndexAt(double mouseX, double mouseY) {
-        int x = left - TAB_BAR_W - 6;
-        int y = top + 38;
+        int x = tabBarX();
+        int y = tabBarY() + 38;
         int endY = y + TAB_LIST_H;
         if (mouseX < x + 3 || mouseX > x + 3 + TAB_W || mouseY < y || mouseY > endY) {
             return -1;
@@ -578,11 +728,16 @@ public class ShopScreen extends Screen {
         }
         List<ClientShopEntry> visibleEntries = new ArrayList<>();
         for (ClientShopEntry entry : all) {
-            if (entry.requirementsMet) {
+            if (entry.requirementsMet && !entryLimitReached(entry)) {
                 visibleEntries.add(entry);
             }
         }
         data.entries = visibleEntries;
+    }
+
+    private static boolean entryLimitReached(ClientShopEntry entry) {
+        return (entry.globalLimit > 0 && entry.usedGlobal >= entry.globalLimit)
+                || (entry.playerLimit > 0 && entry.usedPlayer >= entry.playerLimit);
     }
 
     private int serverIndex(int visibleIndex) {
@@ -663,7 +818,7 @@ public class ShopScreen extends Screen {
     private void drawCell(GuiGraphics g, int index, int x, int y, boolean hover, int mouseX, int mouseY, boolean noCount) {
         ClientShopEntry e = data.entries.get(index);
         // 方形槽 1:1(不含下方价格),价格文字在槽下方
-        int slot = Math.min(cellW - 1, 37);
+        int slot = cellH;
         ShopTextures.slot(g, x, y, slot, slot, hover, editMode);
         ItemStack icon = cellIcon(e);
         if (!icon.isEmpty()) {
@@ -729,8 +884,11 @@ public class ShopScreen extends Screen {
 
     /** 由鼠标坐标计算悬浮/点击的条目序号,-1 表示不在网格内(向下取整,避免网格上方误判为第一行) */
     private int indexAt(double mouseX, double mouseY) {
-        int gx = left + 11;
-        int gy = top + 40;
+        int gx = gridX();
+        int gy = gridY();
+        if (mouseY < gy || mouseY >= gy + gridViewportHeight()) {
+            return -1;
+        }
         int baseRow = (int) Math.floor(rowAnim);
         float frac = rowAnim - baseRow;
         int c = (int) Math.floor((mouseX - gx) / stepX);
@@ -744,10 +902,10 @@ public class ShopScreen extends Screen {
 
     /** 鼠标是否在网格下方的空白区域(面板内):拖到这里 = 移到末尾 */
     private boolean belowGrid(double mouseX, double mouseY) {
-        int gx = left + 11;
-        int gy = top + 40;
+        int gx = gridX();
+        int gy = gridY();
         int c = (int) Math.floor((mouseX - gx) / stepX);
-        return c >= 0 && c < cols && mouseY >= gy + rows * stepY && mouseY <= top + GUI_H;
+        return c >= 0 && c < cols && mouseY >= gy + gridViewportHeight() && mouseY <= panelY() + GUI_H;
     }
 
     @Override
@@ -810,7 +968,7 @@ public class ShopScreen extends Screen {
             overlayPointerCapture = true;
             pressedIndex = -1;
             dragActive = false;
-            int px = left + (GUI_W - TRADE_W) / 2;
+            int px = left + (panelWidth() - TRADE_W) / 2;
             int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
             boolean inside = mouseX >= px && mouseX <= px + TRADE_W && mouseY >= py && mouseY <= py + TRADE_H;
             // 输入框优先(显式聚焦)
@@ -833,8 +991,8 @@ public class ShopScreen extends Screen {
             return true;
         }
         // 左侧 tab 栏(左键永远切换子商店;编辑模式右键 = tab 菜单)
-        int tabX = left - TAB_BAR_W - 6;
-        int tabY = top;
+        int tabX = tabBarX();
+        int tabY = tabBarY();
         if (mouseX >= tabX && mouseX <= tabX + TAB_BAR_W && mouseY >= tabY && mouseY <= tabY + GUI_H) {
             // 编辑模式:左键/右键顶部商店名称/图标区域 = 编辑商店信息(名字/图标/货币)
             // 与子商店不同:子商店左键要切换所以只能右键出菜单;商店标题无切换语义,左键直接编辑
@@ -880,8 +1038,8 @@ public class ShopScreen extends Screen {
         }
         int index = indexAt(mouseX, mouseY);
         if (index >= 0) {
-            int gx = left + 11;
-            int gy = top + 40;
+            int gx = gridX();
+            int gy = gridY();
             int baseRow = (int) Math.floor(rowAnim);
             float frac = rowAnim - baseRow;
             int c = (int) Math.floor((mouseX - gx) / stepX);
@@ -1036,6 +1194,29 @@ public class ShopScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
+            ShopLayoutDebug.toggle();
+            layout();
+            return true;
+        }
+        if (ShopLayoutDebug.isEnabled()
+                && !(tradeUnitsBox != null && tradeUnitsBox.isFocused())) {
+            if (keyCode == GLFW.GLFW_KEY_TAB) {
+                ShopLayoutDebug.selectNext((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
+                return true;
+            }
+            int step = (modifiers & GLFW.GLFW_MOD_ALT) != 0 ? 1 : 5;
+            int dx = 0;
+            int dy = 0;
+            if (keyCode == GLFW.GLFW_KEY_LEFT) dx = -step;
+            if (keyCode == GLFW.GLFW_KEY_RIGHT) dx = step;
+            if (keyCode == GLFW.GLFW_KEY_UP) dy = -step;
+            if (keyCode == GLFW.GLFW_KEY_DOWN) dy = step;
+            if (dx != 0 || dy != 0) {
+                ShopLayoutDebug.moveSelected(dx, dy);
+                return true;
+            }
+        }
         if (menuIndex >= 0 && keyCode == 256) {
             closeMenu();
             return true;
@@ -1072,8 +1253,8 @@ public class ShopScreen extends Screen {
             return true; // 菜单/交易窗打开时锁定商店滚动
         }
         // 鼠标在左侧 tab 栏上时:滚动子商店列表
-        int tabX = left - TAB_BAR_W - 6;
-        if (mouseX >= tabX && mouseX <= tabX + TAB_BAR_W && mouseY >= top && mouseY <= top + GUI_H) {
+        int tabX = tabBarX();
+        if (mouseX >= tabX && mouseX <= tabX + TAB_BAR_W && mouseY >= tabBarY() && mouseY <= tabBarY() + GUI_H) {
             int ns = Mth.clamp(tabScroll - wheelDirection(delta) * TAB_PITCH, 0, maxTabScroll());
             if (ns != tabScroll) {
                 tabScroll = ns;
@@ -1111,7 +1292,7 @@ public class ShopScreen extends Screen {
         tradeIndex = entryIndex;
         ClientShopEntry e = data.entries.get(entryIndex);
         tradeMaxUnits = computeTradeMaxUnits(e);
-        int px = left + (GUI_W - TRADE_W) / 2;
+        int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
 
         tradeUnitsBox = new EditBox(this.font, px + 47, py + 63, 56, 14, Component.literal(""));
@@ -1305,7 +1486,7 @@ public class ShopScreen extends Screen {
     /** 交易悬浮窗内容(面板 + 居中信息 + 数量/合计) */
     private void drawTradePanel(GuiGraphics g) {
         ClientShopEntry e = data.entries.get(tradeIndex);
-        int px = left + (GUI_W - TRADE_W) / 2;
+        int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
         ShopTextures.tradePanel(g, px, py, TRADE_W, TRADE_H);
 

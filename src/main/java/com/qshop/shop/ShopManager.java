@@ -316,6 +316,11 @@ public final class ShopManager {
                 if (e.playerLimit > 0 && wallet != null) {
                     usedPlayer = wallet.getLimitCount(key, period);
                 }
+                // 达到全局或个人限购上限后，普通模式隐藏该交易项目；编辑模式仍保留，便于管理员调整配置。
+                if (!editing && ((e.globalLimit > 0 && usedGlobal >= e.globalLimit)
+                        || (e.playerLimit > 0 && usedPlayer >= e.playerLimit))) {
+                    continue;
+                }
                 ct.entries.add(ClientShopEntry.from(e, i, requirementsMet, usedGlobal, usedPlayer));
             }
             tabs.add(ct);

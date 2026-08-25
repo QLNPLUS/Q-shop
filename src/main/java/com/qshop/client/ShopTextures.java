@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.qshop.config.QShopCommonConfig;
 import com.qshop.shop.ShopEntryType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -18,7 +19,7 @@ import java.util.Map;
 
 /**
  * QShop GUI 材质(assets/qshop/textures/gui/ 下的拆分 PNG,每个元素一个文件,便于单独修改):
- *   panel.png / panel_edit.png    面板(250x200 / 250x250)
+ *   panel.png / panel_wide.png / panel_edit.png    面板(250x200 / 280x200 / 250x250)
  *   slot*.png                     格子 20x20(普通/悬停/编辑/编辑悬停)
  *   button*.png                   按钮 60x16(普通/悬停/禁用)
  *   input*.png                    输入框 96x12(普通/聚焦)
@@ -31,6 +32,7 @@ import java.util.Map;
 public final class ShopTextures {
 
     private static final ResourceLocation PANEL = rl("panel");
+    private static final ResourceLocation PANEL_WIDE = rl("panel_wide");
     private static final ResourceLocation PANEL_EDIT = rl("panel_edit");
     private static final ResourceLocation PANEL_ADD = rl("panel_add");
     private static final ResourceLocation PANEL_TAB = rl("panel_tab");
@@ -53,6 +55,8 @@ public final class ShopTextures {
     private static final ResourceLocation CHECK_ON_HOVER = rl("checkbox_on_hover");
     private static final ResourceLocation CLOSE = rl("close");
     private static final ResourceLocation CLOSE_HOVER = rl("close_hover");
+    private static final ResourceLocation LAYOUT = rl("layout");
+    private static final ResourceLocation LAYOUT_HOVER = rl("layout_hover");
     private static final ResourceLocation PLUS = rl("plus");
     private static final ResourceLocation PLUS_HOVER = rl("plus_hover");
     private static final ResourceLocation MINUS = rl("minus");
@@ -84,6 +88,11 @@ public final class ShopTextures {
 
     public static void panel(GuiGraphics g, int x, int y) {
         g.blit(PANEL, x, y, 0, 0, 250, 200, 250, 200);
+    }
+
+    /** 8x4 布局主面板(280x200),独立材质以便单独换皮肤。 */
+    public static void panelWide(GuiGraphics g, int x, int y) {
+        g.blit(PANEL_WIDE, x, y, 0, 0, 280, 200, 280, 200);
     }
 
     /** 编辑界面高面板(250x280) */
@@ -146,10 +155,10 @@ public final class ShopTextures {
 
     /** 顶部渐隐遮罩(实心 → 透明)，使用 GuiGraphics 以继承调用方的 Z 层。 */
     public static void tabFadeTop(GuiGraphics g, int x, int y, int w) {
-        if (!QShopClientConfig.showFadeMasks()) {
+        if (!QShopCommonConfig.showFadeMasks()) {
             return;
         }
-        int c = QShopClientConfig.fadeColor();
+        int c = QShopCommonConfig.fadeColor();
         int r = (c >> 16) & 0xFF;
         int gn = (c >> 8) & 0xFF;
         int b = c & 0xFF;
@@ -161,10 +170,10 @@ public final class ShopTextures {
 
     /** 底部渐隐遮罩(透明 → 实心) */
     public static void tabFadeBottom(GuiGraphics g, int x, int y, int w) {
-        if (!QShopClientConfig.showFadeMasks()) {
+        if (!QShopCommonConfig.showFadeMasks()) {
             return;
         }
-        int c = QShopClientConfig.fadeColor();
+        int c = QShopCommonConfig.fadeColor();
         int r = (c >> 16) & 0xFF;
         int gn = (c >> 8) & 0xFF;
         int b = c & 0xFF;
@@ -319,6 +328,7 @@ public final class ShopTextures {
     public static boolean iconHit(Icon icon, int x, int y, double mx, double my) {
         ResourceLocation tex = switch (icon) {
             case CLOSE -> CLOSE;
+            case LAYOUT -> LAYOUT;
             case PLUS -> PLUS;
             case MINUS -> MINUS;
             case TRASH -> TRASH;
@@ -404,11 +414,12 @@ public final class ShopTextures {
 
     // ---------------- 小图标 ----------------
 
-    public enum Icon { CLOSE, PLUS, MINUS, TRASH }
+    public enum Icon { CLOSE, LAYOUT, PLUS, MINUS, TRASH }
 
     public static void icon(GuiGraphics g, int x, int y, Icon icon, boolean hover) {
         ResourceLocation tex = switch (icon) {
             case CLOSE -> hover ? CLOSE_HOVER : CLOSE;
+            case LAYOUT -> hover ? LAYOUT_HOVER : LAYOUT;
             case PLUS -> hover ? PLUS_HOVER : PLUS;
             case MINUS -> hover ? MINUS_HOVER : MINUS;
             case TRASH -> hover ? TRASH_HOVER : TRASH;

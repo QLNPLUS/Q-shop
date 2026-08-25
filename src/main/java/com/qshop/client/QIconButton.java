@@ -7,7 +7,7 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.network.chat.Component;
 
 /**
- * 使用 QShop 材质的小图标按钮(关闭/加号/减号/垃圾桶)。
+ * 使用 QShop 材质的小图标按钮(关闭/布局切换/加号/减号/垃圾桶)。
  */
 public class QIconButton extends AbstractButton {
 

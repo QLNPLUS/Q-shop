@@ -5,11 +5,19 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import java.util.List;
 
 /**
- * QShop common configuration (config/qshop-common.toml).
+ * QShop common and client-shared configuration (config/qshop-common.toml).
  */
 public final class QShopCommonConfig {
 
     public static final ForgeConfigSpec SPEC;
+    /** Whether to show the translucent tab list fade masks. */
+    public static final ForgeConfigSpec.BooleanValue SHOW_FADE_MASKS;
+    /** Hex RGB color used by the tab list fade masks. */
+    public static final ForgeConfigSpec.ConfigValue<String> FADE_COLOR;
+    /** Whether the optional client layout debugger is enabled. */
+    public static final ForgeConfigSpec.BooleanValue ENABLE_LAYOUT_DEBUG;
+    /** Last layout selected by the local client (standard or wide). */
+    public static final ForgeConfigSpec.ConfigValue<String> LAST_LAYOUT;
     /** Whether a death applies currency retention rules. */
     public static final ForgeConfigSpec.BooleanValue LOSE_CURRENCY_ON_DEATH;
     /** Retention used for currencies without an explicit rule. */
@@ -42,6 +50,31 @@ public final class QShopCommonConfig {
                         "也接受 currencyId:比例 / currencyId:ratio。未列出的货币使用 defaultCurrencyRetention。")
                 .defineList("currencyRetention", List.of(), QShopCommonConfig::validRule);
         b.pop();
+
+        b.comment(
+                "客户端界面设置 / Client GUI settings",
+                "这些选项也保存在 qshop-common.toml，以便客户端和服务端使用同一份配置。")
+                .push("client");
+        SHOW_FADE_MASKS = b.comment(
+                        "是否显示子商店列表上下半透明渐隐遮罩。",
+                        "Whether to show the translucent fade masks on the tab list.",
+                        "默认 true / Default: true")
+                .define("showFadeMasks", true);
+        FADE_COLOR = b.comment(
+                        "遮罩颜色(十六进制 RRGGBB,如 636363)。",
+                        "Fade mask color (hex RRGGBB, e.g. 636363).",
+                        "默认 636363 / Default: 636363")
+                .define("fadeColor", "636363");
+        ENABLE_LAYOUT_DEBUG = b.comment(
+                        "启用商店布局调试编辑器(F8)。默认关闭。",
+                        "Enable the shop layout debug editor (F8). Default: false.")
+                .define("enableLayoutDebug", false);
+        LAST_LAYOUT = b.comment(
+                        "客户端上次选择的商店布局。可选 standard(7x3) 或 wide(8x4)。",
+                        "The last shop layout selected by the client. Use standard(7x3) or wide(8x4).",
+                        "默认 standard / Default: standard")
+                .define("lastLayout", "standard", QShopCommonConfig::validLayout);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -62,8 +95,43 @@ public final class QShopCommonConfig {
         return LOSE_CURRENCY_ON_DEATH.get();
     }
 
+    /** Parses the client fade color, falling back to 0x636363 for invalid input. */
+    public static int fadeColor() {
+        try {
+            return Integer.parseInt(FADE_COLOR.get().trim().replace("#", ""), 16) & 0xFFFFFF;
+        } catch (Exception ignored) {
+            return 0x636363;
+        }
+    }
+
+    public static boolean showFadeMasks() {
+        return SHOW_FADE_MASKS.get();
+    }
+
+    public static boolean layoutDebugEnabled() {
+        return ENABLE_LAYOUT_DEBUG.get();
+    }
+
+    public static boolean lastLayoutWide() {
+        return "wide".equalsIgnoreCase(LAST_LAYOUT.get());
+    }
+
+    /** Persists the local layout choice immediately in qshop-common.toml. */
+    public static void setLastLayout(boolean wide) {
+        String value = wide ? "wide" : "standard";
+        if (!value.equalsIgnoreCase(LAST_LAYOUT.get())) {
+            LAST_LAYOUT.set(value);
+            SPEC.save();
+        }
+    }
+
     private static boolean validRule(Object value) {
         return value instanceof String && splitRule((String) value) != null;
+    }
+
+    private static boolean validLayout(Object value) {
+        return value instanceof String
+                && ("standard".equalsIgnoreCase((String) value) || "wide".equalsIgnoreCase((String) value));
     }
 
     private static String[] splitRule(String raw) {
