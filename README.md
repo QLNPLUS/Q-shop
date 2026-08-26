@@ -112,11 +112,15 @@ showFadeMasks = true
 fadeColor = "636363"
 enableLayoutDebug = false
 lastLayout = "standard"
+searchActive = false
 ```
 
 `enableLayoutDebug = true` 后，在商店界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
 7x3 和 8x4 使用独立的偏移数据，切换布局不会互相影响；旧版共享偏移文件会自动迁移到 7x3。
+添加条目、编辑模式、搜索、布局切换和关闭按钮均使用独立的 16x16 图标及独立偏移，可在调试模式中分别调整。
 `lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
+`searchActive` 会记录搜索按钮是否启用；启用后重启游戏会恢复搜索框，搜索文本本身不会保存。
+搜索范围是当前 tab 的交易项目，并且只匹配交易格内最终显示的物品（包括自定义展示物品）；支持普通物品名称/ID、`#tag` 标签和 `@namespace` 命名空间，空格分隔的多个条件会同时生效。
 
 ### currencies.json
 
@@ -187,6 +191,8 @@ lastLayout = "standard"
 
 占位符:`%player%`、`%player_uuid%`、`%shop%`、`%shop_uuid%`、`%entry%`(条目序号)、
 `%units%`(交易单位数)、`%items%`(物品件数)、`%price%`、`%currency%`、`%multiplier%`。
+
+`COMMAND` 类型批量购买时，每个交易单位会执行一次所有配置的指令；这时上述 `%units%`、`%items%`、`%price%` 和 `%multiplier%` 占位符表示当前单个单位。其他交易类型上的交易后指令仍只执行一次，并使用本次交易总量。
 
 ## 指令
 

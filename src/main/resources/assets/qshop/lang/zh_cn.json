@@ -3,6 +3,8 @@
   "qshop.gui.edit": "编辑模式",
   "qshop.gui.close": "✕",
   "qshop.gui.layout_switch": "切换布局",
+  "qshop.gui.search": "搜索",
+  "qshop.gui.search_hint": "搜索物品、#标签、@命名空间",
   "qshop.gui.add": "添加条目",
   "qshop.gui.add_entry": "添加",
   "qshop.gui.trade": "确认交易",

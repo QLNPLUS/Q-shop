@@ -18,6 +18,8 @@ public final class QShopCommonConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_LAYOUT_DEBUG;
     /** Last layout selected by the local client (standard or wide). */
     public static final ForgeConfigSpec.ConfigValue<String> LAST_LAYOUT;
+    /** Whether the local client should reopen the shop search box after restart. */
+    public static final ForgeConfigSpec.BooleanValue SEARCH_ACTIVE;
     /** Whether a death applies currency retention rules. */
     public static final ForgeConfigSpec.BooleanValue LOSE_CURRENCY_ON_DEATH;
     /** Retention used for currencies without an explicit rule. */
@@ -74,6 +76,11 @@ public final class QShopCommonConfig {
                         "The last shop layout selected by the client. Use standard(7x3) or wide(8x4).",
                         "默认 standard / Default: standard")
                 .define("lastLayout", "standard", QShopCommonConfig::validLayout);
+        SEARCH_ACTIVE = b.comment(
+                        "是否在商店界面启用搜索框。会在重启游戏后恢复。",
+                        "Whether the shop search box is active. The state is restored after restarting the game.",
+                        "默认 false / Default: false")
+                .define("searchActive", false);
         b.pop();
         SPEC = b.build();
     }
@@ -121,6 +128,18 @@ public final class QShopCommonConfig {
         String value = wide ? "wide" : "standard";
         if (!value.equalsIgnoreCase(LAST_LAYOUT.get())) {
             LAST_LAYOUT.set(value);
+            SPEC.save();
+        }
+    }
+
+    public static boolean searchActive() {
+        return SEARCH_ACTIVE.get();
+    }
+
+    /** Persists the local search button state immediately in qshop-common.toml. */
+    public static void setSearchActive(boolean active) {
+        if (SEARCH_ACTIVE.get() != active) {
+            SEARCH_ACTIVE.set(active);
             SPEC.save();
         }
     }

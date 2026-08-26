@@ -15,6 +15,12 @@
 - Limited entries at their global or personal cap are hidden outside edit mode.
 - Layout debug offsets are now stored independently for the 7x3 and 8x4 layouts; existing version 1 files are migrated to the 7x3 layout.
 - The selected 7x3/8x4 layout is persisted as `client.lastLayout` in `qshop-common.toml` and restored after restarting the game.
+- Added an optional item search box with normal name/ID, `#tag`, and `@namespace` filters; its active button state is persisted as `client.searchActive`.
+- Converted the add-entry and edit-mode controls to independent 16x16 icon buttons; layout debugging now moves each top control independently and applies changes immediately.
+
+### Fixed
+
+- Fixed bulk purchases of `COMMAND` entries executing the configured command only once; commands now execute once for each purchased unit.
 
 ## 1.1.2 - 2026-08-24
 

@@ -24,6 +24,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -31,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.List;
 import java.util.Optional;
 
@@ -116,10 +118,18 @@ public class ShopScreen extends Screen {
     private QSlider tradeSlider;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
 
+    // ---- 商店搜索 ----
+    private static final int SEARCH_BUTTON_SIZE = 16;
+    private static final int SEARCH_BOX_H = 14;
+    private boolean searchActive;
+    private String searchQuery = "";
+    private EditBox searchBox;
+
     public ShopScreen(OpenShopPacket data) {
         super(QText.parse(data.shopName.isEmpty() ? data.shopId : data.shopName));
         this.data = data;
         this.wideLayout = QShopCommonConfig.lastLayoutWide();
+        this.searchActive = QShopCommonConfig.searchActive();
         // 全新打开:恢复记忆的编辑模式(生存模式 editing=false 时强制关闭,优先级更高)
         this.editMode = data.editing && rememberedEditMode;
         if (!data.tabs.isEmpty()) {
@@ -217,6 +227,26 @@ public class ShopScreen extends Screen {
         return ShopLayoutDebug.y(ShopLayoutDebug.Widget.LAYOUT_BUTTON, top + 6);
     }
 
+    private int searchButtonX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.SEARCH_BUTTON, left + panelWidth() - 56);
+    }
+
+    private int searchButtonY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.SEARCH_BUTTON, top + 6);
+    }
+
+    private int searchBoxX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.SEARCH_BOX, left + 8);
+    }
+
+    private int searchBoxY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.SEARCH_BOX, top + 22);
+    }
+
+    private int searchBoxWidth() {
+        return panelWidth() - 70;
+    }
+
     private int closeButtonX() {
         return ShopLayoutDebug.x(ShopLayoutDebug.Widget.CLOSE_BUTTON, left + panelWidth() - 20);
     }
@@ -225,38 +255,54 @@ public class ShopScreen extends Screen {
         return ShopLayoutDebug.y(ShopLayoutDebug.Widget.CLOSE_BUTTON, top + 6);
     }
 
-    private int topControlX(int index) {
-        int layoutX = left + panelWidth() - 62;
-        int editX = layoutX - 58;
-        int addX = editX - 58;
-        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.TOP_CONTROLS,
-                switch (index) {
-                    case 0 -> addX;
-                    case 1 -> editX;
-                    default -> layoutX;
-                });
+    private int addButtonX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.ADD_BUTTON, left + panelWidth() - 92);
     }
 
-    private int topControlY() {
-        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.TOP_CONTROLS, top + 6);
+    private int addButtonY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.ADD_BUTTON, top + 6);
+    }
+
+    private int editButtonX() {
+        return ShopLayoutDebug.x(ShopLayoutDebug.Widget.EDIT_BUTTON, left + panelWidth() - 74);
+    }
+
+    private int editButtonY() {
+        return ShopLayoutDebug.y(ShopLayoutDebug.Widget.EDIT_BUTTON, top + 6);
     }
 
     private void layout() {
         closeMenu();
         closeTrade();
         this.clearWidgets();
+        searchBox = null;
 
-        // 顶行控件:添加条目 | 编辑模式 | 布局切换 | 关闭(同一水平线)
+        if (searchActive) {
+            searchBox = new EditBox(this.font, searchBoxX(), searchBoxY(), searchBoxWidth(), SEARCH_BOX_H,
+                    Component.translatable("qshop.gui.search"));
+            searchBox.setMaxLength(128);
+            searchBox.setBordered(false);
+            searchBox.setHint(Component.translatable("qshop.gui.search_hint"));
+            searchBox.setValue(searchQuery);
+            searchBox.setResponder(value -> {
+                searchQuery = value == null ? "" : value;
+                applyActiveTabEntries();
+                scroll = 0;
+                rowAnim = 0;
+            });
+            addRenderableWidget(searchBox);
+        }
+
+        // 顶行控件全部使用独立的 16x16 图标和独立布局偏移。
         if (data.editing && editMode) {
-            addRenderableWidget(new QButton(topControlX(0), topControlY(), 56, 14,
-                    Component.translatable("qshop.gui.add"),
-                    btn -> openAdd()));
+            QIconButton addButton = new QIconButton(addButtonX(), addButtonY(), ShopTextures.Icon.ADD,
+                    this::openAdd);
+            addButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.add")));
+            addRenderableWidget(addButton);
         }
         if (data.editing) {
-            addRenderableWidget(new QButton(topControlX(1), topControlY(), 56, 14,
-                    Component.translatable("qshop.gui.edit").copy()
-                            .append(editMode ? Component.literal(" ✔") : Component.literal("")),
-                    btn -> {
+            QIconButton editButton = new QIconButton(editButtonX(), editButtonY(), ShopTextures.Icon.EDIT,
+                    () -> {
                         int preferredTab = activeServerTabIndex();
                         editMode = !editMode;
                         rememberedEditMode = editMode;
@@ -265,13 +311,37 @@ public class ShopScreen extends Screen {
                         applyVisibleTabs(preferredTab);
                         applyActiveTabEntries();
                         layout();
-                    }));
+                    });
+            editButton.setActive(editMode);
+            editButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.edit")));
+            addRenderableWidget(editButton);
         }
+        QIconButton searchButton = new QIconButton(searchButtonX(), searchButtonY(), ShopTextures.Icon.SEARCH,
+                this::toggleSearch);
+        searchButton.setActive(searchActive);
+        searchButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.search")));
+        addRenderableWidget(searchButton);
+
         QIconButton layoutButton = new QIconButton(layoutButtonX(), layoutButtonY(), ShopTextures.Icon.LAYOUT,
                 this::toggleLayout);
         layoutButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.layout_switch")));
         addRenderableWidget(layoutButton);
         addRenderableWidget(new QIconButton(closeButtonX(), closeButtonY(), ShopTextures.Icon.CLOSE, this::onClose));
+    }
+
+    private void toggleSearch() {
+        searchActive = !searchActive;
+        QShopCommonConfig.setSearchActive(searchActive);
+        if (!searchActive) {
+            searchQuery = "";
+        }
+        applyActiveTabEntries();
+        scroll = 0;
+        rowAnim = 0;
+        layout();
+        if (searchActive && searchBox != null) {
+            searchBox.setFocused(true);
+        }
     }
 
     private void toggleLayout() {
@@ -342,6 +412,11 @@ public class ShopScreen extends Screen {
             int sbX = gx + cols * stepX + 2;
             ShopTextures.scrollTrack(g, sbX, zoneY, zoneH);
             ShopTextures.scrollKnob(g, sbX - 1, knobY, knobH);
+        }
+
+        if (searchActive && searchBox != null) {
+            ShopTextures.input(g, searchBoxX(), searchBoxY(), searchBoxWidth(), SEARCH_BOX_H,
+                    searchBox.isFocused());
         }
 
         // 主界面控件先绘制，浮层不会再被关闭/编辑按钮覆盖。
@@ -469,11 +544,29 @@ public class ShopScreen extends Screen {
                 w = cols * stepX;
                 h = gridViewportHeight();
             }
-            case TOP_CONTROLS -> {
-                x = topControlX(0);
-                y = topControlY();
-                w = panelWidth() - (x - left) - 62;
-                h = 14;
+            case ADD_BUTTON -> {
+                x = addButtonX();
+                y = addButtonY();
+                w = 16;
+                h = 16;
+            }
+            case EDIT_BUTTON -> {
+                x = editButtonX();
+                y = editButtonY();
+                w = 16;
+                h = 16;
+            }
+            case SEARCH_BOX -> {
+                x = searchBoxX();
+                y = searchBoxY();
+                w = searchBoxWidth();
+                h = SEARCH_BOX_H;
+            }
+            case SEARCH_BUTTON -> {
+                x = searchButtonX();
+                y = searchButtonY();
+                w = SEARCH_BUTTON_SIZE;
+                h = SEARCH_BUTTON_SIZE;
             }
             case LAYOUT_BUTTON -> {
                 x = layoutButtonX();
@@ -722,13 +815,14 @@ public class ShopScreen extends Screen {
             return;
         }
         List<ClientShopEntry> all = visibleTabs.get(activeTab).entries;
-        if (!data.editing || editMode) {
+        if ((!data.editing || editMode) && !hasSearchQuery()) {
             data.entries = all;
             return;
         }
         List<ClientShopEntry> visibleEntries = new ArrayList<>();
         for (ClientShopEntry entry : all) {
-            if (entry.requirementsMet && !entryLimitReached(entry)) {
+            boolean normalVisible = editMode || (entry.requirementsMet && !entryLimitReached(entry));
+            if (normalVisible && matchesSearch(entry)) {
                 visibleEntries.add(entry);
             }
         }
@@ -738,6 +832,66 @@ public class ShopScreen extends Screen {
     private static boolean entryLimitReached(ClientShopEntry entry) {
         return (entry.globalLimit > 0 && entry.usedGlobal >= entry.globalLimit)
                 || (entry.playerLimit > 0 && entry.usedPlayer >= entry.playerLimit);
+    }
+
+    private boolean hasSearchQuery() {
+        return searchActive && !searchQuery.trim().isEmpty();
+    }
+
+    /** REI-like search: every whitespace-separated token must match the entry. */
+    private boolean matchesSearch(ClientShopEntry entry) {
+        if (!hasSearchQuery()) {
+            return true;
+        }
+        String[] tokens = searchQuery.toLowerCase(Locale.ROOT).trim().split("\\s+");
+        for (String token : tokens) {
+            if (!matchesSearchToken(entry, token)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean matchesSearchToken(ClientShopEntry entry, String token) {
+        if (token.isEmpty()) {
+            return true;
+        }
+        if (token.startsWith("#")) {
+            String wantedTag = token.substring(1);
+            return !wantedTag.isEmpty() && searchStacks(entry).stream()
+                    .anyMatch(stack -> stack.getTags()
+                            .anyMatch(tag -> tag.location().toString().toLowerCase(Locale.ROOT).contains(wantedTag)));
+        }
+        if (token.startsWith("@")) {
+            String wantedNamespace = token.substring(1);
+            return !wantedNamespace.isEmpty() && searchStacks(entry).stream()
+                    .map(stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
+                    .anyMatch(id -> id != null && id.getNamespace().toLowerCase(Locale.ROOT).contains(wantedNamespace));
+        }
+        return searchStacks(entry).stream().anyMatch(stack -> {
+            var id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            String itemId = id == null ? "" : id.toString();
+            return containsIgnoreCase(itemId, token)
+                    || containsIgnoreCase(stack.getHoverName().getString(), token);
+        });
+    }
+
+    private static boolean containsIgnoreCase(String value, String query) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private static List<ItemStack> searchStacks(ClientShopEntry entry) {
+        List<ItemStack> stacks = new ArrayList<>();
+        // Search exactly the item rendered in the trade slot. This keeps filtering
+        // aligned with custom displayItem overrides and each trade type's icon rules.
+        addSearchStack(stacks, cellIcon(entry));
+        return stacks;
+    }
+
+    private static void addSearchStack(List<ItemStack> stacks, ItemStack stack) {
+        if (stack != null && !stack.isEmpty()) {
+            stacks.add(stack);
+        }
     }
 
     private int serverIndex(int visibleIndex) {
@@ -990,6 +1144,14 @@ public class ShopScreen extends Screen {
             closeTrade();
             return true;
         }
+        // 搜索框使用自定义事件分发:先明确切换焦点,避免点击被主界面网格消费。
+        if (searchBox != null) {
+            searchBox.setFocused(false);
+            if (searchBox.mouseClicked(mouseX, mouseY, button)) {
+                searchBox.setFocused(true);
+                return true;
+            }
+        }
         // 左侧 tab 栏(左键永远切换子商店;编辑模式右键 = tab 菜单)
         int tabX = tabBarX();
         int tabY = tabBarY();
@@ -1200,7 +1362,8 @@ public class ShopScreen extends Screen {
             return true;
         }
         if (ShopLayoutDebug.isEnabled()
-                && !(tradeUnitsBox != null && tradeUnitsBox.isFocused())) {
+                && !(tradeUnitsBox != null && tradeUnitsBox.isFocused())
+                && !(searchBox != null && searchBox.isFocused())) {
             if (keyCode == GLFW.GLFW_KEY_TAB) {
                 ShopLayoutDebug.selectNext((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
                 return true;
@@ -1214,6 +1377,9 @@ public class ShopScreen extends Screen {
             if (keyCode == GLFW.GLFW_KEY_DOWN) dy = step;
             if (dx != 0 || dy != 0) {
                 ShopLayoutDebug.moveSelected(dx, dy);
+                // Widgets hold their bounds, so rebuild them immediately after
+                // changing an offset instead of waiting for the next screen init.
+                layout();
                 return true;
             }
         }
@@ -1223,6 +1389,10 @@ public class ShopScreen extends Screen {
         }
         if (tabMenuIndex >= 0 && keyCode == 256) {
             closeTabMenu();
+            return true;
+        }
+        if (searchBox != null && searchBox.isFocused()
+                && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
         if (tradeIndex >= 0) {
@@ -1240,6 +1410,10 @@ public class ShopScreen extends Screen {
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
+        if (searchBox != null && searchBox.isFocused()
+                && searchBox.charTyped(codePoint, modifiers)) {
+            return true;
+        }
         if (tradeIndex >= 0 && tradeUnitsBox != null && tradeUnitsBox.isFocused()
                 && tradeUnitsBox.charTyped(codePoint, modifiers)) {
             return true;

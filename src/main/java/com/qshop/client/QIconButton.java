@@ -13,6 +13,7 @@ public class QIconButton extends AbstractButton {
 
     private final ShopTextures.Icon icon;
     private final Runnable action;
+    private boolean active;
 
     public QIconButton(int x, int y, ShopTextures.Icon icon, Runnable action) {
         super(x, y, 16, 16, Component.literal(""));
@@ -25,6 +26,10 @@ public class QIconButton extends AbstractButton {
         action.run();
     }
 
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
         output.add(NarratedElementType.TITLE, this.getMessage());
@@ -32,7 +37,7 @@ public class QIconButton extends AbstractButton {
 
     @Override
     public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.icon(g, getX() + 2, getY() + 2, icon, isHovered());
+        ShopTextures.icon(g, getX() + 2, getY() + 2, icon, active, isHovered());
     }
 
     /** 交互区域 = 图标材质非透明像素 */

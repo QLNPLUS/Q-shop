@@ -57,7 +57,10 @@ public final class ShopLayoutDebug {
         PANEL("Panel"),
         TAB_BAR("Tab bar"),
         GRID("Entry grid"),
-        TOP_CONTROLS("Top controls"),
+        ADD_BUTTON("Add entry button"),
+        EDIT_BUTTON("Edit mode button"),
+        SEARCH_BOX("Search box"),
+        SEARCH_BUTTON("Search button"),
         LAYOUT_BUTTON("Layout button"),
         CLOSE_BUTTON("Close button");
 
@@ -176,17 +179,23 @@ public final class ShopLayoutDebug {
         EnumMap<Widget, Position> standard = positions.get(Layout.STANDARD);
         standard.put(Widget.PANEL, new Position(0, 0));
         standard.put(Widget.TAB_BAR, new Position(0, 0));
-        standard.put(Widget.GRID, new Position(-1, -2));
-        standard.put(Widget.TOP_CONTROLS, new Position(34, -3));
-        standard.put(Widget.LAYOUT_BUTTON, new Position(8, -4));
-        standard.put(Widget.CLOSE_BUTTON, new Position(3, -4));
+        standard.put(Widget.GRID, new Position(0, 0));
+        standard.put(Widget.ADD_BUTTON, new Position(27, -3));
+        standard.put(Widget.EDIT_BUTTON, new Position(21, -3));
+        standard.put(Widget.SEARCH_BOX, new Position(-3, -19));
+        standard.put(Widget.SEARCH_BUTTON, new Position(15, -3));
+        standard.put(Widget.LAYOUT_BUTTON, new Position(9, -3));
+        standard.put(Widget.CLOSE_BUTTON, new Position(3, -3));
 
         EnumMap<Widget, Position> wide = positions.get(Layout.WIDE);
         wide.put(Widget.PANEL, new Position(0, 0));
         wide.put(Widget.TAB_BAR, new Position(0, 0));
         wide.put(Widget.GRID, new Position(6, -14));
-        wide.put(Widget.TOP_CONTROLS, new Position(29, -4));
-        wide.put(Widget.LAYOUT_BUTTON, new Position(7, -4));
+        wide.put(Widget.ADD_BUTTON, new Position(27, -4));
+        wide.put(Widget.EDIT_BUTTON, new Position(21, -4));
+        wide.put(Widget.SEARCH_BOX, new Position(-3, -20));
+        wide.put(Widget.SEARCH_BUTTON, new Position(15, -4));
+        wide.put(Widget.LAYOUT_BUTTON, new Position(9, -4));
         wide.put(Widget.CLOSE_BUTTON, new Position(3, -4));
         return positions;
     }
@@ -251,6 +260,15 @@ public final class ShopLayoutDebug {
             }
             JsonObject value = raw.getAsJsonObject();
             positions.put(widget, new Position(clamp(readInt(value, "x")), clamp(readInt(value, "y"))));
+        }
+        // Version 2 used one shared top_controls offset for the text buttons.
+        // Keep that user adjustment as the initial offset for both new icons.
+        JsonElement legacy = widgets.get("top_controls");
+        if (legacy != null && legacy.isJsonObject()) {
+            Position legacyPosition = new Position(clamp(readInt(legacy.getAsJsonObject(), "x")),
+                    clamp(readInt(legacy.getAsJsonObject(), "y")));
+            positions.putIfAbsent(Widget.ADD_BUTTON, legacyPosition);
+            positions.putIfAbsent(Widget.EDIT_BUTTON, legacyPosition);
         }
     }
 

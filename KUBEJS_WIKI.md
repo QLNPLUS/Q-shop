@@ -321,6 +321,8 @@ commands: [
 
 Supported placeholders include `%player%`, `%player_uuid%`, `%shop%`, `%shop_uuid%`, `%entry%`, `%units%`, `%items%`, `%price%`, `%currency%`, and `%multiplier%`.
 
+For `COMMAND` entries, a bulk purchase executes every configured command once per purchased unit. In each execution, `%units%`, `%items%`, `%price%`, and `%multiplier%` refer to that single unit. Commands attached to other trade types remain post-trade commands and execute once with aggregate values.
+
 ### Query and remove entries
 
 ```js

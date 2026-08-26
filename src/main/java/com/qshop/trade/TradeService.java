@@ -242,33 +242,43 @@ public final class TradeService {
         }
 
         // ---- 购买指令 ----
-        for (ShopCommand sc : e.commands) {
-            if (sc.command == null || sc.command.isEmpty()) {
-                continue;
-            }
-            String cmd = sc.command
-                    .replace("%player%", player.getGameProfile().getName())
-                    .replace("%player_uuid%", player.getUUID().toString())
-                    .replace("%shop%", shop.id)
-                    .replace("%shop_uuid%", shop.uuid.toString())
-                    .replace("%entry%", String.valueOf(entryIndex))
-                    .replace("%units%", String.valueOf(finalUnits))
-                    .replace("%items%", String.valueOf(itemsPerUnit * finalUnits))
-                    .replace("%price%", CurrencyRegistry.format(e.price * finalUnits))
-                    .replace("%currency%", e.currencyId)
-                    .replace("%multiplier%", String.valueOf(finalUnits));
-            try {
-                CommandSourceStack source = new CommandSourceStack(
-                        player, player.position(), player.getRotationVector(), null,
-                        sc.op ? 4 : 0,
-                        player.getGameProfile().getName(), player.getDisplayName(),
-                        player.getServer(), player);
-                if (sc.silent) {
-                    source = source.withSuppressedOutput();
+        // COMMAND entries represent one command reward per purchased unit. Other
+        // entry types keep their existing post-trade behavior and run once with
+        // aggregate placeholders.
+        int commandRuns = e.type == ShopEntryType.COMMAND ? finalUnits : 1;
+        int commandUnits = e.type == ShopEntryType.COMMAND ? 1 : finalUnits;
+        int commandItems = e.type == ShopEntryType.COMMAND ? itemsPerUnit : itemsPerUnit * finalUnits;
+        String commandPrice = CurrencyRegistry.format(e.type == ShopEntryType.COMMAND
+                ? e.price : e.price * finalUnits);
+        for (int run = 0; run < commandRuns; run++) {
+            for (ShopCommand sc : e.commands) {
+                if (sc.command == null || sc.command.isEmpty()) {
+                    continue;
                 }
-                player.getServer().getCommands().performPrefixedCommand(source, cmd);
-            } catch (Exception ex) {
-                LOGGER.warn("QShop: 购买指令执行失败: {}", cmd, ex);
+                String cmd = sc.command
+                        .replace("%player%", player.getGameProfile().getName())
+                        .replace("%player_uuid%", player.getUUID().toString())
+                        .replace("%shop%", shop.id)
+                        .replace("%shop_uuid%", shop.uuid.toString())
+                        .replace("%entry%", String.valueOf(entryIndex))
+                        .replace("%units%", String.valueOf(commandUnits))
+                        .replace("%items%", String.valueOf(commandItems))
+                        .replace("%price%", commandPrice)
+                        .replace("%currency%", e.currencyId)
+                        .replace("%multiplier%", String.valueOf(commandUnits));
+                try {
+                    CommandSourceStack source = new CommandSourceStack(
+                            player, player.position(), player.getRotationVector(), null,
+                            sc.op ? 4 : 0,
+                            player.getGameProfile().getName(), player.getDisplayName(),
+                            player.getServer(), player);
+                    if (sc.silent) {
+                        source = source.withSuppressedOutput();
+                    }
+                    player.getServer().getCommands().performPrefixedCommand(source, cmd);
+                } catch (Exception ex) {
+                    LOGGER.warn("QShop: 购买指令执行失败: {}", cmd, ex);
+                }
             }
         }
 

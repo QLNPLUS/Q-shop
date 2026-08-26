@@ -25,7 +25,7 @@ import java.util.Map;
  *   input*.png                    输入框 96x12(普通/聚焦)
  *   track.png / knob*.png         滑块轨道 96x8 / 把手 8x14
  *   checkbox_*.png                勾选框 12x12
- *   close/plus/minus/trash*.png   小图标 12x12
+ *   close/layout/add/edit/search/plus/minus/trash*.png   小图标 12x12
  *
  * <p>带边框的元素使用九宫格绘制,边框保持 1px 不拉伸。
  */
@@ -57,6 +57,13 @@ public final class ShopTextures {
     private static final ResourceLocation CLOSE_HOVER = rl("close_hover");
     private static final ResourceLocation LAYOUT = rl("layout");
     private static final ResourceLocation LAYOUT_HOVER = rl("layout_hover");
+    private static final ResourceLocation ADD = rl("add");
+    private static final ResourceLocation ADD_HOVER = rl("add_hover");
+    private static final ResourceLocation EDIT = rl("edit");
+    private static final ResourceLocation EDIT_HOVER = rl("edit_hover");
+    private static final ResourceLocation SEARCH = rl("search");
+    private static final ResourceLocation SEARCH_ACTIVE = rl("search_active");
+    private static final ResourceLocation SEARCH_HOVER = rl("search_hover");
     private static final ResourceLocation PLUS = rl("plus");
     private static final ResourceLocation PLUS_HOVER = rl("plus_hover");
     private static final ResourceLocation MINUS = rl("minus");
@@ -329,6 +336,9 @@ public final class ShopTextures {
         ResourceLocation tex = switch (icon) {
             case CLOSE -> CLOSE;
             case LAYOUT -> LAYOUT;
+            case ADD -> ADD;
+            case EDIT -> EDIT;
+            case SEARCH -> SEARCH;
             case PLUS -> PLUS;
             case MINUS -> MINUS;
             case TRASH -> TRASH;
@@ -414,12 +424,19 @@ public final class ShopTextures {
 
     // ---------------- 小图标 ----------------
 
-    public enum Icon { CLOSE, LAYOUT, PLUS, MINUS, TRASH }
+    public enum Icon { CLOSE, LAYOUT, ADD, EDIT, SEARCH, PLUS, MINUS, TRASH }
 
     public static void icon(GuiGraphics g, int x, int y, Icon icon, boolean hover) {
+        icon(g, x, y, icon, false, hover);
+    }
+
+    public static void icon(GuiGraphics g, int x, int y, Icon icon, boolean active, boolean hover) {
         ResourceLocation tex = switch (icon) {
             case CLOSE -> hover ? CLOSE_HOVER : CLOSE;
             case LAYOUT -> hover ? LAYOUT_HOVER : LAYOUT;
+            case ADD -> hover ? ADD_HOVER : ADD;
+            case EDIT -> hover ? EDIT_HOVER : EDIT;
+            case SEARCH -> hover ? SEARCH_HOVER : (active ? SEARCH_ACTIVE : SEARCH);
             case PLUS -> hover ? PLUS_HOVER : PLUS;
             case MINUS -> hover ? MINUS_HOVER : MINUS;
             case TRASH -> hover ? TRASH_HOVER : TRASH;
