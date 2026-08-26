@@ -868,6 +868,12 @@ public class ShopScreen extends Screen {
                     .map(stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
                     .anyMatch(id -> id != null && id.getNamespace().toLowerCase(Locale.ROOT).contains(wantedNamespace));
         }
+        // Prefer the transaction's custom name when present, while retaining
+        // item name/ID matching as a fallback for familiar searches.
+        if (entry.displayName != null && !entry.displayName.isBlank()
+                && containsIgnoreCase(entry.displayName, token)) {
+            return true;
+        }
         return searchStacks(entry).stream().anyMatch(stack -> {
             var id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             String itemId = id == null ? "" : id.toString();

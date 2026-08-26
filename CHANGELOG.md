@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 - 2026-08-26
+
+### Fixed
+
+- Search now checks a transaction entry's custom name before falling back to the displayed item's name or ID.
+
 ## 1.2.1 - 2026-08-25
 
 ### Added
