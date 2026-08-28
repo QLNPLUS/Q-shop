@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3 - 2026-08-28
+
+### Changed
+
+- Adjusted the shop search text alignment and reduced the search box width by 30 pixels.
+- Updated the built-in standard and wide layout offsets to match the current layout configuration.
+
 ## 1.2.2 - 2026-08-26
 
 ### Fixed

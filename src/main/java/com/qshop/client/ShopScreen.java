@@ -121,9 +121,28 @@ public class ShopScreen extends Screen {
     // ---- 商店搜索 ----
     private static final int SEARCH_BUTTON_SIZE = 16;
     private static final int SEARCH_BOX_H = 14;
+    private static final int SEARCH_BOX_WIDTH_REDUCTION = 30;
+    private static final int SEARCH_TEXT_X_OFFSET = 4;
+    private static final int SEARCH_TEXT_Y_OFFSET = 3;
     private boolean searchActive;
     private String searchQuery = "";
     private EditBox searchBox;
+
+    /** Search text is rendered one pixel lower without moving the hitbox or input background. */
+    private static final class SearchEditBox extends EditBox {
+        private SearchEditBox(net.minecraft.client.gui.Font font, int x, int y, int w, int h,
+                              Component message) {
+            super(font, x, y, w, h, message);
+        }
+
+        @Override
+        public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+            g.pose().pushPose();
+            g.pose().translate(SEARCH_TEXT_X_OFFSET, SEARCH_TEXT_Y_OFFSET, 0.0D);
+            super.renderWidget(g, mouseX, mouseY, partialTick);
+            g.pose().popPose();
+        }
+    }
 
     public ShopScreen(OpenShopPacket data) {
         super(QText.parse(data.shopName.isEmpty() ? data.shopId : data.shopName));
@@ -244,7 +263,7 @@ public class ShopScreen extends Screen {
     }
 
     private int searchBoxWidth() {
-        return panelWidth() - 70;
+        return panelWidth() - 70 - SEARCH_BOX_WIDTH_REDUCTION;
     }
 
     private int closeButtonX() {
@@ -278,7 +297,7 @@ public class ShopScreen extends Screen {
         searchBox = null;
 
         if (searchActive) {
-            searchBox = new EditBox(this.font, searchBoxX(), searchBoxY(), searchBoxWidth(), SEARCH_BOX_H,
+            searchBox = new SearchEditBox(this.font, searchBoxX(), searchBoxY(), searchBoxWidth(), SEARCH_BOX_H,
                     Component.translatable("qshop.gui.search"));
             searchBox.setMaxLength(128);
             searchBox.setBordered(false);

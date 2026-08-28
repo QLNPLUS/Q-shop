@@ -180,23 +180,23 @@ public final class ShopLayoutDebug {
         standard.put(Widget.PANEL, new Position(0, 0));
         standard.put(Widget.TAB_BAR, new Position(0, 0));
         standard.put(Widget.GRID, new Position(0, 0));
-        standard.put(Widget.ADD_BUTTON, new Position(27, -3));
-        standard.put(Widget.EDIT_BUTTON, new Position(21, -3));
-        standard.put(Widget.SEARCH_BOX, new Position(-3, -19));
-        standard.put(Widget.SEARCH_BUTTON, new Position(15, -3));
-        standard.put(Widget.LAYOUT_BUTTON, new Position(9, -3));
-        standard.put(Widget.CLOSE_BUTTON, new Position(3, -3));
+        standard.put(Widget.ADD_BUTTON, new Position(0, 0));
+        standard.put(Widget.EDIT_BUTTON, new Position(0, 0));
+        standard.put(Widget.SEARCH_BOX, new Position(-1, -19));
+        standard.put(Widget.SEARCH_BUTTON, new Position(0, 0));
+        standard.put(Widget.LAYOUT_BUTTON, new Position(0, 0));
+        standard.put(Widget.CLOSE_BUTTON, new Position(0, 0));
 
         EnumMap<Widget, Position> wide = positions.get(Layout.WIDE);
         wide.put(Widget.PANEL, new Position(0, 0));
         wide.put(Widget.TAB_BAR, new Position(0, 0));
-        wide.put(Widget.GRID, new Position(6, -14));
-        wide.put(Widget.ADD_BUTTON, new Position(27, -4));
-        wide.put(Widget.EDIT_BUTTON, new Position(21, -4));
-        wide.put(Widget.SEARCH_BOX, new Position(-3, -20));
-        wide.put(Widget.SEARCH_BUTTON, new Position(15, -4));
-        wide.put(Widget.LAYOUT_BUTTON, new Position(9, -4));
-        wide.put(Widget.CLOSE_BUTTON, new Position(3, -4));
+        wide.put(Widget.GRID, new Position(0, 0));
+        wide.put(Widget.ADD_BUTTON, new Position(0, 0));
+        wide.put(Widget.EDIT_BUTTON, new Position(0, 0));
+        wide.put(Widget.SEARCH_BOX, new Position(-1, -20));
+        wide.put(Widget.SEARCH_BUTTON, new Position(0, 0));
+        wide.put(Widget.LAYOUT_BUTTON, new Position(0, 0));
+        wide.put(Widget.CLOSE_BUTTON, new Position(0, 0));
         return positions;
     }
 
