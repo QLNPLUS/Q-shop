@@ -1,18 +1,27 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopManager;
 import com.qshop.shop.ShopTab;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
 
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:编辑模式下添加子商店(tab)。
  */
-public class AddTabPacket {
+public class AddTabPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<AddTabPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "add_tab"));
+    public static final StreamCodec<FriendlyByteBuf, AddTabPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(AddTabPacket::encode, AddTabPacket::decode);
 
     public String shopId = "";
     public String name = "";
@@ -37,11 +46,9 @@ public class AddTabPacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
                     return;
                 }
@@ -56,8 +63,11 @@ public class AddTabPacket {
                 shop.tabs.add(t);
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
+    @Override
+    public CustomPacketPayload.Type<AddTabPacket> type() {
+        return TYPE;
+    }
+
 }

@@ -1,18 +1,18 @@
 package com.qshop.kubejs;
 
-import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
-import dev.latvian.mods.kubejs.script.BindingsEvent;
-import dev.latvian.mods.kubejs.script.ScriptType;
-import dev.latvian.mods.kubejs.util.ClassFilter;
+import dev.latvian.mods.kubejs.event.EventGroupRegistry;
+import dev.latvian.mods.kubejs.plugin.ClassFilter;
+import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
+import dev.latvian.mods.kubejs.script.BindingRegistry;
 
 /**
  * KubeJS 插件:注册 QShop 绑定与购买前/后、货币变动事件。
  * 仅在安装了 KubeJS 时由 KubeJS 通过 kubejs.plugins.txt 加载。
  */
-public class QShopKubeJSPlugin extends KubeJSPlugin {
+public class QShopKubeJSPlugin implements KubeJSPlugin {
 
     /** 事件组:脚本用 QShopEvents.beforeTrade / QShopEvents.afterTrade */
     public static final EventGroup QSHOP_EVENTS = EventGroup.of("QShopEvents");
@@ -42,12 +42,12 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
     }
 
     @Override
-    public void registerEvents() {
-        QSHOP_EVENTS.register();
+    public void registerEvents(EventGroupRegistry registry) {
+        registry.register(QSHOP_EVENTS);
     }
 
     @Override
-    public void registerClasses(ScriptType type, ClassFilter filter) {
+    public void registerClasses(ClassFilter filter) {
         // Only the Builder-first facade and event payloads are public to scripts.
         filter.allow("com.qshop.kubejs.QShopApi");
         filter.allow("com.qshop.kubejs.EntryBuilder");
@@ -60,7 +60,7 @@ public class QShopKubeJSPlugin extends KubeJSPlugin {
     }
 
     @Override
-    public void registerBindings(BindingsEvent event) {
-        event.add("QShop", QShopApi.INSTANCE);
+    public void registerBindings(BindingRegistry registry) {
+        registry.add("QShop", QShopApi.INSTANCE);
     }
 }

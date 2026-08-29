@@ -301,7 +301,6 @@ public class ShopScreen extends Screen {
                     Component.translatable("qshop.gui.search"));
             searchBox.setMaxLength(128);
             searchBox.setBordered(false);
-            searchBox.setHint(Component.translatable("qshop.gui.search_hint"));
             searchBox.setValue(searchQuery);
             searchBox.setResponder(value -> {
                 searchQuery = value == null ? "" : value;
@@ -376,7 +375,7 @@ public class ShopScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+        ShopTextures.background(g, this.width, this.height);
         if (wideLayout) {
             ShopTextures.panelWide(g, panelX(), panelY());
         } else {
@@ -396,7 +395,7 @@ public class ShopScreen extends Screen {
         int maxScroll = maxScroll();
         scroll = Mth.clamp(scroll, 0, maxScroll);
         float target = scroll / (float) cols;
-        float delta = Minecraft.getInstance().getDeltaFrameTime();
+        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
         rowAnim += (target - rowAnim) * Math.min(1.0f, delta * 15f);
         if (Math.abs(target - rowAnim) < 0.005f) {
             rowAnim = target;
@@ -643,7 +642,7 @@ public class ShopScreen extends Screen {
         int ty0 = y + 38;
         int endY = ty0 + TAB_LIST_H;
         tabScroll = Mth.clamp(tabScroll, 0, maxTabScroll());
-        float delta = Minecraft.getInstance().getDeltaFrameTime();
+        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
         tabScrollAnim += (tabScroll - tabScrollAnim) * Math.min(1.0f, delta * 15f);
         if (Math.abs(tabScroll - tabScrollAnim) < 0.05f) {
             tabScrollAnim = tabScroll;
@@ -1447,25 +1446,25 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         if (menuIndex >= 0 || tabMenuIndex >= 0 || tradeIndex >= 0) {
             return true; // 菜单/交易窗打开时锁定商店滚动
         }
         // 鼠标在左侧 tab 栏上时:滚动子商店列表
         int tabX = tabBarX();
         if (mouseX >= tabX && mouseX <= tabX + TAB_BAR_W && mouseY >= tabBarY() && mouseY <= tabBarY() + GUI_H) {
-            int ns = Mth.clamp(tabScroll - wheelDirection(delta) * TAB_PITCH, 0, maxTabScroll());
+            int ns = Mth.clamp(tabScroll - wheelDirection(deltaY) * TAB_PITCH, 0, maxTabScroll());
             if (ns != tabScroll) {
                 tabScroll = ns;
             }
             return true;
         }
-        int ns = Mth.clamp(scroll - wheelDirection(delta) * cols, 0, maxScroll());
+        int ns = Mth.clamp(scroll - wheelDirection(deltaY) * cols, 0, maxScroll());
         if (ns != scroll) {
             scroll = ns;
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
     private static int wheelDirection(double delta) {
@@ -1667,7 +1666,7 @@ public class ShopScreen extends Screen {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (ItemStack.isSameItemSameTags(s, target)) {
+            if (ItemStack.isSameItemSameComponents(s, target)) {
                 count += s.getCount();
             }
         }

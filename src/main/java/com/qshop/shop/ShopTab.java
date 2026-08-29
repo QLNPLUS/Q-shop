@@ -30,7 +30,7 @@ public class ShopTab {
     /** 要求完成的 FTB 任务 id(服务端检查;FTB Quests 未安装时忽略) */
     public final List<String> requiredQuests = new ArrayList<>();
 
-    /** 要求的游戏阶段(gamestage / kubejs stages,服务端检查;未安装时忽略) */
+    /** 要求的 KubeJS stage(服务端检查;未安装时按不满足处理) */
     public final List<String> requiredStages = new ArrayList<>();
 
     public void ensureUuid() {

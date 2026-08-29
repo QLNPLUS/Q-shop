@@ -1,7 +1,9 @@
 package com.qshop.wallet;
 
 import com.qshop.data.PurchaseCounts;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -9,7 +11,7 @@ import java.util.Map;
 /**
  * 钱包实现,可序列化为 NBT。
  */
-public class WalletImpl implements IWallet {
+public class WalletImpl implements IWallet, INBTSerializable<CompoundTag> {
 
     private final Map<String, Double> currencies = new LinkedHashMap<>();
     private final PurchaseCounts limits = new PurchaseCounts();
@@ -101,5 +103,15 @@ public class WalletImpl implements IWallet {
         if (tag.contains("limits")) {
             limits.deserialize(tag.getCompound("limits"));
         }
+    }
+
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        return serializeNBT();
+    }
+
+    @Override
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        deserializeNBT(tag);
     }
 }

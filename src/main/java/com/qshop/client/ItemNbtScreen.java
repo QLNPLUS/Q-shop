@@ -1,5 +1,7 @@
 package com.qshop.client;
 
+import com.qshop.util.ItemStackData;
+
 import com.qshop.util.QText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -53,7 +55,7 @@ public class ItemNbtScreen extends Screen {
 
         // NBT 框下移,避免与"NBT"标签重叠
         nbtBox = new MultilineTextBox(left + LABEL_X + 2, top + 58, 222, 180, this.font);
-        nbtBox.setValue(stack.getTag() == null ? "" : new SnbtPrinterTagVisitor().visit(stack.getTag()));
+        nbtBox.setValue(ItemStackData.getCustomTag(stack) == null ? "" : new SnbtPrinterTagVisitor().visit(ItemStackData.getCustomTag(stack)));
         addRenderableWidget(nbtBox);
 
         addRenderableWidget(new QButton(left + 12, top + 261, 110, 16,
@@ -81,10 +83,10 @@ public class ItemNbtScreen extends Screen {
         out.setCount(Mth.clamp(c, 1, 1000));
         String nbt = nbtBox.getValue().trim();
         if (nbt.isEmpty()) {
-            out.setTag(null);
+            ItemStackData.setCustomTag(out, null);
         } else {
             try {
-                out.setTag(TagParser.parseTag(nbt));
+                ItemStackData.setCustomTag(out, TagParser.parseTag(nbt));
             } catch (Exception ignored) {
                 // 非法 SNBT 保留原 NBT
             }
@@ -132,7 +134,7 @@ public class ItemNbtScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+        ShopTextures.background(g, this.width, this.height);
         ShopTextures.panelEdit(g, left, top);
 
         if (!stack.isEmpty()) {
@@ -149,7 +151,7 @@ public class ItemNbtScreen extends Screen {
         ShopTextures.input(g, left + CONTROL_X, top + 27, 70, 12, countBox.isFocused());
         ShopTextures.input(g, left + LABEL_X, top + 57, 226, 182, nbtBox.isFocused());
 
-        super.render(g, mouseX, mouseY, partialTick);
+        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
     }
 
     @Override

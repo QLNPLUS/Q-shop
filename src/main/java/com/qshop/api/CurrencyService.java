@@ -9,12 +9,13 @@ import com.qshop.wallet.WalletCapability;
 import com.qshop.wallet.WalletImpl;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 
 import javax.annotation.Nullable;
 
@@ -40,6 +41,7 @@ public final class CurrencyService {
     public static final CurrencyService INSTANCE = new CurrencyService();
     private static final String FORGE_CAPS_KEY = "ForgeCaps";
     private static final String WALLET_CAPABILITY_KEY = "qshop:wallet";
+    private static final String NEOFORGE_ATTACHMENTS_KEY = "neoforge:attachments";
     private static final Object OFFLINE_WALLET_LOCK = new Object();
 
     public static final ResourceLocation SOURCE_API = ResourceLocation.fromNamespaceAndPath("qshop", "api");
@@ -360,7 +362,7 @@ public final class CurrencyService {
         }
         ResourceLocation actualSource = source == null ? SOURCE_API : source;
         BlockPos actualSourcePos = sourcePos == null ? null : sourcePos.immutable();
-        MinecraftForge.EVENT_BUS.post(new CurrencyChangedEvent(
+        NeoForge.EVENT_BUS.post(new CurrencyChangedEvent(
                 player, playerUuid, currencyId, oldValue, newValue, actualSource, actualSourcePos));
         if (player != null) {
             QShopCurrencyEvents.post(player, currencyId, oldValue, newValue, actualSource, actualSourcePos);
@@ -384,11 +386,15 @@ public final class CurrencyService {
             return null;
         }
         try {
-            CompoundTag playerData = NbtIo.readCompressed(file);
+            CompoundTag playerData = NbtIo.readCompressed(file.toPath(), NbtAccounter.unlimitedHeap());
+            CompoundTag forgeAttachments = playerData.getCompound(NEOFORGE_ATTACHMENTS_KEY);
             CompoundTag forgeCaps = playerData.getCompound(FORGE_CAPS_KEY);
             WalletImpl wallet = new WalletImpl();
-            wallet.deserializeNBT(forgeCaps.getCompound(WALLET_CAPABILITY_KEY));
-            return new OfflineWallet(file, playerData, forgeCaps, wallet);
+            CompoundTag walletTag = forgeAttachments.contains(WALLET_CAPABILITY_KEY)
+                    ? forgeAttachments.getCompound(WALLET_CAPABILITY_KEY)
+                    : forgeCaps.getCompound(WALLET_CAPABILITY_KEY);
+            wallet.deserializeNBT(walletTag);
+            return new OfflineWallet(file, playerData, forgeAttachments, wallet);
         } catch (IOException | RuntimeException ex) {
             QShopMod.LOGGER.warn("QShop: failed to read offline wallet for {}", playerUuid, ex);
             return null;
@@ -396,12 +402,12 @@ public final class CurrencyService {
     }
 
     private static boolean saveOffline(OfflineWallet offline) {
-        offline.forgeCaps().put(WALLET_CAPABILITY_KEY, offline.wallet().serializeNBT());
-        offline.playerData().put(FORGE_CAPS_KEY, offline.forgeCaps());
+        offline.attachments().put(WALLET_CAPABILITY_KEY, offline.wallet().serializeNBT());
+        offline.playerData().put(NEOFORGE_ATTACHMENTS_KEY, offline.attachments());
         Path target = offline.file().toPath();
         Path temp = target.resolveSibling(target.getFileName() + ".qshop.tmp");
         try {
-            NbtIo.writeCompressed(offline.playerData(), temp.toFile());
+            NbtIo.writeCompressed(offline.playerData(), temp);
             try {
                 Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING,
                         StandardCopyOption.ATOMIC_MOVE);
@@ -421,6 +427,6 @@ public final class CurrencyService {
     }
 
     private record OfflineWallet(File file, CompoundTag playerData,
-                                 CompoundTag forgeCaps, WalletImpl wallet) {
+                                 CompoundTag attachments, WalletImpl wallet) {
     }
 }

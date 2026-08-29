@@ -1,12 +1,13 @@
 modLoader="javafml"
-loaderVersion="[47,)"
-license="ARR"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
 
 [[mods]]
-modId="qshop"
-version="${file.jarVersion}"
-displayName="QShop"
-description='''A flexible server shop mod for Forge 1.20.1.
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="${mod_authors}"
+description='''${mod_description}
 
 Features:
 - Trade GUI with buy / sell / barter
@@ -19,32 +20,31 @@ Features:
 - Global & per-player purchase limits with daily/weekly/monthly reset
 - Commands executed on purchase (optional OP level and silent mode)
 '''
-authors="QLN"
 
-[[dependencies.qshop]]
-modId="forge"
-mandatory=true
-versionRange="[47,)"
+[[dependencies.${mod_id}]]
+modId="neoforge"
+type="required"
+versionRange="${neo_version_range}"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.qshop]]
+[[dependencies.${mod_id}]]
 modId="minecraft"
-mandatory=true
-versionRange="[1.20.1,1.21)"
+type="required"
+versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.qshop]]
+[[dependencies.${mod_id}]]
 modId="kubejs"
-mandatory=false
-versionRange="[6,)"
+type="optional"
+versionRange="[${kubejs_version},)"
 ordering="AFTER"
 side="BOTH"
 
-[[dependencies.qshop]]
+[[dependencies.${mod_id}]]
 modId="ftbquests"
-mandatory=false
-versionRange="[2001.4,)"
+type="optional"
+versionRange="[${ftb_quests_version},)"
 ordering="AFTER"
 side="BOTH"

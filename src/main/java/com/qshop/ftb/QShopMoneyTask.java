@@ -12,7 +12,8 @@ import dev.ftb.mods.ftbquests.quest.task.ISingleLongValueTask;
 import dev.ftb.mods.ftbquests.quest.task.Task;
 import dev.ftb.mods.ftbquests.quest.task.TaskType;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -68,28 +69,28 @@ public class QShopMoneyTask extends Task implements ISingleLongValueTask {
     }
 
     @Override
-    public void writeData(CompoundTag nbt) {
-        super.writeData(nbt);
+    public void writeData(CompoundTag nbt, HolderLookup.Provider provider) {
+        super.writeData(nbt, provider);
         nbt.putString("currency", currency == null ? "" : currency);
         nbt.putLong("value", value);
     }
 
     @Override
-    public void readData(CompoundTag nbt) {
-        super.readData(nbt);
+    public void readData(CompoundTag nbt, HolderLookup.Provider provider) {
+        super.readData(nbt, provider);
         currency = nbt.getString("currency");
         value = nbt.getLong("value");
     }
 
     @Override
-    public void writeNetData(FriendlyByteBuf buf) {
+    public void writeNetData(RegistryFriendlyByteBuf buf) {
         super.writeNetData(buf);
         buf.writeUtf(currency == null ? "" : currency);
         buf.writeLong(value);
     }
 
     @Override
-    public void readNetData(FriendlyByteBuf buf) {
+    public void readNetData(RegistryFriendlyByteBuf buf) {
         super.readNetData(buf);
         currency = buf.readUtf();
         value = buf.readLong();

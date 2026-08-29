@@ -57,6 +57,7 @@ public class ShopAddDialog extends Screen {
 
     // ---- 流式布局行位置(隐藏行 = -1) ----
     private int rowPlayerGive, rowPlayerItem, rowShopGive, rowShopItem, rowPrice, rowReqCmd;
+    private int rowReqCmdBaseY;
 
     public ShopAddDialog(OpenShopPacket data, int backScroll, boolean backEditMode) {
         super(Component.translatable("qshop.gui.add"));
@@ -100,6 +101,7 @@ public class ShopAddDialog extends Screen {
 
     @Override
     protected void init() {
+        ShopLayoutDebug.beginScreen(ShopLayoutDebug.DebugScreen.TRADE_SETTINGS);
         this.left = (this.width - GUI_W) / 2;
         this.top = (this.height - GUI_H) / 2;
         rebuild();
@@ -111,26 +113,37 @@ public class ShopAddDialog extends Screen {
             shopMode = 1;
         }
         int y = top + 8;
-        rowPlayerGive = y;
+        rowPlayerGive = ty(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, y);
         y += ROW_PITCH;
         rowPlayerItem = -1;
         if (giveItemMode) {
-            rowPlayerItem = y;
+            rowPlayerItem = ty(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, y);
             y += ROW_PITCH;
         }
-        rowShopGive = y;
+        rowShopGive = ty(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, y);
         y += ROW_PITCH;
         rowShopItem = -1;
         if (shopMode == 1) {
-            rowShopItem = y;
+            rowShopItem = ty(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, y);
             y += ROW_PITCH;
         }
         rowPrice = -1;
         if (showPrice()) {
-            rowPrice = y;
+            rowPrice = ty(ShopLayoutDebug.TradeWidget.PRICE_ROW, y);
             y += ROW_PITCH;
         }
-        rowReqCmd = y;
+        rowReqCmdBaseY = y;
+        rowReqCmd = ty(shopMode == 2
+                        ? ShopLayoutDebug.TradeWidget.COMMAND_ROWS
+                        : ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, y);
+    }
+
+    private int tx(ShopLayoutDebug.TradeWidget widget, int normalX) {
+        return ShopLayoutDebug.x(widget, normalX);
+    }
+
+    private int ty(ShopLayoutDebug.TradeWidget widget, int normalY) {
+        return ShopLayoutDebug.y(widget, normalY);
     }
 
     private void rebuild() {
@@ -138,14 +151,14 @@ public class ShopAddDialog extends Screen {
         computeRows();
 
         // ---- 玩家提供 ----
-        addRenderableWidget(new QCheckbox(left + CONTROL_X, rowPlayerGive,
+        addRenderableWidget(new QCheckbox(tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + CONTROL_X), rowPlayerGive,
                 Component.translatable("qshop.gui.currency"), !giveItemMode, v -> {
                     if (v) {
                         giveItemMode = false;
                     }
                     rebuild();
                 }));
-        addRenderableWidget(new QCheckbox(left + OPTION_2_X, rowPlayerGive,
+        addRenderableWidget(new QCheckbox(tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + OPTION_2_X), rowPlayerGive,
                 Component.translatable("qshop.gui.item"), giveItemMode, v -> {
                     if (v) {
                         giveItemMode = true;
@@ -157,12 +170,12 @@ public class ShopAddDialog extends Screen {
 
         // 玩家物品(仅玩家提供物品时)
         if (giveItemMode) {
-            addRenderableWidget(new QButton(left + ITEM_ACTION_X, rowPlayerItem, 46, 14,
+            addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + ITEM_ACTION_X), rowPlayerItem, 46, 14,
                     Component.translatable("qshop.gui.select"), b -> openPicker(s -> playerItem = s)));
             if (!playerItem.isEmpty()) {
-                addRenderableWidget(new QButton(left + ITEM_ACTION_X + 50, rowPlayerItem, 46, 14,
+                addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + ITEM_ACTION_X + 50), rowPlayerItem, 46, 14,
                         Component.translatable("qshop.gui.edit_item"), b -> openNbtEditor(playerItem, s -> playerItem = s)));
-                addRenderableWidget(new QButton(left + ITEM_ACTION_X + 100, rowPlayerItem, 44, 14,
+                addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + ITEM_ACTION_X + 100), rowPlayerItem, 44, 14,
                         Component.translatable("qshop.gui.clear"), b -> {
                             playerItem = ItemStack.EMPTY;
                             rebuild();
@@ -172,21 +185,21 @@ public class ShopAddDialog extends Screen {
 
         // ---- 商店提供 ----
         boolean shopCurrencyEnabled = giveItemMode;
-        addRenderableWidget(new QCheckbox(left + CONTROL_X, rowShopGive,
+        addRenderableWidget(new QCheckbox(tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + CONTROL_X), rowShopGive,
                 Component.translatable("qshop.gui.currency"), shopMode == 0, v -> {
                     if (v && shopCurrencyEnabled) {
                         shopMode = 0;
                     }
                     rebuild();
                 }));
-        addRenderableWidget(new QCheckbox(left + OPTION_2_X, rowShopGive,
+        addRenderableWidget(new QCheckbox(tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + OPTION_2_X), rowShopGive,
                 Component.translatable("qshop.gui.item"), shopMode == 1, v -> {
                     if (v) {
                         shopMode = 1;
                     }
                     rebuild();
                 }));
-        addRenderableWidget(new QCheckbox(left + OPTION_3_X, rowShopGive,
+        addRenderableWidget(new QCheckbox(tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + OPTION_3_X), rowShopGive,
                 Component.translatable("qshop.gui.command"), shopMode == 2, v -> {
                     if (v) {
                         shopMode = 2;
@@ -196,12 +209,12 @@ public class ShopAddDialog extends Screen {
 
         // 商店物品(仅商店提供物品时)
         if (shopMode == 1) {
-            addRenderableWidget(new QButton(left + ITEM_ACTION_X, rowShopItem, 46, 14,
+            addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + ITEM_ACTION_X), rowShopItem, 46, 14,
                     Component.translatable("qshop.gui.select"), b -> openPicker(s -> shopItem = s)));
             if (!shopItem.isEmpty()) {
-                addRenderableWidget(new QButton(left + ITEM_ACTION_X + 50, rowShopItem, 46, 14,
+                addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + ITEM_ACTION_X + 50), rowShopItem, 46, 14,
                         Component.translatable("qshop.gui.edit_item"), b -> openNbtEditor(shopItem, s -> shopItem = s)));
-                addRenderableWidget(new QButton(left + ITEM_ACTION_X + 100, rowShopItem, 44, 14,
+                addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + ITEM_ACTION_X + 100), rowShopItem, 44, 14,
                         Component.translatable("qshop.gui.clear"), b -> {
                             shopItem = ItemStack.EMPTY;
                             rebuild();
@@ -211,8 +224,9 @@ public class ShopAddDialog extends Screen {
 
         // 价格/货币
         if (showPrice()) {
-            addRenderableWidget(stateBox(left + CONTROL_X, rowPrice, 58, 9, "\\d{0,9}", priceStr, s -> priceStr = s));
-            addRenderableWidget(new QButton(left + SECOND_CONTROL_X, rowPrice, 54, 14, currencyButtonText(), b -> {
+            addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + CONTROL_X), rowPrice,
+                    58, 9, "\\d{0,9}", priceStr, s -> priceStr = s));
+            addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + SECOND_CONTROL_X), rowPrice, 54, 14, currencyButtonText(), b -> {
                 currencyIdx = (currencyIdx + 1) % Math.max(1, data.currencies.size());
                 b.setMessage(currencyButtonText());
             }));
@@ -220,15 +234,20 @@ public class ShopAddDialog extends Screen {
 
         // 指令文本(商店提供指令时);否则任务/阶段要求
         if (shopMode == 2) {
-            addRenderableWidget(stateBox(left + CONTROL_X, rowReqCmd, 168, 300, cmdStr, s -> cmdStr = s));
+            addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.COMMAND_ROWS, left + CONTROL_X), rowReqCmd,
+                    168, 300, cmdStr, s -> cmdStr = s));
         } else {
-            addRenderableWidget(stateBox(left + CONTROL_X, rowReqCmd, 58, 200, questsStr, s -> questsStr = s));
-            addRenderableWidget(stateBox(left + SECOND_CONTROL_X, rowReqCmd, 54, 200, stagesStr, s -> stagesStr = s));
+            addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + CONTROL_X), rowReqCmd,
+                    58, 200, questsStr, s -> questsStr = s));
+            addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_CONTROL_X), rowReqCmd,
+                    54, 200, stagesStr, s -> stagesStr = s));
         }
 
-        addRenderableWidget(new QButton(left + 12, top + 150, 110, 16,
+        addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 12),
+                ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 150), 110, 16,
                 Component.translatable("qshop.gui.add_entry"), b -> save()));
-        addRenderableWidget(new QButton(left + 128, top + 150, 110, 16,
+        addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 128),
+                ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 150), 110, 16,
                 Component.translatable("qshop.gui.cancel"), b -> back()));
     }
 
@@ -322,12 +341,44 @@ public class ShopAddDialog extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
+            ShopLayoutDebug.toggle();
+            rebuild();
+            return true;
+        }
+        if (ShopLayoutDebug.isEnabled() && !hasFocusedBox()) {
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_TAB) {
+                ShopLayoutDebug.selectNext((modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0);
+                return true;
+            }
+            int step = (modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_ALT) != 0 ? 1 : 5;
+            int dx = 0;
+            int dy = 0;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT) dx = -step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) dx = step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_UP) dy = -step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN) dy = step;
+            if (dx != 0 || dy != 0) {
+                ShopLayoutDebug.moveSelected(dx, dy);
+                rebuild();
+                return true;
+            }
+        }
         for (EditBox b : collectBoxes()) {
             if (b.isFocused() && b.keyPressed(keyCode, scanCode, modifiers)) {
                 return true;
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean hasFocusedBox() {
+        for (EditBox box : collectBoxes()) {
+            if (box.isFocused()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -366,40 +417,136 @@ public class ShopAddDialog extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
-        ShopTextures.panelAdd(g, left, top);
+        ShopTextures.background(g, this.width, this.height);
+        ShopTextures.panelAdd(g,
+                tx(ShopLayoutDebug.TradeWidget.PANEL, left),
+                ty(ShopLayoutDebug.TradeWidget.PANEL, top));
 
         ShopEntryType type = derivedType();
 
         // drawString 的 Y 是字形顶部；按 14px 行高垂直居中。
-        g.drawString(this.font, Component.translatable("qshop.gui.player_give"), left + LABEL_X, rowPlayerGive + 2, 0xFFFFFF);
+        g.drawString(this.font, Component.translatable("qshop.gui.player_give"),
+                tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + LABEL_X), rowPlayerGive + 2, 0xFFFFFF);
         if (giveItemMode) {
-            g.drawString(this.font, Component.translatable("qshop.gui.player_item"), left + LABEL_X, rowPlayerItem + 2, 0xFFFFFF);
-            drawItemIcon(g, playerItem, left + CONTROL_X, rowPlayerItem);
+            g.drawString(this.font, Component.translatable("qshop.gui.player_item"),
+                    tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + LABEL_X), rowPlayerItem + 2, 0xFFFFFF);
+            drawItemIcon(g, playerItem,
+                    tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + CONTROL_X), rowPlayerItem);
         }
-        g.drawString(this.font, Component.translatable("qshop.gui.shop_give"), left + LABEL_X, rowShopGive + 2, 0xFFFFFF);
+        g.drawString(this.font, Component.translatable("qshop.gui.shop_give"),
+                tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + LABEL_X), rowShopGive + 2, 0xFFFFFF);
         if (shopMode == 1) {
-            g.drawString(this.font, Component.translatable("qshop.gui.shop_item"), left + LABEL_X, rowShopItem + 2, 0xFFFFFF);
-            drawItemIcon(g, shopItem, left + CONTROL_X, rowShopItem);
+            g.drawString(this.font, Component.translatable("qshop.gui.shop_item"),
+                    tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + LABEL_X), rowShopItem + 2, 0xFFFFFF);
+            drawItemIcon(g, shopItem,
+                    tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + CONTROL_X), rowShopItem);
         }
         if (showPrice()) {
-            g.drawString(this.font, priceLabel(), left + LABEL_X, rowPrice + 2, 0xFFFFFF);
-            g.drawString(this.font, Component.translatable("qshop.gui.currency"), left + SECOND_LABEL_X, rowPrice + 2, 0xFFFFFF);
+            g.drawString(this.font, priceLabel(),
+                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + LABEL_X), rowPrice + 2, 0xFFFFFF);
+            g.drawString(this.font, Component.translatable("qshop.gui.currency"),
+                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + SECOND_LABEL_X), rowPrice + 2, 0xFFFFFF);
         }
         if (shopMode == 2) {
-            g.drawString(this.font, Component.translatable("qshop.gui.commands"), left + LABEL_X, rowReqCmd + 2, 0xFFFFFF);
+            g.drawString(this.font, Component.translatable("qshop.gui.commands"),
+                    tx(ShopLayoutDebug.TradeWidget.COMMAND_ROWS, left + LABEL_X), rowReqCmd + 2, 0xFFFFFF);
         } else {
-            g.drawString(this.font, Component.translatable("qshop.gui.req_quests"), left + LABEL_X, rowReqCmd + 2, 0xFFFFFF);
-            g.drawString(this.font, Component.translatable("qshop.gui.req_stages"), left + SECOND_LABEL_X, rowReqCmd + 2, 0xFFFFFF);
+            g.drawString(this.font, Component.translatable("qshop.gui.req_quests"),
+                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + LABEL_X), rowReqCmd + 2, 0xFFFFFF);
+            g.drawString(this.font, Component.translatable("qshop.gui.req_stages"),
+                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_LABEL_X), rowReqCmd + 2, 0xFFFFFF);
         }
-        g.drawString(this.font, Component.translatable("qshop.gui.type"), left + LABEL_X, rowReqCmd + ROW_PITCH + 9, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.type." + type.name()), left + CONTROL_X, rowReqCmd + ROW_PITCH + 9, 0xFFAA00);
+        int typeY = ty(ShopLayoutDebug.TradeWidget.TYPE_ROW, rowReqCmdBaseY + ROW_PITCH);
+        g.drawString(this.font, Component.translatable("qshop.gui.type"),
+                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + LABEL_X), typeY + 9, 0xFFFFFF);
+        g.drawString(this.font, Component.translatable("qshop.type." + type.name()),
+                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + CONTROL_X), typeY + 9, 0xFFAA00);
 
         for (EditBox b : collectBoxes()) {
             ShopTextures.input(g, b.getX() - 2, b.getY() - 1, b.getWidth() + 4, 12, b.isFocused());
         }
 
-        super.render(g, mouseX, mouseY, partialTick);
+        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        renderDebugOverlay(g);
+    }
+
+    private void renderDebugOverlay(GuiGraphics g) {
+        if (!ShopLayoutDebug.isEnabled()) {
+            return;
+        }
+        ShopLayoutDebug.TradeWidget widget = ShopLayoutDebug.selectedTrade();
+        int x;
+        int y;
+        int w;
+        int h;
+        switch (widget) {
+            case PANEL -> {
+                x = tx(ShopLayoutDebug.TradeWidget.PANEL, left);
+                y = ty(ShopLayoutDebug.TradeWidget.PANEL, top);
+                w = GUI_W;
+                h = GUI_H;
+            }
+            case PLAYER_GIVE_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + LABEL_X);
+                y = rowPlayerGive;
+                w = 226;
+                h = 16;
+            }
+            case PLAYER_ITEM_ROW -> {
+                if (rowPlayerItem < 0) return;
+                x = tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + LABEL_X);
+                y = rowPlayerItem;
+                w = 226;
+                h = 16;
+            }
+            case SHOP_GIVE_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + LABEL_X);
+                y = rowShopGive;
+                w = 226;
+                h = 16;
+            }
+            case SHOP_ITEM_ROW -> {
+                if (rowShopItem < 0) return;
+                x = tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + LABEL_X);
+                y = rowShopItem;
+                w = 226;
+                h = 16;
+            }
+            case PRICE_ROW -> {
+                if (rowPrice < 0) return;
+                x = tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + LABEL_X);
+                y = rowPrice;
+                w = 226;
+                h = 16;
+            }
+            case REQUIREMENTS_ROW, COMMAND_ROWS -> {
+                x = tx(widget, left + LABEL_X);
+                y = rowReqCmd;
+                w = 226;
+                h = 16;
+            }
+            case TYPE_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + LABEL_X);
+                y = ty(ShopLayoutDebug.TradeWidget.TYPE_ROW, rowReqCmdBaseY + ROW_PITCH);
+                w = 226;
+                h = 16;
+            }
+            case BOTTOM_ACTIONS -> {
+                x = tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 12);
+                y = ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 150);
+                w = 226;
+                h = 16;
+            }
+            default -> {
+                return;
+            }
+        }
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 500.0f);
+        ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
+        g.flush();
+        g.pose().popPose();
     }
 
     private String priceLabel() {

@@ -1,5 +1,9 @@
 package com.qshop.net;
 
+import com.qshop.util.ItemStackData;
+
+import com.qshop.QShopMod;
+
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.shop.LimitReset;
 import com.qshop.shop.Shop;
@@ -8,21 +12,28 @@ import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.shop.ShopManager;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:游戏内编辑交易条目(仅创造模式 op 2 级及以上)。
  * 携带条目全部字段:价格/货币/数量/限购/重置/指令/标题/描述/展示物品/交易物品。
  */
-public class EditShopPacket {
+public class EditShopPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<EditShopPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "edit_shop"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, EditShopPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(EditShopPacket::encode, EditShopPacket::decode);
 
     public String shopId = "";
     public int tabIndex = 0;
@@ -86,7 +97,7 @@ public class EditShopPacket {
         }
     }
 
-    public static void encode(EditShopPacket p, FriendlyByteBuf buf) {
+    public static void encode(EditShopPacket p, RegistryFriendlyByteBuf buf) {
         buf.writeUtf(p.shopId);
         buf.writeInt(p.tabIndex);
         buf.writeInt(p.entryIndex);
@@ -104,9 +115,9 @@ public class EditShopPacket {
         }
         buf.writeUtf(p.displayName == null ? "" : p.displayName);
         buf.writeUtf(p.description == null ? "" : p.description);
-        buf.writeItemStack(p.displayItem, true);
-        buf.writeItemStack(p.item, true);
-        buf.writeItemStack(p.giveItem, true);
+        PacketCodecs.writeItem(buf, p.displayItem);
+        PacketCodecs.writeItem(buf, p.item);
+        PacketCodecs.writeItem(buf, p.giveItem);
         buf.writeInt(p.itemCount);
         buf.writeUtf(p.itemNbt == null ? "" : p.itemNbt);
         buf.writeInt(p.requiredQuests.size());
@@ -119,7 +130,7 @@ public class EditShopPacket {
         }
     }
 
-    public static EditShopPacket decode(FriendlyByteBuf buf) {
+    public static EditShopPacket decode(RegistryFriendlyByteBuf buf) {
         EditShopPacket p = new EditShopPacket();
         p.shopId = buf.readUtf();
         p.tabIndex = buf.readInt();
@@ -136,9 +147,9 @@ public class EditShopPacket {
         }
         p.displayName = buf.readUtf();
         p.description = buf.readUtf();
-        p.displayItem = buf.readItem();
-        p.item = buf.readItem();
-        p.giveItem = buf.readItem();
+        p.displayItem = PacketCodecs.readItem(buf);
+        p.item = PacketCodecs.readItem(buf);
+        p.giveItem = PacketCodecs.readItem(buf);
         p.itemCount = buf.readInt();
         p.itemNbt = buf.readUtf();
         n = buf.readInt();
@@ -151,11 +162,9 @@ public class EditShopPacket {
         }
         return p;
     }
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
                     return;
                 }
@@ -221,9 +230,7 @@ public class EditShopPacket {
                 }
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
 
     /** 应用交易物品的数量与 NBT(SNBT 文本;空文本清除 NBT) */
@@ -231,12 +238,17 @@ public class EditShopPacket {
         stack.setCount(Mth.clamp(count, 1, 1000));
         if (nbtText != null && !nbtText.isBlank()) {
             try {
-                stack.setTag(TagParser.parseTag(nbtText.trim()));
+                ItemStackData.setCustomTag(stack, TagParser.parseTag(nbtText.trim()));
             } catch (Exception ex) {
                 // NBT 解析失败则保留原 NBT
             }
         } else {
-            stack.setTag(null);
+            ItemStackData.setCustomTag(stack, null);
         }
     }
+    @Override
+    public CustomPacketPayload.Type<EditShopPacket> type() {
+        return TYPE;
+    }
+
 }

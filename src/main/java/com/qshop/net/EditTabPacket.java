@@ -1,20 +1,29 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:编辑模式下修改子商店(tab)的名字、描述、图标与任务/阶段要求。
  */
-public class EditTabPacket {
+public class EditTabPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<EditTabPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "edit_tab"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, EditTabPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(EditTabPacket::encode, EditTabPacket::decode);
 
     public String shopId = "";
     public int tabIndex = 0;
@@ -50,12 +59,12 @@ public class EditTabPacket {
         }
     }
 
-    public static void encode(EditTabPacket p, FriendlyByteBuf buf) {
+    public static void encode(EditTabPacket p, RegistryFriendlyByteBuf buf) {
         buf.writeUtf(p.shopId);
         buf.writeInt(p.tabIndex);
         buf.writeUtf(p.name);
         buf.writeUtf(p.description);
-        buf.writeItemStack(p.icon, true);
+        PacketCodecs.writeItem(buf, p.icon);
         buf.writeInt(p.requiredQuests.size());
         for (String q : p.requiredQuests) {
             buf.writeUtf(q == null ? "" : q);
@@ -66,13 +75,13 @@ public class EditTabPacket {
         }
     }
 
-    public static EditTabPacket decode(FriendlyByteBuf buf) {
+    public static EditTabPacket decode(RegistryFriendlyByteBuf buf) {
         EditTabPacket p = new EditTabPacket();
         p.shopId = buf.readUtf();
         p.tabIndex = buf.readInt();
         p.name = buf.readUtf();
         p.description = buf.readUtf();
-        p.icon = buf.readItem();
+        p.icon = PacketCodecs.readItem(buf);
         int n = buf.readInt();
         for (int i = 0; i < n; i++) {
             p.requiredQuests.add(buf.readUtf());
@@ -84,11 +93,9 @@ public class EditTabPacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
                     return;
                 }
@@ -109,8 +116,11 @@ public class EditTabPacket {
                 t.requiredStages.addAll(requiredStages);
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
+    @Override
+    public CustomPacketPayload.Type<EditTabPacket> type() {
+        return TYPE;
+    }
+
 }

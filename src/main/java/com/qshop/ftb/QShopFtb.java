@@ -2,7 +2,7 @@ package com.qshop.ftb;
 
 import com.qshop.QShopMod;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 
 import java.util.Locale;
 
@@ -49,7 +49,7 @@ public final class QShopFtb {
     }
 
     private static void registerTypes() {
-        ResourceLocation id = new ResourceLocation("qshop", "money");
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("qshop", "money");
         QShopMoneyTask.TYPE = dev.ftb.mods.ftbquests.quest.task.TaskTypes.register(id,
                 QShopMoneyTask::new,
                 () -> dev.ftb.mods.ftblibrary.icon.Icon.getIcon("qshop:textures/gui/ftb_money.png"))

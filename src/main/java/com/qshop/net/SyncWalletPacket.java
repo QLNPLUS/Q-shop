@@ -1,17 +1,26 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.client.ClientPacketHandler;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * 服务端 → 客户端:同步钱包余额(货币变动、交易后)。
  */
-public class SyncWalletPacket {
+public class SyncWalletPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<SyncWalletPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "sync_wallet"));
+    public static final StreamCodec<FriendlyByteBuf, SyncWalletPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(SyncWalletPacket::encode, SyncWalletPacket::decode);
 
     public final Map<String, Double> balances = new HashMap<>();
 
@@ -39,11 +48,12 @@ public class SyncWalletPacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isClient()) {
-            c.enqueueWork(() -> ClientPacketHandler.syncWallet(this));
-        }
-        c.setPacketHandled(true);
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> ClientPacketHandler.syncWallet(this));
     }
+    @Override
+    public CustomPacketPayload.Type<SyncWalletPacket> type() {
+        return TYPE;
+    }
+
 }

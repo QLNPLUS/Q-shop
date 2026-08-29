@@ -332,12 +332,12 @@ public class MultilineTextBox extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
         int visibleLines = Math.max(1, getHeight() / font.lineHeight);
-        scrollLines = Mth.clamp(scrollLines - (int) delta, 0, Math.max(0, lineCount() - visibleLines));
+        scrollLines = Mth.clamp(scrollLines - (int) deltaY, 0, Math.max(0, lineCount() - visibleLines));
         return true;
     }
 

@@ -5,15 +5,15 @@
 
 ## Short Description
 
-> A flexible Forge 1.20.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
+> A flexible Forge 1.20.1 and NeoForge 1.21.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
 
 ## Full Description
 
-# QShop 1.1.2
+# QShop 1.2.3
 
-**QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
+**QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Choose the loader-specific QShop file for your instance, then create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
-QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and GameStages are optional and only needed for their respective features.
+QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests are optional and only needed for their respective features. Stage requirements use KubeJS stages when KubeJS is installed.
 
 ## Features
 
@@ -25,6 +25,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 - Custom display names, descriptions, display items and item NBT are supported.
 - Quantity controls use a slider and input box with live limit, inventory and balance checks.
 - Smooth scrolling for entry grids and sub-shop tabs.
+- Optional F8 component-coordinate debugging for the shop, trade settings, and item browser GUIs, with offsets persisted in `config/qshop_layout.json`.
 
 ### Shops and sub-shops
 
@@ -49,8 +50,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 ### Requirements
 
 - Gate complete sub-shops or individual entries behind FTB Quests tasks.
-- Stage requirements use **GameStages** (`gamestages`) through `GameStageHelper`.
-- KubeJS PlayerStages is also supported when available.
+- Stage requirements use **KubeJS PlayerStages**.
 - If a configured requirement has no matching provider installed, it is treated as unmet and the content stays hidden from normal players.
 
 ## Commands
@@ -74,6 +74,11 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 Shop editing requires permission level 2 and Creative mode. The final sub-shop cannot be removed.
 
 ## Configuration
+
+### Supported loaders
+
+- Minecraft Forge 1.20.1 (Forge 47.x)
+- Minecraft NeoForge 1.21.1 (NeoForge 21.1.x)
 
 ```text
 <world>/serverconfig/qshop/currencies.json
@@ -195,7 +200,7 @@ QShopEvents.currencyChanged(event => {
 
 Read shop, tab and entry fields through `getShop()`, `getTab()` and `getEntry()`. Event-only data includes `units` for `beforeTrade`, and `tradedUnits`, `totalItems`, `paidPrice` and `partial` for `afterTrade`. `currencyChanged` provides `getPlayer()`, `getCurrency()`, `getOldValue()`, `getNewValue()`, `getDelta()`, `getSource()` and `getSourcePos()`. It fires for all effective currency changes, including trades, FTB money rewards/tasks, commands, KubeJS currency methods, configured death retention, and Java addon services. Append `false` to a command to suppress it.
 
-Forge addon mods can use the official `com.qshop.api.QShopAddonApi` facade. Its `currency()` service centralizes wallet mutations, and its `buy`/`sell` methods accept Forge `IItemHandler` inventories for server-side container integrations. Java addons can listen for `com.qshop.api.CurrencyChangedEvent` on the Forge event bus.
+NeoForge addon mods can use the official `com.qshop.api.QShopAddonApi` facade. Its `currency()` service centralizes wallet mutations, and its `buy`/`sell` methods accept NeoForge `IItemHandler` inventories for server-side container integrations. Java addons can listen for `com.qshop.api.CurrencyChangedEvent` on the NeoForge event bus.
 
 ## Documentation
 

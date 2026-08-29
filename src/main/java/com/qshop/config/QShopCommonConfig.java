@@ -1,6 +1,6 @@
 package com.qshop.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
 
@@ -9,26 +9,26 @@ import java.util.List;
  */
 public final class QShopCommonConfig {
 
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec SPEC;
     /** Whether to show the translucent tab list fade masks. */
-    public static final ForgeConfigSpec.BooleanValue SHOW_FADE_MASKS;
+    public static final ModConfigSpec.BooleanValue SHOW_FADE_MASKS;
     /** Hex RGB color used by the tab list fade masks. */
-    public static final ForgeConfigSpec.ConfigValue<String> FADE_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> FADE_COLOR;
     /** Whether the optional client layout debugger is enabled. */
-    public static final ForgeConfigSpec.BooleanValue ENABLE_LAYOUT_DEBUG;
+    public static final ModConfigSpec.BooleanValue ENABLE_LAYOUT_DEBUG;
     /** Last layout selected by the local client (standard or wide). */
-    public static final ForgeConfigSpec.ConfigValue<String> LAST_LAYOUT;
+    public static final ModConfigSpec.ConfigValue<String> LAST_LAYOUT;
     /** Whether the local client should reopen the shop search box after restart. */
-    public static final ForgeConfigSpec.BooleanValue SEARCH_ACTIVE;
+    public static final ModConfigSpec.BooleanValue SEARCH_ACTIVE;
     /** Whether a death applies currency retention rules. */
-    public static final ForgeConfigSpec.BooleanValue LOSE_CURRENCY_ON_DEATH;
+    public static final ModConfigSpec.BooleanValue LOSE_CURRENCY_ON_DEATH;
     /** Retention used for currencies without an explicit rule. */
-    public static final ForgeConfigSpec.DoubleValue DEFAULT_CURRENCY_RETENTION;
+    public static final ModConfigSpec.DoubleValue DEFAULT_CURRENCY_RETENTION;
     /** Per-currency rules in the form currencyId=retention (0..1). */
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CURRENCY_RETENTION;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> CURRENCY_RETENTION;
 
     static {
-        ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.comment(
                 "QShop 通用设置 / QShop common settings",
                 "这些设置在单人和服务端环境中都生效 / These settings apply to client and server environments.")

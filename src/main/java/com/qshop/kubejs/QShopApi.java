@@ -167,7 +167,7 @@ public final class QShopApi {
 
     public boolean refreshTab(String shopRef, Object tabRef, Object options) {
         return QShopBindings.INSTANCE.refreshTab(shopRef, tabRef,
-                dev.latvian.mods.kubejs.util.JsonIO.of(options).getAsJsonObject());
+                new com.google.gson.Gson().toJsonTree(options).getAsJsonObject());
     }
 
     public void reload() {

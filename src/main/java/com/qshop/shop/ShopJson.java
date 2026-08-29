@@ -1,5 +1,7 @@
 package com.qshop.shop;
 
+import com.qshop.util.ItemStackData;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -10,6 +12,7 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.RegistryAccess;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,6 +38,8 @@ import java.util.UUID;
 public final class ShopJson {
 
     private static final Logger LOGGER = LogManager.getLogger("QShop");
+    private static final RegistryAccess REGISTRY_ACCESS =
+            RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
 
     private ShopJson() {
     }
@@ -45,7 +50,7 @@ public final class ShopJson {
         if (stack == null || stack.isEmpty()) {
             return "";
         }
-        CompoundTag tag = stack.save(new CompoundTag());
+        CompoundTag tag = (CompoundTag) stack.save(REGISTRY_ACCESS);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             NbtIo.writeCompressed(tag, out);
@@ -61,8 +66,9 @@ public final class ShopJson {
         }
         try {
             byte[] bytes = Base64.getDecoder().decode(s);
-            CompoundTag tag = NbtIo.readCompressed(new ByteArrayInputStream(bytes));
-            return ItemStack.of(tag);
+            CompoundTag tag = NbtIo.readCompressed(new ByteArrayInputStream(bytes),
+                    net.minecraft.nbt.NbtAccounter.unlimitedHeap());
+            return ItemStack.parseOptional(REGISTRY_ACCESS, tag);
         } catch (Exception e) {
             return ItemStack.EMPTY;
         }
@@ -82,7 +88,7 @@ public final class ShopJson {
                 if (s.startsWith("H4sI")) {
                     return stackFromBase64(s);
                 }
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(s));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(s));
                 if (item == null || item == net.minecraft.world.item.Items.AIR) {
                     throw new IllegalArgumentException("未知物品: " + s);
                 }
@@ -97,7 +103,7 @@ public final class ShopJson {
                 if (itemId.startsWith("H4sI")) {
                     return stackFromBase64(itemId);
                 }
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(itemId));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
                 // ITEM 注册表是 DefaultedRegistry:未注册 id 返回默认值 AIR 而非 null,
                 // 需显式判空,避免未知物品被静默解析成空条目
                 if (item == null || item == net.minecraft.world.item.Items.AIR) {
@@ -106,7 +112,7 @@ public final class ShopJson {
                 int count = o.has("count") ? Math.max(1, o.get("count").getAsInt()) : 1;
                 ItemStack stack = new ItemStack(item, count);
                 if (o.has("nbt") && o.get("nbt").isJsonPrimitive()) {
-                    stack.setTag(TagParser.parseTag(o.get("nbt").getAsString()));
+                    ItemStackData.setCustomTag(stack, TagParser.parseTag(o.get("nbt").getAsString()));
                 }
                 return stack;
             }

@@ -68,7 +68,7 @@ public final class ShopManager {
         if (Files.exists(target) || server == null || server.getServerDirectory() == null) {
             return;
         }
-        Path source = server.getServerDirectory().toPath().resolve("defaultconfigs").resolve("qshop");
+        Path source = server.getServerDirectory().resolve("defaultconfigs").resolve("qshop");
         if (!Files.isDirectory(source)) {
             return;
         }
@@ -179,7 +179,7 @@ public final class ShopManager {
         // KubeJS ServerEvents.loaded 可能先于本模组的 ServerStartingEvent 触发,
         // 此时 server 尚未初始化;用当前服务器引用自愈,保证脚本内创建/修改立即可见。
         if (server == null) {
-            server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+            server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
         }
         if (server == null || shop == null || shop.id == null || shop.id.isEmpty()) {
             return;

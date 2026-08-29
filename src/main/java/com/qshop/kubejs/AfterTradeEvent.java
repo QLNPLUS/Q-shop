@@ -3,11 +3,11 @@ package com.qshop.kubejs;
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopTab;
-import dev.latvian.mods.kubejs.event.EventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.server.level.ServerPlayer;
 
 /** Event fired after a successful trade. */
-public class AfterTradeEvent extends EventJS {
+public class AfterTradeEvent implements KubeEvent {
 
     private final ServerPlayer player;
     private final Shop shop;

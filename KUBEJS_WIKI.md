@@ -1,6 +1,6 @@
 # QShop KubeJS Wiki
 
-QShop is a Forge 1.20.1 server-shop mod with a KubeJS integration. The integration exposes a global `QShop` binding for shop management, currencies, sub-shops, trade entries, random tab refreshes, and trade events.
+QShop is a NeoForge 1.21.1 server-shop mod with a KubeJS integration. The integration exposes a global `QShop` binding for shop management, currencies, sub-shops, trade entries, random tab refreshes, and trade events.
 
 This is the current Builder-first API. Shop and entry JSON CRUD methods are not exposed on the global binding. Use `.add()` with a stable UUID to create or replace data.
 
@@ -8,11 +8,11 @@ This document describes the public KubeJS API shipped by QShop. Put examples tha
 
 ## Requirements
 
-- Minecraft Forge 1.20.1
+- Minecraft NeoForge 1.21.1
 - QShop
-- KubeJS 6 for Forge
+- KubeJS 2101.7.2 for NeoForge
 - Optional: FTB Quests for quest requirements and the QShop money task/reward integration
-- GameStages (`gamestages`) for stage requirements; KubeJS PlayerStages is also supported when available
+- KubeJS PlayerStages for stage requirements
 
 The KubeJS integration is optional. Without KubeJS, the core shop GUI, commands, currencies, limits, and JSON configuration still work.
 
@@ -524,7 +524,7 @@ requiredQuests: ['quest_id']
 requiredStages: ['stage_id']
 ```
 
-Quest checks require FTB Quests. Stage checks use GameStages (`gamestages`) through `GameStageHelper.hasStage`; when GameStages is not installed, QShop also tries the KubeJS PlayerStages provider. If neither provider is available, a configured stage requirement is treated as unsatisfied. Requirements are checked server-side and restricted tabs/entries are hidden from normal players.
+Quest checks require FTB Quests. Stage checks use the KubeJS PlayerStages provider. If KubeJS is not installed, a configured stage requirement is treated as unsatisfied. Requirements are checked server-side and restricted tabs/entries are hidden from normal players.
 
 ## Trade events
 
@@ -647,7 +647,7 @@ It fires for BUY/COMMAND currency payments, SELL income, the FTB Quests `qshop:m
 
 ## Java addon API
 
-Forge addon mods can use the stable facade in `com.qshop.api`:
+NeoForge addon mods can use the stable facade in `com.qshop.api`:
 
 ```java
 QShopAddonApi.currency().deposit(player, "coins", 25,
@@ -665,11 +665,11 @@ TradeResult result = QShopAddonApi.sell(
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 ```
 
-`sell` and `buy` accept Forge `IItemHandler` inventories and return `TradeResult`. They support tab/entry indexes or UUID references, enforce requirements and limits, and trigger the normal trade and currency events. For scheduled container settlement, save the owner's UUID and call `currency().deposit(server, ownerUuid, ...)` or `withdraw(...)`; these methods work for online and offline players by reading/writing `playerdata/<uuid>.dat`. `getLimitCount(server, uuid, key, period)` reads the same offline personal-limit data.
+`sell` and `buy` accept NeoForge `IItemHandler` inventories and return `TradeResult`. They support tab/entry indexes or UUID references, enforce requirements and limits, and trigger the normal trade and currency events. For scheduled container settlement, save the owner's UUID and call `currency().deposit(server, ownerUuid, ...)` or `withdraw(...)`; these methods work for online and offline players by reading/writing `playerdata/<uuid>.dat`. `getLimitCount(server, uuid, key, period)` reads the same offline personal-limit data.
 
 UUID mutations require a `MinecraftServer`, because the server is needed to locate the current world's playerdata directory. If the player is online, the live Capability is used and the client wallet is synchronized. If the playerdata file does not exist, the operation returns zero/false and does not create a partial player file.
 
-The Java `CurrencyChangedEvent` always includes `getPlayerUuid()`. For offline mutations `getPlayer()` is `null`; no client packet or KubeJS player event is emitted because there is no `ServerPlayer` instance. The Forge event is still posted with the UUID and source metadata.
+The Java `CurrencyChangedEvent` always includes `getPlayerUuid()`. For offline mutations `getPlayer()` is `null`; no client packet or KubeJS player event is emitted because there is no `ServerPlayer` instance. The NeoForge event is still posted with the UUID and source metadata.
 
 ## Configuration files and reload
 

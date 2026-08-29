@@ -1,21 +1,30 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.client.ClientPacketHandler;
 import com.qshop.currency.Currency;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * 服务端 → 客户端:打开商店界面(含条目、余额、货币、限购用量、编辑权限)。
  */
-public class OpenShopPacket {
+public class OpenShopPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<OpenShopPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "open_shop"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, OpenShopPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(OpenShopPacket::encode, OpenShopPacket::decode);
 
     public String shopId = "";
     public String shopName = "";
@@ -61,11 +70,11 @@ public class OpenShopPacket {
         this.refresh = refresh;
     }
 
-    public static void encode(OpenShopPacket p, FriendlyByteBuf buf) {
+    public static void encode(OpenShopPacket p, RegistryFriendlyByteBuf buf) {
         buf.writeUtf(p.shopId);
         buf.writeUtf(p.shopName);
         buf.writeUtf(p.shopCurrency);
-        buf.writeItemStack(p.icon, true);
+        PacketCodecs.writeItem(buf, p.icon);
         buf.writeInt(p.tabs.size());
         for (ClientTab t : p.tabs) {
             ClientTab.write(t, buf);
@@ -86,12 +95,12 @@ public class OpenShopPacket {
         buf.writeBoolean(p.refresh);
     }
 
-    public static OpenShopPacket decode(FriendlyByteBuf buf) {
+    public static OpenShopPacket decode(RegistryFriendlyByteBuf buf) {
         OpenShopPacket p = new OpenShopPacket();
         p.shopId = buf.readUtf();
         p.shopName = buf.readUtf();
         p.shopCurrency = buf.readUtf();
-        p.icon = buf.readItem();
+        p.icon = PacketCodecs.readItem(buf);
         int n = buf.readInt();
         for (int i = 0; i < n; i++) {
             p.tabs.add(ClientTab.read(buf));
@@ -113,11 +122,12 @@ public class OpenShopPacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isClient()) {
-            c.enqueueWork(() -> ClientPacketHandler.openShop(this));
-        }
-        c.setPacketHandled(true);
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> ClientPacketHandler.openShop(this));
     }
+    @Override
+    public CustomPacketPayload.Type<OpenShopPacket> type() {
+        return TYPE;
+    }
+
 }

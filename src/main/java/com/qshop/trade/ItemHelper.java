@@ -1,5 +1,7 @@
 package com.qshop.trade;
 
+import com.qshop.util.ItemStackData;
+
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -26,7 +28,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (ItemStack.isSameItemSameTags(s, target)) {
+            if (ItemStack.isSameItemSameComponents(s, target)) {
                 count += s.getCount();
             }
         }
@@ -41,7 +43,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize() && amount > 0; i++) {
             ItemStack s = inv.getItem(i);
-            if (!ItemStack.isSameItemSameTags(s, target)) {
+            if (!ItemStack.isSameItemSameComponents(s, target)) {
                 continue;
             }
             int take = Math.min(amount, s.getCount());
@@ -66,7 +68,7 @@ public final class ItemHelper {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) {
                 needed -= max;
-            } else if (ItemStack.isSameItemSameTags(s, stack)) {
+            } else if (ItemStack.isSameItemSameComponents(s, stack)) {
                 needed -= max - s.getCount();
             }
             if (needed <= 0) {
@@ -83,7 +85,7 @@ public final class ItemHelper {
             if (s.isEmpty()) {
                 continue;
             }
-            String key = s.getItem().getDescriptionId() + "|" + (s.getTag() == null ? "" : s.getTag());
+            String key = s.getItem().getDescriptionId() + "|" + (ItemStackData.getCustomTag(s) == null ? "" : ItemStackData.getCustomTag(s));
             ItemStack m = merged.get(key);
             if (m == null) {
                 merged.put(key, s.copy());

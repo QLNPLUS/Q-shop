@@ -2,10 +2,21 @@
 
 ## 1.2.3 - 2026-08-28
 
-### Changed
+### NeoForge 1.21.1
+
+#### Added
+
+- Added component-coordinate debugging to the trade settings and item browser GUIs.
+- Added persisted `screens.trade_settings` and `screens.item_picker` offsets to `config/qshop_layout.json`.
+
+#### Changed
 
 - Adjusted the shop search text alignment and reduced the search box width by 30 pixels.
 - Updated the built-in standard and wide layout offsets to match the current layout configuration.
+
+### Forge 1.20.1
+
+- No Forge 1.20.1-specific change was included in this NeoForge workspace entry.
 
 ## 1.2.2 - 2026-08-26
 

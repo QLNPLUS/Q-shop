@@ -10,8 +10,9 @@ import dev.ftb.mods.ftbquests.quest.Quest;
 import dev.ftb.mods.ftbquests.quest.reward.Reward;
 import dev.ftb.mods.ftbquests.quest.reward.RewardType;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -39,8 +40,8 @@ public class QShopMoneyReward extends Reward {
     }
 
     @Override
-    public void writeData(CompoundTag nbt) {
-        super.writeData(nbt);
+    public void writeData(CompoundTag nbt, HolderLookup.Provider provider) {
+        super.writeData(nbt, provider);
         nbt.putString("currency", currency == null ? "" : currency);
         nbt.putLong("value", value);
         if (randomBonus > 0) {
@@ -49,15 +50,15 @@ public class QShopMoneyReward extends Reward {
     }
 
     @Override
-    public void readData(CompoundTag nbt) {
-        super.readData(nbt);
+    public void readData(CompoundTag nbt, HolderLookup.Provider provider) {
+        super.readData(nbt, provider);
         currency = nbt.getString("currency");
         value = nbt.getLong("value");
         randomBonus = nbt.getInt("random_bonus");
     }
 
     @Override
-    public void writeNetData(FriendlyByteBuf buf) {
+    public void writeNetData(RegistryFriendlyByteBuf buf) {
         super.writeNetData(buf);
         buf.writeUtf(currency == null ? "" : currency);
         buf.writeLong(value);
@@ -65,7 +66,7 @@ public class QShopMoneyReward extends Reward {
     }
 
     @Override
-    public void readNetData(FriendlyByteBuf buf) {
+    public void readNetData(RegistryFriendlyByteBuf buf) {
         super.readNetData(buf);
         currency = buf.readUtf();
         value = buf.readLong();

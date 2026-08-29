@@ -18,7 +18,7 @@ import java.util.Set;
  * 交易前提检查(全部基于反射,兼容"未安装对应模组"的情况):
  * <ul>
  *   <li>FTB Quests:玩家所在队伍需已完成指定任务(id 以字符串形式配置)。</li>
- *   <li>GameStages / KubeJS stage:玩家需拥有指定 stage。</li>
+ *   <li>KubeJS stage:玩家需拥有指定 stage。</li>
  * </ul>
  * 配置了要求却无法找到对应 provider 时按未满足处理，避免受限内容意外显示。
  */
@@ -183,65 +183,23 @@ public final class RequirementCheck {
         return null;
     }
 
-    // ---------------- GameStages / KubeJS stages ----------------
+    // ---------------- KubeJS stages ----------------
 
     /**
-     * 检查玩家是否拥有阶段。
-     * <p>服务端的 GameStages / KubeJS PlayerStages 两份数据可能不同步(原 sdmshop 就存在此问题,
-     * last_one_core 通过服务端改动后推送镜像包修复)。这里在两个 provider 上做"并集"判断:
-     * 任一 provider 报告拥有即视为满足,避免因某一侧数据滞后把已获得阶段的玩家误判为未满足。
-     * 两个阶段模组都没安装时返回 false，配置过的阶段要求必须能被明确验证。
+     * 检查玩家是否拥有 KubeJS stage。
+     * <p>NeoForge 1.21.1 使用 KubeJS 自带的 stage provider。没有安装 KubeJS，
+     * 或 KubeJS 无法返回玩家阶段时，配置过的阶段要求按未满足处理。
      */
     private static boolean hasStage(ServerPlayer player, String stage) {
-        boolean providerPresent = false;
-        boolean found = false;
-        // 1) GameStages 模组
-        try {
-            Class<?> helper = Class.forName("net.darkhax.gamestages.GameStageHelper");
-            providerPresent = true;
-            for (Method method : helper.getMethods()) {
-                if (method.getName().equals("hasStage") && method.getParameterCount() == 2
-                        && method.getParameterTypes()[0].isAssignableFrom(player.getClass())
-                        && method.getParameterTypes()[1] == String.class) {
-                    found |= (Boolean) method.invoke(null, player, stage);
-                }
-            }
-        } catch (ClassNotFoundException ignored) {
-        } catch (Throwable t) {
-            LOGGER.debug("QShop: GameStages 检查失败: {}", t.toString());
-        }
-        // 2) KubeJS PlayerStages
         try {
             Class<?> playerKjs = Class.forName("dev.latvian.mods.kubejs.core.PlayerKJS");
-            providerPresent = true;
-            Object stages = null;
-            for (String methodName : List.of("kjs$getStages", "getStages")) {
-                try {
-                    stages = playerKjs.getMethod(methodName).invoke(player);
-                    break;
-                } catch (ReflectiveOperationException | IllegalArgumentException ignored) {
-                }
-            }
-            if (stages == null) {
-                Class<?> stagesClass = Class.forName("dev.latvian.mods.kubejs.stages.Stages");
-                for (Method method : stagesClass.getMethods()) {
-                    if (method.getName().equals("get") && Modifier.isStatic(method.getModifiers())
-                            && method.getParameterCount() == 1
-                            && method.getParameterTypes()[0].isAssignableFrom(player.getClass())) {
-                        stages = method.invoke(null, player);
-                        break;
-                    }
-                }
-            }
-            if (stages != null) {
-                Method has = stages.getClass().getMethod("has", String.class);
-                found |= (Boolean) has.invoke(stages, stage);
-            }
+            Object stages = playerKjs.getMethod("kjs$getStages").invoke(player);
+            return stages != null && (Boolean) stages.getClass().getMethod("has", String.class)
+                    .invoke(stages, stage);
         } catch (ClassNotFoundException ignored) {
         } catch (Throwable t) {
             LOGGER.debug("QShop: stage 检查不可用: {}", t.toString());
         }
-        // 无 provider 或所有 provider 均未确认拥有该阶段时，都按未满足处理。
-        return providerPresent && found;
+        return false;
     }
 }

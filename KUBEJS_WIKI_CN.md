@@ -1,14 +1,14 @@
 # QShop KubeJS 中文 Wiki
 
-本文档对应 QShop `1.1.0`。QShop 是 Forge 1.20.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
+本文档对应 QShop `1.2.3`。QShop 是 NeoForge 1.21.1 的服务端商店模组，KubeJS 集成只在安装 KubeJS 时启用。
 
 ## 环境要求
 
-- Minecraft Forge 1.20.1
+- Minecraft NeoForge 1.21.1
 - QShop
-- KubeJS 6（Forge）
-- 可选：FTB Quests（任务条件）；GameStages（模组 ID：`gamestages`，阶段条件的标准依赖）
-- 如果使用 KubeJS 的 PlayerStages，也可以作为阶段检测的兼容来源
+- KubeJS 2101.7.2（NeoForge）
+- 可选：FTB Quests（任务条件）
+- 阶段条件使用 KubeJS PlayerStages
 
 脚本放在 `kubejs/server_scripts/`。修改 JSON 后使用 `/reload` 或 `QShop.reload()`。
 
@@ -367,9 +367,8 @@ requiredStages: ['stage_id']
 这些条件由服务端检查：
 
 - `requiredQuests` 需要安装并启用 FTB Quests；没有 FTB Quests 时，任务条件无法验证。
-- `requiredStages` 标准上需要安装并启用 GameStages（模组 ID：`gamestages`）。QShop 会调用 GameStages 的 `GameStageHelper.hasStage` 检查玩家阶段。
-- 如果没有 GameStages，QShop 还会尝试读取 KubeJS PlayerStages；只有检测到有效阶段提供者并拥有对应阶段时才算满足。
-- GameStages 和 KubeJS stages 都没有安装时，阶段条件按未满足处理。
+- `requiredStages` 需要安装并启用 KubeJS，QShop 调用 KubeJS PlayerStages 检查玩家阶段。
+- 没有 KubeJS 时，阶段条件按未满足处理。
 
 条件不满足时，普通玩家看不到对应的子商店或交易项目；编辑模式可以继续显示受限内容。
 
@@ -508,7 +507,7 @@ TradeResult result = QShopAddonApi.sell(
         ResourceLocation.fromNamespaceAndPath("my_mod", "auto_sell"), blockPos);
 ```
 
-`sell` 和 `buy` 支持 Forge `IItemHandler` 容器库存，会检查交易项目要求和限购，
+`sell` 和 `buy` 支持 NeoForge `IItemHandler` 容器库存，会检查交易项目要求和限购，
 并触发交易前/后事件及货币变动事件。容器应保存放置者 UUID，并在定时结算时调用
 `currency().deposit(server, ownerUuid, ...)` 或 `withdraw(...)`；这些方法支持在线和离线玩家，
 会直接读写 `playerdata/<uuid>.dat`。`getLimitCount(server, uuid, key, period)` 也可以读取离线玩家的个人限购计数。
@@ -518,7 +517,7 @@ Capability 并同步客户端；玩家离线时读写 NBT 文件。若该 UUID �
 `false`，不会创建不完整的玩家文件。
 
 Java `CurrencyChangedEvent` 始终提供 `getPlayerUuid()`。离线修改时 `getPlayer()` 为 `null`，不会发送客户端
-同步包，也不会触发依赖 `ServerPlayer` 的 KubeJS 玩家事件；Forge 事件仍会携带 UUID 和来源信息。
+同步包，也不会触发依赖 `ServerPlayer` 的 KubeJS 玩家事件；NeoForge 事件仍会携带 UUID 和来源信息。
 
 ## 配置文件和重载
 

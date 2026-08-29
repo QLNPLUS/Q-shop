@@ -3,7 +3,7 @@ package com.qshop.net;
 import com.qshop.shop.ShopCommand;
 import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopEntryType;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -69,15 +69,15 @@ public class ClientShopEntry {
         return c;
     }
 
-    public static void write(ClientShopEntry e, FriendlyByteBuf buf) {
+    public static void write(ClientShopEntry e, RegistryFriendlyByteBuf buf) {
         buf.writeInt(e.serverIndex);
         buf.writeUtf(e.uuid == null ? "" : e.uuid);
         buf.writeBoolean(e.requirementsMet);
         buf.writeByte(e.type.ordinal());
         buf.writeUtf(e.displayName == null ? "" : e.displayName);
         buf.writeUtf(e.description == null ? "" : e.description);
-        buf.writeItemStack(e.displayItem, true);
-        buf.writeItemStack(e.item, true);
+        PacketCodecs.writeItem(buf, e.displayItem);
+        PacketCodecs.writeItem(buf, e.item);
         writeStacks(e.give, buf);
         writeStacks(e.receive, buf);
         buf.writeUtf(e.currencyId == null ? "" : e.currencyId);
@@ -103,7 +103,7 @@ public class ClientShopEntry {
         buf.writeInt(e.usedPlayer);
     }
 
-    public static ClientShopEntry read(FriendlyByteBuf buf) {
+    public static ClientShopEntry read(RegistryFriendlyByteBuf buf) {
         ClientShopEntry c = new ClientShopEntry();
         c.serverIndex = buf.readInt();
         c.uuid = buf.readUtf();
@@ -111,8 +111,8 @@ public class ClientShopEntry {
         c.type = ShopEntryType.values()[buf.readByte() & 0xFF];
         c.displayName = buf.readUtf();
         c.description = buf.readUtf();
-        c.displayItem = buf.readItem();
-        c.item = buf.readItem();
+        c.displayItem = PacketCodecs.readItem(buf);
+        c.item = PacketCodecs.readItem(buf);
         readStacks(c.give, buf);
         readStacks(c.receive, buf);
         c.currencyId = buf.readUtf();
@@ -137,17 +137,17 @@ public class ClientShopEntry {
         return c;
     }
 
-    private static void writeStacks(List<ItemStack> stacks, FriendlyByteBuf buf) {
+    private static void writeStacks(List<ItemStack> stacks, RegistryFriendlyByteBuf buf) {
         buf.writeInt(stacks.size());
         for (ItemStack s : stacks) {
-            buf.writeItemStack(s, true);
+            PacketCodecs.writeItem(buf, s);
         }
     }
 
-    private static void readStacks(List<ItemStack> stacks, FriendlyByteBuf buf) {
+    private static void readStacks(List<ItemStack> stacks, RegistryFriendlyByteBuf buf) {
         int n = buf.readInt();
         for (int i = 0; i < n; i++) {
-            stacks.add(buf.readItem());
+            stacks.add(PacketCodecs.readItem(buf));
         }
     }
 }

@@ -22,7 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -675,7 +675,7 @@ public final class TradeService {
         int count = 0;
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);
-            if (ItemStack.isSameItemSameTags(stack, target)) {
+            if (ItemStack.isSameItemSameComponents(stack, target)) {
                 count = Math.min(Integer.MAX_VALUE, count + stack.getCount());
             }
         }
@@ -731,11 +731,11 @@ public final class TradeService {
         int remaining = amount;
         for (int slot = 0; slot < inventory.getSlots() && remaining > 0; slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);
-            if (!ItemStack.isSameItemSameTags(stack, target)) {
+            if (!ItemStack.isSameItemSameComponents(stack, target)) {
                 continue;
             }
             ItemStack extracted = inventory.extractItem(slot, Math.min(remaining, stack.getCount()), false);
-            if (ItemStack.isSameItemSameTags(extracted, target)) {
+            if (ItemStack.isSameItemSameComponents(extracted, target)) {
                 remaining -= extracted.getCount();
             }
         }
@@ -755,7 +755,7 @@ public final class TradeService {
         int stackLimit = target.getMaxStackSize();
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack existing = inventory.getStackInSlot(slot);
-            if (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, target)) {
+            if (!existing.isEmpty() && !ItemStack.isSameItemSameComponents(existing, target)) {
                 continue;
             }
             if (!inventory.isItemValid(slot, target)) {

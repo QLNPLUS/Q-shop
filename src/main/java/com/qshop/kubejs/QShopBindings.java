@@ -21,7 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -316,7 +316,7 @@ final class QShopBindings {
             return null;
         }
         try {
-            JsonElement el = dev.latvian.mods.kubejs.util.JsonIO.of(o);
+            JsonElement el = new com.google.gson.Gson().toJsonTree(o);
             if (el != null && el.isJsonObject()) {
                 return el.getAsJsonObject();
             }
@@ -820,7 +820,7 @@ final class QShopBindings {
             el = new JsonPrimitive(s);
         } else {
             try {
-                el = dev.latvian.mods.kubejs.util.JsonIO.of(o);
+                el = new com.google.gson.Gson().toJsonTree(o);
             } catch (Throwable t) {
                 return ItemStack.EMPTY;
             }
@@ -954,7 +954,7 @@ final class QShopBindings {
         JsonObject options = new JsonObject();
         options.addProperty("count", count);
         try {
-            options.add("pool", dev.latvian.mods.kubejs.util.JsonIO.of(pool));
+            options.add("pool", new com.google.gson.Gson().toJsonTree(pool));
         } catch (Throwable t) {
             return false;
         }
@@ -1000,7 +1000,7 @@ final class QShopBindings {
             return out;
         }
         try {
-            JsonElement el = dev.latvian.mods.kubejs.util.JsonIO.of(pool);
+            JsonElement el = new com.google.gson.Gson().toJsonTree(pool);
             if (el == null) {
                 return out;
             }

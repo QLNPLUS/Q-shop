@@ -1,6 +1,6 @@
 package com.qshop.net;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -25,13 +25,13 @@ public class ClientTab {
     public final List<String> requiredStages = new ArrayList<>();
     public final List<ClientShopEntry> entries = new ArrayList<>();
 
-    public static void write(ClientTab t, FriendlyByteBuf buf) {
+    public static void write(ClientTab t, RegistryFriendlyByteBuf buf) {
         buf.writeInt(t.serverIndex);
         buf.writeBoolean(t.requirementsMet);
         buf.writeUtf(t.uuid == null ? "" : t.uuid);
         buf.writeUtf(t.name == null ? "" : t.name);
         buf.writeUtf(t.description == null ? "" : t.description);
-        buf.writeItemStack(t.icon, true);
+        PacketCodecs.writeItem(buf, t.icon);
         buf.writeInt(t.requiredQuests.size());
         for (String q : t.requiredQuests) {
             buf.writeUtf(q == null ? "" : q);
@@ -46,14 +46,14 @@ public class ClientTab {
         }
     }
 
-    public static ClientTab read(FriendlyByteBuf buf) {
+    public static ClientTab read(RegistryFriendlyByteBuf buf) {
         ClientTab t = new ClientTab();
         t.serverIndex = buf.readInt();
         t.requirementsMet = buf.readBoolean();
         t.uuid = buf.readUtf();
         t.name = buf.readUtf();
         t.description = buf.readUtf();
-        t.icon = buf.readItem();
+        t.icon = PacketCodecs.readItem(buf);
         int n = buf.readInt();
         for (int i = 0; i < n; i++) {
             t.requiredQuests.add(buf.readUtf());

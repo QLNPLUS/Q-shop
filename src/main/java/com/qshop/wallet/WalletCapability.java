@@ -1,48 +1,25 @@
 package com.qshop.wallet;
 
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
+import com.qshop.QShopMod;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilitySerializable;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
-import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
-/**
- * 钱包 Capability,自动随玩家数据保存/加载。
- */
+/** NeoForge player attachment used for wallet balances and purchase limits. */
 public final class WalletCapability {
+    public static final DeferredRegister<AttachmentType<?>> ATTACHMENTS =
+            DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, QShopMod.MODID);
 
-    public static final Capability<IWallet> WALLET = CapabilityManager.get(new CapabilityToken<>() {
-    });
+    public static final Supplier<AttachmentType<WalletImpl>> WALLET = ATTACHMENTS.register(
+            "wallet", () -> AttachmentType.serializable(WalletImpl::new).copyOnDeath().build());
 
     private WalletCapability() {
     }
 
-    public static class Provider implements ICapabilitySerializable<CompoundTag> {
-        private final WalletImpl wallet = new WalletImpl();
-        private final LazyOptional<IWallet> lazy = LazyOptional.of(() -> wallet);
-
-        @Override
-        public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-            return cap == WALLET ? lazy.cast() : LazyOptional.empty();
-        }
-
-        @Override
-        public CompoundTag serializeNBT() {
-            return wallet.serializeNBT();
-        }
-
-        @Override
-        public void deserializeNBT(CompoundTag nbt) {
-            wallet.deserializeNBT(nbt);
-        }
-    }
-
     public static IWallet get(Player player) {
-        return player.getCapability(WALLET).resolve().orElse(null);
+        return player == null ? null : player.getData(WALLET);
     }
 }

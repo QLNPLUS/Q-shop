@@ -1,22 +1,31 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.shop.ShopManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:编辑模式下添加交易条目(物品由客户端物品选择器提供)。
  */
-public class AddEntryPacket {
+public class AddEntryPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<AddEntryPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "add_entry"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, AddEntryPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(AddEntryPacket::encode, AddEntryPacket::decode);
 
     public String shopId = "";
     public int tabIndex = 0;
@@ -61,16 +70,16 @@ public class AddEntryPacket {
         }
     }
 
-    public static void encode(AddEntryPacket p, FriendlyByteBuf buf) {
+    public static void encode(AddEntryPacket p, RegistryFriendlyByteBuf buf) {
         buf.writeUtf(p.shopId);
         buf.writeInt(p.tabIndex);
         buf.writeByte(p.typeId);
         buf.writeDouble(p.price);
         buf.writeUtf(p.currency);
         buf.writeUtf(p.command == null ? "" : p.command);
-        buf.writeItemStack(p.item, true);
-        buf.writeItemStack(p.giveItem, true);
-        buf.writeItemStack(p.displayItem, true);
+        PacketCodecs.writeItem(buf, p.item);
+        PacketCodecs.writeItem(buf, p.giveItem);
+        PacketCodecs.writeItem(buf, p.displayItem);
         buf.writeInt(p.requiredQuests.size());
         for (String s : p.requiredQuests) {
             buf.writeUtf(s == null ? "" : s);
@@ -81,7 +90,7 @@ public class AddEntryPacket {
         }
     }
 
-    public static AddEntryPacket decode(FriendlyByteBuf buf) {
+    public static AddEntryPacket decode(RegistryFriendlyByteBuf buf) {
         AddEntryPacket p = new AddEntryPacket();
         p.shopId = buf.readUtf();
         p.tabIndex = buf.readInt();
@@ -89,9 +98,9 @@ public class AddEntryPacket {
         p.price = buf.readDouble();
         p.currency = buf.readUtf();
         p.command = buf.readUtf();
-        p.item = buf.readItem();
-        p.giveItem = buf.readItem();
-        p.displayItem = buf.readItem();
+        p.item = PacketCodecs.readItem(buf);
+        p.giveItem = PacketCodecs.readItem(buf);
+        p.displayItem = PacketCodecs.readItem(buf);
         int n = buf.readInt();
         for (int i = 0; i < n; i++) {
             p.requiredQuests.add(buf.readUtf());
@@ -103,11 +112,9 @@ public class AddEntryPacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
                     return;
                 }
@@ -121,8 +128,11 @@ public class AddEntryPacket {
                 ShopManager.addEntryToTab(shop, tabIndex, entryType, item, giveItem, displayItem, price, cur, command,
                         requiredQuests, requiredStages);
                 ShopManager.openShop(player, shop);
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
+    @Override
+    public CustomPacketPayload.Type<AddEntryPacket> type() {
+        return TYPE;
+    }
+
 }

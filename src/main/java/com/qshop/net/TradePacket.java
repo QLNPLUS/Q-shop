@@ -1,16 +1,25 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.trade.TradeService;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
 
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:请求一次交易(units = 交易单位数)。
  */
-public class TradePacket {
+public class TradePacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<TradePacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "trade"));
+    public static final StreamCodec<FriendlyByteBuf, TradePacket> STREAM_CODEC =
+            CustomPacketPayload.codec(TradePacket::encode, TradePacket::decode);
 
     public String shopId = "";
     public int tabIndex = 0;
@@ -43,16 +52,17 @@ public class TradePacket {
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player != null) {
                     TradeService.trade(player, shopId, tabIndex, entryIndex, units);
                 }
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
+    @Override
+    public CustomPacketPayload.Type<TradePacket> type() {
+        return TYPE;
+    }
+
 }

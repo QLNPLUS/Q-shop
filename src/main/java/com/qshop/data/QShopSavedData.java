@@ -1,6 +1,7 @@
 package com.qshop.data;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
@@ -10,10 +11,12 @@ import net.minecraft.world.level.saveddata.SavedData;
 public class QShopSavedData extends SavedData {
 
     public final PurchaseCounts globalCounts = new PurchaseCounts();
+    private static final Factory<QShopSavedData> FACTORY = new Factory<>(
+            QShopSavedData::new, (tag, provider) -> load(tag));
 
     public static QShopSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage()
-                .computeIfAbsent(QShopSavedData::load, QShopSavedData::new, "qshop_data");
+                .computeIfAbsent(FACTORY, "qshop_data");
     }
 
     public static QShopSavedData load(CompoundTag tag) {
@@ -25,7 +28,7 @@ public class QShopSavedData extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         tag.put("global", globalCounts.serialize());
         return tag;
     }

@@ -1,9 +1,9 @@
-# QShop —— Forge 1.20.1 服务器商店模组
+# QShop —— NeoForge 1.21.1 服务器商店模组
 
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.1.2**（Forge 1.20.1）
+当前版本：**1.2.3**（NeoForge 1.21.1）
 
 ## 功能清单
 
@@ -23,15 +23,16 @@
 
 ## 构建
 
-- 需要 JDK 17(本机路径已写在 `gradle.properties` 的 `org.gradle.java.home`,不对请修改)
+- 需要 JDK 21(本机路径已写在 `gradle.properties` 的 `org.gradle.java.home`,不对请修改)
 - 首次构建需要联网下载依赖
 
 ```bash
 # 如果 gradle/wrapper/gradle-wrapper.jar 不存在,先下载(需要联网):
-curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
+curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.8/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.2.3.jar
+# NeoForge 产物: build/libs/qshop-neoforge-1.21.1-1.2.3.jar
+# Forge 1.20.1 分支产物: build/libs/qshop-forge-1.20.1-1.2.3.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -115,9 +116,12 @@ lastLayout = "standard"
 searchActive = false
 ```
 
-`enableLayoutDebug = true` 后，在商店界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
+`enableLayoutDebug = true` 后，在商店、添加/编辑交易和物品浏览器界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
 7x3 和 8x4 使用独立的偏移数据，切换布局不会互相影响；旧版共享偏移文件会自动迁移到 7x3。
 添加条目、编辑模式、搜索、布局切换和关闭按钮均使用独立的 16x16 图标及独立偏移，可在调试模式中分别调整。
+交易设置界面按交易行分组调整，物品浏览器可分别调整面板、模式按钮、关闭/返回按钮、搜索框和物品网格。
+调试模式中按 `Tab` 选择组件，方向键移动 5 像素，按住 `Alt` 移动 1 像素；输入框获得焦点时方向键仍用于编辑文本。
+首次移动新增界面时，配置文件会自动写入 `screens.trade_settings` 和 `screens.item_picker` 节点。
 `lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
 `searchActive` 会记录搜索按钮是否启用；启用后重启游戏会恢复搜索框，搜索文本本身不会保存。
 搜索范围是当前 tab 的交易项目；普通文本会优先匹配交易项自定义名称，再匹配交易格内最终显示物品的名称/ID（包括自定义展示物品）。同时支持 `#tag` 标签和 `@namespace` 命名空间，空格分隔的多个条件会同时生效。
@@ -224,7 +228,7 @@ searchActive = false
 ## KubeJS
 
 需要安装 KubeJS(1.20.1,`kubejs` 模组)。如果使用 `requiredStages`，标准依赖是
-GameStages（模组 ID：`gamestages`）；QShop 也会兼容 KubeJS PlayerStages。
+只使用 KubeJS stages（KubeJS PlayerStages）；不依赖 GameStages。
 脚本里直接使用全局绑定 `QShop`。
 
 > 当前公开 API 已重构为 Builder-first：交易条目使用 `QShop.entry(...).uuid(...).add()` 创建或按 UUID 覆盖，子商店使用 `QShop.tab(...).uuid(...).add()` 创建或更新。旧版 `addEntry/updateEntry/addTab/updateTab` 与 `JsonIO.of` CRUD 不再作为全局 API 暴露。对象查询使用 `QShop.getShop/getTab/getEntry`。完整说明请参阅 [`KUBEJS_WIKI.md`](KUBEJS_WIKI.md) 或 [`KUBEJS_WIKI_CN.md`](KUBEJS_WIKI_CN.md)。
@@ -283,7 +287,7 @@ FTB 货币任务消耗、KubeJS 货币方法、配置的死亡货币保留，以
 
 ## Java 附属模组 API
 
-1.1.0 提供面向 Forge 附属模组的正式 API，入口为 `com.qshop.api.QShopAddonApi`：
+1.2.3 提供面向 NeoForge 附属模组的正式 API，入口为 `com.qshop.api.QShopAddonApi`：
 
 ```java
 QShopAddonApi.currency().deposit(player, "coins", 25,
@@ -304,7 +308,7 @@ TradeResult result = QShopAddonApi.sell(
 
 `sell` 和 `buy` 支持 `IItemHandler`，会复用条目要求、限购、交易前/后事件和货币变动事件。容器附属应保存放置者 UUID；自动结算时可以通过 `currency().deposit(server, ownerUuid, ...)` 或 `withdraw(...)` 修改在线/离线玩家余额。离线 UUID API 会直接读写该玩家的 `playerdata/<uuid>.dat`，并且可以读取个人限购计数。
 
-Java 附属可以监听 Forge `com.qshop.api.CurrencyChangedEvent`。事件提供 `getPlayerUuid()`、在线玩家的 `getPlayer()`、货币、变化前后余额、差值、来源 `ResourceLocation` 和可选的来源方块坐标。离线变更时 `getPlayer()` 为 `null`，但 `getPlayerUuid()` 仍可用；离线变更不会发送客户端同步包，也不会触发需要 `ServerPlayer` 的 KubeJS 玩家事件。
+Java 附属可以监听 NeoForge `com.qshop.api.CurrencyChangedEvent`。事件提供 `getPlayerUuid()`、在线玩家的 `getPlayer()`、货币、变化前后余额、差值、来源 `ResourceLocation` 和可选的来源方块坐标。离线变更时 `getPlayer()` 为 `null`，但 `getPlayerUuid()` 仍可用；离线变更不会发送客户端同步包，也不会触发需要 `ServerPlayer` 的 KubeJS 玩家事件。
 
 ### 历史 JSON API（1.0.4 不可用）
 

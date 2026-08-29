@@ -3,6 +3,7 @@ package com.qshop.client;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -10,6 +11,8 @@ import com.qshop.config.QShopCommonConfig;
 import com.qshop.shop.ShopEntryType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
@@ -88,7 +91,22 @@ public final class ShopTextures {
     }
 
     private static ResourceLocation rl(String name) {
-        return new ResourceLocation("qshop", "textures/gui/" + name + ".png");
+        return ResourceLocation.fromNamespaceAndPath("qshop", "textures/gui/" + name + ".png");
+    }
+
+    /** Darken the world behind QShop without invoking Screen's post-processing blur. */
+    public static void background(GuiGraphics g, int width, int height) {
+        g.fill(0, 0, width, height, 0x66000000);
+    }
+
+    /**
+     * Render registered widgets without calling Screen.render(), which would
+     * draw the background a second time and may apply the vanilla blur pass.
+     */
+    public static void renderWidgets(Screen screen, GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        for (Renderable renderable : screen.renderables) {
+            renderable.render(g, mouseX, mouseY, partialTick);
+        }
     }
 
     // ---------------- 面板 ----------------
@@ -366,13 +384,13 @@ public final class ShopTextures {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Matrix4f m = new Matrix4f();
-        BufferBuilder buf = Tesselator.getInstance().getBuilder();
-        buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        buf.vertex(m, x, y + h, 0).color(r, g, b, a).endVertex();
-        buf.vertex(m, x + w, y + h, 0).color(r, g, b, a).endVertex();
-        buf.vertex(m, x + w, y, 0).color(r, g, b, a).endVertex();
-        buf.vertex(m, x, y, 0).color(r, g, b, a).endVertex();
-        Tesselator.getInstance().end();
+        BufferBuilder buf = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,
+                DefaultVertexFormat.POSITION_COLOR);
+        buf.addVertex(m, x, y + h, 0).setColor(r, g, b, a);
+        buf.addVertex(m, x + w, y + h, 0).setColor(r, g, b, a);
+        buf.addVertex(m, x + w, y, 0).setColor(r, g, b, a);
+        buf.addVertex(m, x, y, 0).setColor(r, g, b, a);
+        BufferUploader.drawWithShader(buf.buildOrThrow());
     }
 
     /** 用 Tesselator 立即模式画按钮(九宫格),绘制即刻落屏 */
@@ -392,8 +410,8 @@ public final class ShopTextures {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         Matrix4f m = new Matrix4f();
-        BufferBuilder buf = Tesselator.getInstance().getBuilder();
-        buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        BufferBuilder buf = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,
+                DefaultVertexFormat.POSITION_TEX_COLOR);
         quad(buf, m, x, y, border, border, 0, 0, border, border, tw, th);
         quad(buf, m, x + w - border, y, border, border, tw - border, 0, border, border, tw, th);
         quad(buf, m, x, y + h - border, border, border, 0, th - border, border, border, tw, th);
@@ -409,17 +427,17 @@ public final class ShopTextures {
         if (mw > 0 && mh > 0) {
             quad(buf, m, x + border, y + border, mw, mh, border, border, iw, ih, tw, th);
         }
-        Tesselator.getInstance().end();
+        BufferUploader.drawWithShader(buf.buildOrThrow());
     }
 
     private static void quad(BufferBuilder buf, Matrix4f m, int x, int y, int w, int h,
                              int u, int v, int uw, int vh, int tw, int th) {
         float f = 1f / tw;
         float g = 1f / th;
-        buf.vertex(m, x, y + h, 0).uv(u * f, (v + vh) * g).color(255, 255, 255, 255).endVertex();
-        buf.vertex(m, x + w, y + h, 0).uv((u + uw) * f, (v + vh) * g).color(255, 255, 255, 255).endVertex();
-        buf.vertex(m, x + w, y, 0).uv((u + uw) * f, v * g).color(255, 255, 255, 255).endVertex();
-        buf.vertex(m, x, y, 0).uv(u * f, v * g).color(255, 255, 255, 255).endVertex();
+        buf.addVertex(m, x, y + h, 0).setUv(u * f, (v + vh) * g).setColor(255, 255, 255, 255);
+        buf.addVertex(m, x + w, y + h, 0).setUv((u + uw) * f, (v + vh) * g).setColor(255, 255, 255, 255);
+        buf.addVertex(m, x + w, y, 0).setUv((u + uw) * f, v * g).setColor(255, 255, 255, 255);
+        buf.addVertex(m, x, y, 0).setUv(u * f, v * g).setColor(255, 255, 255, 255);
     }
 
     // ---------------- 小图标 ----------------

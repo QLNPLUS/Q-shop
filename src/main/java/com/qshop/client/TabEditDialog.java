@@ -211,7 +211,7 @@ public class TabEditDialog extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+        ShopTextures.background(g, this.width, this.height);
         ShopTextures.panelTab(g, left, top);
 
         g.drawString(this.font, Component.translatable("qshop.gui.edit_tab"), left + LABEL_X, top + 8, 0xFFFFFF);
@@ -232,7 +232,7 @@ public class TabEditDialog extends Screen {
         ShopTextures.input(g, left + CONTROL_X, top + 85, 168, 12, stagesBox.isFocused());
         ShopTextures.input(g, left + CONTROL_X, top + 103, 168, 12, descBox.isFocused());
 
-        super.render(g, mouseX, mouseY, partialTick);
+        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
 
         if (!icon.isEmpty() && mouseX >= left + CONTROL_X && mouseX < left + CONTROL_X + 20
                 && mouseY >= top + 48 && mouseY < top + 68) {

@@ -1,18 +1,27 @@
 package com.qshop.net;
 
+import com.qshop.QShopMod;
+
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 
-import java.util.function.Supplier;
 
 /**
  * 客户端 → 服务端:编辑模式下修改商店信息(显示名 / 图标 / 默认货币)。
  */
-public class EditShopInfoPacket {
+public class EditShopInfoPacket implements CustomPacketPayload {
+
+    public static final CustomPacketPayload.Type<EditShopInfoPacket> TYPE = new CustomPacketPayload.Type<>(
+            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "edit_shop_info"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, EditShopInfoPacket> STREAM_CODEC =
+            CustomPacketPayload.codec(EditShopInfoPacket::encode, EditShopInfoPacket::decode);
 
     public String shopId = "";
     public String displayName = "";
@@ -30,27 +39,25 @@ public class EditShopInfoPacket {
         this.currency = currency == null ? "" : currency;
     }
 
-    public static void encode(EditShopInfoPacket p, FriendlyByteBuf buf) {
+    public static void encode(EditShopInfoPacket p, RegistryFriendlyByteBuf buf) {
         buf.writeUtf(p.shopId);
         buf.writeUtf(p.displayName);
-        buf.writeItemStack(p.icon, true);
+        PacketCodecs.writeItem(buf, p.icon);
         buf.writeUtf(p.currency == null ? "" : p.currency);
     }
 
-    public static EditShopInfoPacket decode(FriendlyByteBuf buf) {
+    public static EditShopInfoPacket decode(RegistryFriendlyByteBuf buf) {
         EditShopInfoPacket p = new EditShopInfoPacket();
         p.shopId = buf.readUtf();
         p.displayName = buf.readUtf();
-        p.icon = buf.readItem();
+        p.icon = PacketCodecs.readItem(buf);
         p.currency = buf.readUtf();
         return p;
     }
 
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        if (c.getDirection().getReceptionSide().isServer()) {
-            c.enqueueWork(() -> {
-                ServerPlayer player = c.getSender();
+    public void handle(IPayloadContext context) {
+        context.enqueueWork(() -> {
+                ServerPlayer player = (ServerPlayer) context.player();
                 if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
                     return;
                 }
@@ -63,8 +70,11 @@ public class EditShopInfoPacket {
                 shop.currency = currency == null ? "" : currency.trim();
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
-            });
-        }
-        c.setPacketHandled(true);
+        });
     }
+    @Override
+    public CustomPacketPayload.Type<EditShopInfoPacket> type() {
+        return TYPE;
+    }
+
 }

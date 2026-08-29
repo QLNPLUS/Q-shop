@@ -4,7 +4,6 @@
   "qshop.gui.close": "✕",
   "qshop.gui.layout_switch": "Switch layout",
   "qshop.gui.search": "Search",
-  "qshop.gui.search_hint": "Search items, #tag, @namespace",
   "qshop.gui.add": "Add Entry",
   "qshop.gui.add_entry": "Add",
   "qshop.gui.trade": "Confirm",

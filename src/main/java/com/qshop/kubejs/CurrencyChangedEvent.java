@@ -1,6 +1,6 @@
 package com.qshop.kubejs;
 
-import dev.latvian.mods.kubejs.event.EventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -8,7 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import javax.annotation.Nullable;
 
 /** Event fired after a player's effective currency balance changes. */
-public class CurrencyChangedEvent extends EventJS {
+public class CurrencyChangedEvent implements KubeEvent {
 
     private final ServerPlayer player;
     private final String currency;

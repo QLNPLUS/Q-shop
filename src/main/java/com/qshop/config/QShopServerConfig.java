@@ -1,6 +1,6 @@
 package com.qshop.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 /**
  * QShop 服务端配置(config/qshop-server.toml):
@@ -11,14 +11,14 @@ import net.minecraftforge.common.ForgeConfigSpec;
  */
 public final class QShopServerConfig {
 
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec SPEC;
     /** 是否显示交易提示消息(购买成功/失败等) */
-    public static final ForgeConfigSpec.BooleanValue SHOW_TRADE_MESSAGES;
+    public static final ModConfigSpec.BooleanValue SHOW_TRADE_MESSAGES;
     /** 是否在物品栏上方(statsMessage/actionbar)区域显示交易提示 */
-    public static final ForgeConfigSpec.BooleanValue TRADE_MESSAGES_IN_ACTION_BAR;
+    public static final ModConfigSpec.BooleanValue TRADE_MESSAGES_IN_ACTION_BAR;
 
     static {
-        ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.comment(
                 "QShop 服务端设置 / QShop server settings",
                 "",
