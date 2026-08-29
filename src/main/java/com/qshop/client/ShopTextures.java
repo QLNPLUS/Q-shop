@@ -10,6 +10,8 @@ import com.qshop.config.QShopCommonConfig;
 import com.qshop.shop.ShopEntryType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
@@ -89,6 +91,18 @@ public final class ShopTextures {
 
     private static ResourceLocation rl(String name) {
         return new ResourceLocation("qshop", "textures/gui/" + name + ".png");
+    }
+
+    /** Darken the world behind QShop without invoking Screen's post-processing blur. */
+    public static void background(GuiGraphics g, int width, int height) {
+        g.fill(0, 0, width, height, 0x66000000);
+    }
+
+    /** Render registered widgets without drawing Screen's background a second time. */
+    public static void renderWidgets(Screen screen, GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        for (Renderable renderable : screen.renderables) {
+            renderable.render(g, mouseX, mouseY, partialTick);
+        }
     }
 
     // ---------------- 面板 ----------------

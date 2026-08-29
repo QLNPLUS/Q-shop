@@ -5,13 +5,15 @@
 
 ## Short Description
 
-> A flexible Forge 1.20.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
+> A flexible Forge 1.20.1 and NeoForge 1.21.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
 
 ## Full Description
 
-# QShop 1.1.2
+# QShop 1.2.3
 
-**QShop** is a configurable shop mod for Minecraft Forge 1.20.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
+**QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
+
+The Forge 1.20.1 and NeoForge 1.21.1 builds provide the same core shop features. The optional F8 layout debugger can also adjust the trade settings and item browser screens, with offsets stored in `config/qshop_layout.json`.
 
 QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and GameStages are optional and only needed for their respective features.
 

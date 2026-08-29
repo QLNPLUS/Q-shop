@@ -65,6 +65,7 @@ public class ItemPickerScreen extends Screen {
 
     @Override
     protected void init() {
+        ShopLayoutDebug.beginScreen(ShopLayoutDebug.DebugScreen.ITEM_PICKER);
         this.left = (this.width - GUI_W) / 2;
         this.top = (this.height - GUI_H) / 2;
         if (allItems.isEmpty()) {
@@ -312,11 +313,20 @@ public class ItemPickerScreen extends Screen {
         Minecraft.getInstance().setScreen(previous);
     }
 
+    private int px(ShopLayoutDebug.PickerWidget widget, int normalX) {
+        return ShopLayoutDebug.x(widget, normalX);
+    }
+
+    private int py(ShopLayoutDebug.PickerWidget widget, int normalY) {
+        return ShopLayoutDebug.y(widget, normalY);
+    }
+
     private void rebuild() {
         this.clearWidgets();
 
         // 顶行:模式切换(居中)+ 关闭(右);返回按钮在底部中间
-        addRenderableWidget(new QButton(left + 81, top + 6, 88, 14,
+        addRenderableWidget(new QButton(px(ShopLayoutDebug.PickerWidget.MODE_BUTTON, left + 81),
+                py(ShopLayoutDebug.PickerWidget.MODE_BUTTON, top + 6), 88, 14,
                 Component.translatable(allMode ? "qshop.gui.all_items" : "qshop.gui.inventory_items"), b -> {
                     allMode = !allMode;
                     // 切换后同步按钮文字:显示背包物品时按钮显示"背包物品"
@@ -325,11 +335,16 @@ public class ItemPickerScreen extends Screen {
                     rowAnim = 0;
                     refreshVisible();
                 }));
-        addRenderableWidget(new QIconButton(left + GUI_W - 20, top + 6, ShopTextures.Icon.CLOSE, this::onClose));
-        addRenderableWidget(new QButton(left + 70, top + 190, 110, 16,
+        addRenderableWidget(new QIconButton(px(ShopLayoutDebug.PickerWidget.CLOSE_BUTTON, left + GUI_W - 20),
+                py(ShopLayoutDebug.PickerWidget.CLOSE_BUTTON, top + 6), ShopTextures.Icon.CLOSE, this::onClose));
+        addRenderableWidget(new QButton(px(ShopLayoutDebug.PickerWidget.BACK_BUTTON, left + 70),
+                py(ShopLayoutDebug.PickerWidget.BACK_BUTTON, top + 190), 110, 16,
                 Component.translatable("qshop.gui.back"), b -> onClose()));
 
-        searchBox = new EditBox(this.font, left + 14, top + 28, 222, 14, Component.literal(""));
+        searchBox = new EditBox(this.font,
+                px(ShopLayoutDebug.PickerWidget.SEARCH_BOX, left + 14),
+                py(ShopLayoutDebug.PickerWidget.SEARCH_BOX, top + 28),
+                222, 14, Component.literal(""));
         searchBox.setMaxLength(40);
         searchBox.setBordered(false);
         searchBox.setValue(search);
@@ -403,8 +418,8 @@ public class ItemPickerScreen extends Screen {
 
     /** 由鼠标坐标计算悬浮/点击的条目序号,-1 表示不在网格内(向下取整,避免网格上方误判) */
     private int indexAt(double mouseX, double mouseY) {
-        int gx = left + 13;
-        int gy = top + 46;
+        int gx = px(ShopLayoutDebug.PickerWidget.GRID, left + 13);
+        int gy = py(ShopLayoutDebug.PickerWidget.GRID, top + 46);
         int baseRow = (int) Math.floor(rowAnim);
         float frac = rowAnim - baseRow;
         int c = (int) Math.floor((mouseX - gx) / CELL);
@@ -439,6 +454,29 @@ public class ItemPickerScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
+            ShopLayoutDebug.toggle();
+            rebuild();
+            return true;
+        }
+        if (ShopLayoutDebug.isEnabled() && (searchBox == null || !searchBox.isFocused())) {
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_TAB) {
+                ShopLayoutDebug.selectNext((modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0);
+                return true;
+            }
+            int step = (modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_ALT) != 0 ? 1 : 5;
+            int dx = 0;
+            int dy = 0;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT) dx = -step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) dx = step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_UP) dy = -step;
+            if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN) dy = step;
+            if (dx != 0 || dy != 0) {
+                ShopLayoutDebug.moveSelected(dx, dy);
+                rebuild();
+                return true;
+            }
+        }
         if (searchBox != null && searchBox.isFocused() && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
@@ -466,8 +504,10 @@ public class ItemPickerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
-        ShopTextures.panelPicker(g, left, top);
+        ShopTextures.background(g, this.width, this.height);
+        ShopTextures.panelPicker(g,
+                px(ShopLayoutDebug.PickerWidget.PANEL, left),
+                py(ShopLayoutDebug.PickerWidget.PANEL, top));
 
         // 滚动动画(以"行"为单位插值,时间基准,帧率无关)
         float target = scroll / (float) COLS;
@@ -477,11 +517,14 @@ public class ItemPickerScreen extends Screen {
             rowAnim = target;
         }
 
-        ShopTextures.input(g, left + 12, top + 27, 226, 12, searchBox.isFocused());
+        ShopTextures.input(g,
+                px(ShopLayoutDebug.PickerWidget.SEARCH_BOX, left + 12),
+                py(ShopLayoutDebug.PickerWidget.SEARCH_BOX, top + 27),
+                226, 12, searchBox.isFocused());
 
         // 网格(手动渲染,平滑滚动;裁剪到网格视口)
-        int gx = left + 13;
-        int gy = top + 46;
+        int gx = px(ShopLayoutDebug.PickerWidget.GRID, left + 13);
+        int gy = py(ShopLayoutDebug.PickerWidget.GRID, top + 46);
         int baseRow = (int) Math.floor(rowAnim);
         float frac = rowAnim - baseRow;
         int hovered = indexAt(mouseX, mouseY);
@@ -502,7 +545,7 @@ public class ItemPickerScreen extends Screen {
         }
         ShopTextures.disableScissor(g);
 
-        super.render(g, mouseX, mouseY, partialTick);
+        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
 
         // 悬浮物品 tooltip
         if (hovered >= 0) {
@@ -511,6 +554,65 @@ public class ItemPickerScreen extends Screen {
                 g.renderTooltip(this.font, s, mouseX, mouseY);
             }
         }
+        renderDebugOverlay(g);
+    }
+
+    private void renderDebugOverlay(GuiGraphics g) {
+        if (!ShopLayoutDebug.isEnabled()) {
+            return;
+        }
+        ShopLayoutDebug.PickerWidget widget = ShopLayoutDebug.selectedPicker();
+        int x;
+        int y;
+        int w;
+        int h;
+        switch (widget) {
+            case PANEL -> {
+                x = px(ShopLayoutDebug.PickerWidget.PANEL, left);
+                y = py(ShopLayoutDebug.PickerWidget.PANEL, top);
+                w = GUI_W;
+                h = GUI_H;
+            }
+            case MODE_BUTTON -> {
+                x = px(ShopLayoutDebug.PickerWidget.MODE_BUTTON, left + 81);
+                y = py(ShopLayoutDebug.PickerWidget.MODE_BUTTON, top + 6);
+                w = 88;
+                h = 14;
+            }
+            case CLOSE_BUTTON -> {
+                x = px(ShopLayoutDebug.PickerWidget.CLOSE_BUTTON, left + GUI_W - 20);
+                y = py(ShopLayoutDebug.PickerWidget.CLOSE_BUTTON, top + 6);
+                w = 12;
+                h = 12;
+            }
+            case BACK_BUTTON -> {
+                x = px(ShopLayoutDebug.PickerWidget.BACK_BUTTON, left + 70);
+                y = py(ShopLayoutDebug.PickerWidget.BACK_BUTTON, top + 190);
+                w = 110;
+                h = 16;
+            }
+            case SEARCH_BOX -> {
+                x = px(ShopLayoutDebug.PickerWidget.SEARCH_BOX, left + 12);
+                y = py(ShopLayoutDebug.PickerWidget.SEARCH_BOX, top + 27);
+                w = 226;
+                h = 14;
+            }
+            case GRID -> {
+                x = px(ShopLayoutDebug.PickerWidget.GRID, left + 13);
+                y = py(ShopLayoutDebug.PickerWidget.GRID, top + 46);
+                w = COLS * CELL;
+                h = ROWS * CELL;
+            }
+            default -> {
+                return;
+            }
+        }
+        g.flush();
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 500.0f);
+        ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
+        g.flush();
+        g.pose().popPose();
     }
 
     @Override

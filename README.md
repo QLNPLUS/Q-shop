@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.1.2**（Forge 1.20.1）
+当前版本：**1.2.3**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -31,7 +31,7 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-1.2.3.jar
+# 产物在 build/libs/qshop-forge-1.20.1-1.2.3.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -118,6 +118,7 @@ searchActive = false
 `enableLayoutDebug = true` 后，在商店界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
 7x3 和 8x4 使用独立的偏移数据，切换布局不会互相影响；旧版共享偏移文件会自动迁移到 7x3。
 添加条目、编辑模式、搜索、布局切换和关闭按钮均使用独立的 16x16 图标及独立偏移，可在调试模式中分别调整。
+交易设置界面和物品浏览器界面也支持 F8 调试；配置中的 `screens.trade_settings` 和 `screens.item_picker` 保存这些界面的独立组件偏移。
 `lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
 `searchActive` 会记录搜索按钮是否启用；启用后重启游戏会恢复搜索框，搜索文本本身不会保存。
 搜索范围是当前 tab 的交易项目；普通文本会优先匹配交易项自定义名称，再匹配交易格内最终显示物品的名称/ID（包括自定义展示物品）。同时支持 `#tag` 标签和 `@namespace` 命名空间，空格分隔的多个条件会同时生效。

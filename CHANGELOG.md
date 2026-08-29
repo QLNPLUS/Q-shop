@@ -2,10 +2,16 @@
 
 ## 1.2.3 - 2026-08-28
 
-### Changed
+### NeoForge 1.21.1
 
 - Adjusted the shop search text alignment and reduced the search box width by 30 pixels.
 - Updated the built-in standard and wide layout offsets to match the current layout configuration.
+
+### Forge 1.20.1
+
+- Added F8 layout debugging to the trade settings and item browser screens.
+- Added independent persisted offsets for `screens.trade_settings` and `screens.item_picker` in `config/qshop_layout.json`.
+- Added no-blur background rendering for the custom trade settings and item browser screens.
 
 ## 1.2.2 - 2026-08-26
 
