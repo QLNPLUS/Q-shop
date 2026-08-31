@@ -48,6 +48,11 @@ jobs:
       - name: Remove local proxy settings
         run: sed -i -E '/^systemProp\.(http|https)\.proxy(Host|Port)=/d' gradle.properties
 
+      - name: Prepare CurseForge version
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+
       - name: Validate CurseForge configuration
         env:
           CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
@@ -95,8 +100,8 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           files: build/libs/qshop-forge-1.20.1-*.jar
-          version: ${{ env.RELEASE_VERSION }}
-          name: QShop ${{ env.RELEASE_VERSION }} Forge 1.20.1
+          version: ${{ env.CURSEFORGE_VERSION }}
+          name: QShop ${{ env.CURSEFORGE_VERSION }} Forge 1.20.1
           version-type: release
           changelog-file: build/curseforge-changelog.md
           loaders: forge
@@ -125,6 +130,11 @@ jobs:
       - name: Remove local proxy settings
         working-directory: neoforge
         run: sed -i -E '/^systemProp\.(http|https)\.proxy(Host|Port)=/d' gradle.properties
+
+      - name: Prepare CurseForge version
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
 
       - name: Validate CurseForge configuration
         env:
@@ -175,8 +185,8 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           files: neoforge/build/libs/qshop-neoforge-1.21.1-*.jar
-          version: ${{ env.RELEASE_VERSION }}
-          name: QShop ${{ env.RELEASE_VERSION }} NeoForge 1.21.1
+          version: ${{ env.CURSEFORGE_VERSION }}
+          name: QShop ${{ env.CURSEFORGE_VERSION }} NeoForge 1.21.1
           version-type: release
           changelog-file: neoforge/build/curseforge-changelog.md
           loaders: neoforge
