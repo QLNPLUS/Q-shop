@@ -182,6 +182,16 @@ public final class ShopJson {
             }
             o.add("requiredStages", arr);
         }
+        if (!e.requiredStageDescriptions.isEmpty()) {
+            JsonArray arr = new JsonArray();
+            for (String description : e.requiredStageDescriptions) {
+                arr.add(description == null ? "" : description);
+            }
+            o.add("requiredStageDescriptions", arr);
+        }
+        if (e.showWhenRequirementsNotMet) {
+            o.addProperty("showWhenRequirementsNotMet", true);
+        }
         return o;
     }
 
@@ -258,6 +268,13 @@ public final class ShopJson {
                 }
             }
         }
+        if (o.has("requiredStageDescriptions")) {
+            for (JsonElement el : o.getAsJsonArray("requiredStageDescriptions")) {
+                e.requiredStageDescriptions.add(el.getAsString().trim());
+            }
+        }
+        e.showWhenRequirementsNotMet = o.has("showWhenRequirementsNotMet")
+                && o.get("showWhenRequirementsNotMet").getAsBoolean();
         return e;
     }
 

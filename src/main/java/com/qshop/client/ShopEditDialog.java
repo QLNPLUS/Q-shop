@@ -30,7 +30,7 @@ import java.util.function.Consumer;
 public class ShopEditDialog extends Screen {
 
     private static final int GUI_W = 250;
-    private static final int GUI_H = 280;
+    private static final int GUI_H = 300;
     private static final int MAX_COMMANDS = 3;
     private static final int ROW_PITCH = 19;
     private static final int LABEL_X = 12;
@@ -69,6 +69,8 @@ public class ShopEditDialog extends Screen {
     private LimitReset reset = LimitReset.NEVER;
     private String questsStr = "";
     private String stagesStr = "";
+    private String stageDescriptionsStr = "";
+    private boolean showWhenRequirementsNotMet = false;
     private final List<CommandData> commands = new ArrayList<>();
 
     private int left;
@@ -76,7 +78,8 @@ public class ShopEditDialog extends Screen {
 
     // ---- 流式布局行位置(rebuild 时按当前勾选状态计算,隐藏行 = -1) ----
     private int rowTitle, rowDesc, rowDisplay, rowPlayerGive, rowPlayerItem,
-            rowShopGive, rowShopItem, rowPrice, rowLimits, rowReset, rowReqs, rowCmdHead;
+            rowShopGive, rowShopItem, rowPrice, rowLimits, rowReset, rowReqs, rowStageDescription,
+            rowVisibility, rowCmdHead;
     private int commandBaseY;
 
     public ShopEditDialog(OpenShopPacket data, int entryIndex, int backScroll, boolean backEditMode) {
@@ -135,6 +138,8 @@ public class ShopEditDialog extends Screen {
         }
         this.questsStr = String.join(",", entry.requiredQuests);
         this.stagesStr = String.join(",", entry.requiredStages);
+        this.stageDescriptionsStr = String.join(",", entry.requiredStageDescriptions);
+        this.showWhenRequirementsNotMet = entry.showWhenRequirementsNotMet;
     }
 
     private ShopEntryType derivedType() {
@@ -216,11 +221,17 @@ public class ShopEditDialog extends Screen {
         y += ROW_PITCH;
         rowReqs = ty(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, y);
         y += ROW_PITCH;
+        rowStageDescription = ty(ShopLayoutDebug.TradeWidget.STAGE_DESCRIPTION_ROW, y);
+        y += ROW_PITCH;
+        rowVisibility = -1;
         rowCmdHead = -1;
         commandBaseY = -1;
         if (shopMode == 2) {
             commandBaseY = y;
             rowCmdHead = ty(ShopLayoutDebug.TradeWidget.COMMAND_HEADER, y);
+            rowVisibility = ty(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, y);
+        } else {
+            rowVisibility = ty(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, y);
         }
     }
 
@@ -365,16 +376,29 @@ public class ShopEditDialog extends Screen {
                 58, 200, questsStr, s -> questsStr = s));
         addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_CONTROL_X), rowReqs,
                 54, 200, stagesStr, s -> stagesStr = s));
+        addRenderableWidget(stateBox(tx(ShopLayoutDebug.TradeWidget.STAGE_DESCRIPTION_ROW, left + CONTROL_X),
+                rowStageDescription, 168, 200, stageDescriptionsStr, s -> stageDescriptionsStr = s));
+
+        if (shopMode != 2) {
+            addRenderableWidget(new QCheckbox(
+                    tx(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, left + 128), rowVisibility,
+                    Component.translatable("qshop.gui.show_unmet_requirements"), showWhenRequirementsNotMet,
+                    v -> showWhenRequirementsNotMet = v));
+        }
 
         // 指令块(商店提供指令时):表头行放"添加指令"按钮,指令行从表头下方逐行排布
         if (shopMode == 2) {
-            addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.COMMAND_HEADER, left + CONTROL_X), rowCmdHead, 168, 14,
+            addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.COMMAND_HEADER, left + CONTROL_X), rowCmdHead, 72, 14,
                     Component.translatable("qshop.gui.add_command"), b -> {
                         if (commands.size() < MAX_COMMANDS) {
                             commands.add(new CommandData());
                             rebuild();
                         }
                     }));
+            addRenderableWidget(new QCheckbox(
+                    tx(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, left + 148), rowVisibility,
+                    Component.translatable("qshop.gui.show_unmet_requirements"), showWhenRequirementsNotMet,
+                    v -> showWhenRequirementsNotMet = v));
             for (int i = 0; i < commands.size() && i < MAX_COMMANDS; i++) {
                 CommandData cd = commands.get(i);
                 int y = ty(ShopLayoutDebug.TradeWidget.COMMAND_ROWS,
@@ -398,7 +422,7 @@ public class ShopEditDialog extends Screen {
         }
 
         // 固定底部操作区；最拥挤的三条指令状态仍与按钮保留 5px 可见间距。
-        int btnY = top + 261;
+        int btnY = top + 281;
         addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 12),
                 ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, btnY), 110, 16,
                 Component.translatable("qshop.gui.save"), b -> save()));
@@ -444,6 +468,21 @@ public class ShopEditDialog extends Screen {
             if (!part.isBlank()) {
                 out.add(part.trim());
             }
+        }
+        return out;
+    }
+
+    /** 阶段描述保留中间空位,以便空描述回退到对应阶段名。 */
+    private static List<String> splitStageDescriptions(String s) {
+        List<String> out = new ArrayList<>();
+        if (s == null || s.isEmpty()) {
+            return out;
+        }
+        for (String part : s.split(",", -1)) {
+            out.add(part.trim());
+        }
+        while (!out.isEmpty() && out.get(out.size() - 1).isEmpty()) {
+            out.remove(out.size() - 1);
         }
         return out;
     }
@@ -509,7 +548,8 @@ public class ShopEditDialog extends Screen {
         QShopNetwork.sendToServer(new EditShopPacket(data.shopId, serverTabIndex(), entryIndex, (byte) type.ordinal(),
                 price, currency, globalLimit, playerLimit, reset.name(), cmds,
                 titleStr, descStr, displayItem, sendItem, sendGive, itemCount, itemNbt,
-                splitList(questsStr), splitList(stagesStr)));
+                splitList(questsStr), splitList(stagesStr), splitStageDescriptions(stageDescriptionsStr),
+                showWhenRequirementsNotMet));
         back();
     }
 
@@ -658,6 +698,8 @@ public class ShopEditDialog extends Screen {
                 tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + LABEL_X), rowReqs + 2, 0xFFFFFF);
         g.drawString(this.font, Component.translatable("qshop.gui.req_stages"),
                 tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_LABEL_X), rowReqs + 2, 0xFFFFFF);
+        g.drawString(this.font, Component.translatable("qshop.gui.stage_descriptions"),
+                tx(ShopLayoutDebug.TradeWidget.STAGE_DESCRIPTION_ROW, left + LABEL_X), rowStageDescription + 2, 0xFFFFFF);
         if (shopMode == 2) {
             g.drawString(this.font, Component.translatable("qshop.gui.commands"),
                     tx(ShopLayoutDebug.TradeWidget.COMMAND_HEADER, left + LABEL_X), rowCmdHead + 2, 0xFFFFFF);
@@ -763,6 +805,18 @@ public class ShopEditDialog extends Screen {
                 w = 226;
                 h = 16;
             }
+            case STAGE_DESCRIPTION_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.STAGE_DESCRIPTION_ROW, left + LABEL_X);
+                y = rowStageDescription;
+                w = 226;
+                h = 16;
+            }
+            case VISIBILITY_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, left + (shopMode == 2 ? 148 : 128));
+                y = rowVisibility;
+                w = 110;
+                h = 16;
+            }
             case COMMAND_HEADER -> {
                 if (rowCmdHead < 0) return;
                 x = tx(ShopLayoutDebug.TradeWidget.COMMAND_HEADER, left + LABEL_X);
@@ -779,7 +833,7 @@ public class ShopEditDialog extends Screen {
             }
             case BOTTOM_ACTIONS -> {
                 x = tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 12);
-                y = ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 261);
+                y = ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 281);
                 w = 226;
                 h = 16;
             }

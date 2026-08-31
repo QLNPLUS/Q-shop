@@ -19,7 +19,7 @@ import java.util.Map;
 
 /**
  * QShop GUI 材质(assets/qshop/textures/gui/ 下的拆分 PNG,每个元素一个文件,便于单独修改):
- *   panel.png / panel_wide.png / panel_edit.png    面板(250x200 / 280x200 / 250x250)
+ *   panel.png / panel_wide.png / panel_edit.png    面板(250x200 / 280x200 / 250x300)
  *   slot*.png                     格子 20x20(普通/悬停/编辑/编辑悬停)
  *   button*.png                   按钮 60x16(普通/悬停/禁用)
  *   input*.png                    输入框 96x12(普通/聚焦)
@@ -102,9 +102,9 @@ public final class ShopTextures {
         g.blit(PANEL_WIDE, x, y, 0, 0, 280, 200, 280, 200);
     }
 
-    /** 编辑界面高面板(250x280) */
+    /** 编辑界面高面板(250x300),使用九宫格扩展底部空间。 */
     public static void panelEdit(GuiGraphics g, int x, int y) {
-        g.blit(PANEL_EDIT, x, y, 0, 0, 250, 280, 250, 280);
+        blit9(g, PANEL_EDIT, x, y, 250, 300, 250, 280, 4);
     }
 
     /** 添加条目窗口面板(250x200,绿色调描边) */

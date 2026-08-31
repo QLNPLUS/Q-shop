@@ -29,13 +29,15 @@ public class AddEntryPacket {
     public ItemStack displayItem = ItemStack.EMPTY; // 展示物品(可选)
     public final List<String> requiredQuests = new ArrayList<>();
     public final List<String> requiredStages = new ArrayList<>();
+    public boolean showWhenRequirementsNotMet = false;
 
     public AddEntryPacket() {
     }
 
     public AddEntryPacket(String shopId, int tabIndex, byte typeId, double price, String currency,
                           String command, ItemStack item, ItemStack giveItem, ItemStack displayItem,
-                          List<String> requiredQuests, List<String> requiredStages) {
+                          List<String> requiredQuests, List<String> requiredStages,
+                          boolean showWhenRequirementsNotMet) {
         this.shopId = shopId;
         this.tabIndex = tabIndex;
         this.typeId = typeId;
@@ -45,6 +47,7 @@ public class AddEntryPacket {
         this.item = item == null ? ItemStack.EMPTY : item;
         this.giveItem = giveItem == null ? ItemStack.EMPTY : giveItem;
         this.displayItem = displayItem == null ? ItemStack.EMPTY : displayItem;
+        this.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
         if (requiredQuests != null) {
             for (String s : requiredQuests) {
                 if (s != null && !s.isBlank()) {
@@ -79,6 +82,7 @@ public class AddEntryPacket {
         for (String s : p.requiredStages) {
             buf.writeUtf(s == null ? "" : s);
         }
+        buf.writeBoolean(p.showWhenRequirementsNotMet);
     }
 
     public static AddEntryPacket decode(FriendlyByteBuf buf) {
@@ -100,6 +104,7 @@ public class AddEntryPacket {
         for (int i = 0; i < n; i++) {
             p.requiredStages.add(buf.readUtf());
         }
+        p.showWhenRequirementsNotMet = buf.readBoolean();
         return p;
     }
 
@@ -119,7 +124,7 @@ public class AddEntryPacket {
                 ShopEntryType entryType = typeId >= 0 && typeId < types.length ? types[typeId] : ShopEntryType.BUY;
                 String cur = currency == null || currency.isEmpty() || CurrencyRegistry.get(currency) != null ? currency : "";
                 ShopManager.addEntryToTab(shop, tabIndex, entryType, item, giveItem, displayItem, price, cur, command,
-                        requiredQuests, requiredStages);
+                        requiredQuests, requiredStages, showWhenRequirementsNotMet);
                 ShopManager.openShop(player, shop);
             });
         }

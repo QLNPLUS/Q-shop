@@ -66,6 +66,12 @@ public class ShopEntry {
     /** 要求的游戏阶段(gamestage / kubejs stages,服务端检查;未安装时忽略) */
     public final List<String> requiredStages = new ArrayList<>();
 
+    /** 阶段显示描述,按 requiredStages 的顺序对应;为空时 Tooltip 回退显示阶段名。 */
+    public final List<String> requiredStageDescriptions = new ArrayList<>();
+
+    /** 条件未满足时是否仍在非编辑模式显示该条目(点击后跳转对应 FTB 任务)。 */
+    public boolean showWhenRequirementsNotMet = false;
+
     /**
      * 每个交易单位涉及的物品数量，供 KubeJS 使用 entry.count 读取。
      * BUY/SELL/COMMAND 读取 item 数量，BARTER 读取 receive 总数量。
@@ -136,6 +142,8 @@ public class ShopEntry {
         }
         c.requiredQuests.addAll(requiredQuests);
         c.requiredStages.addAll(requiredStages);
+        c.requiredStageDescriptions.addAll(requiredStageDescriptions);
+        c.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
         return c;
     }
 }

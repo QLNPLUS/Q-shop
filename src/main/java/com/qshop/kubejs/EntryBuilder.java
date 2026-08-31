@@ -167,6 +167,12 @@ public class EntryBuilder {
         return this;
     }
 
+    /** 条件未满足时仍显示条目;点击后由客户端跳转到对应 FTB 任务。 */
+    public EntryBuilder showWhenRequirementsNotMet(boolean show) {
+        entry.showWhenRequirementsNotMet = show;
+        return this;
+    }
+
     // ---------------- 指令(自动切换 COMMAND 类型) ----------------
 
     /** 添加购买指令(op=false 玩家权限,silent=true) */

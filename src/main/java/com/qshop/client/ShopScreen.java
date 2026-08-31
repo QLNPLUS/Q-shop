@@ -840,7 +840,8 @@ public class ShopScreen extends Screen {
         }
         List<ClientShopEntry> visibleEntries = new ArrayList<>();
         for (ClientShopEntry entry : all) {
-            boolean normalVisible = editMode || (entry.requirementsMet && !entryLimitReached(entry));
+            boolean normalVisible = editMode || ((entry.requirementsMet || entry.showWhenRequirementsNotMet)
+                    && !entryLimitReached(entry));
             if (normalVisible && matchesSearch(entry)) {
                 visibleEntries.add(entry);
             }
@@ -1485,11 +1486,15 @@ public class ShopScreen extends Screen {
         if (entryIndex < 0 || entryIndex >= data.entries.size()) {
             return;
         }
+        ClientShopEntry e = data.entries.get(entryIndex);
+        if (!editMode && !e.requirementsMet) {
+            FtbQuestClient.openFirstQuest(e.requiredQuests);
+            return;
+        }
         // 清除可能卡住的拖拽状态(幽灵会盖在交易窗上)
         pressedIndex = -1;
         dragActive = false;
         tradeIndex = entryIndex;
-        ClientShopEntry e = data.entries.get(entryIndex);
         tradeMaxUnits = computeTradeMaxUnits(e);
         int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
@@ -1935,11 +1940,16 @@ public class ShopScreen extends Screen {
                     .withStyle(s -> s.withColor(0xFFFF55)));
         }
         if (!e.requiredQuests.isEmpty()) {
-            lines.add(Component.translatable("qshop.msg.req_quest").append(": " + String.join(", ", e.requiredQuests))
+            lines.add(Component.translatable("qshop.msg.req_quest").append(": "
+                            + String.join(", ", FtbQuestClient.questNames(e.requiredQuests)))
                     .withStyle(s -> s.withColor(0xFFAA55)));
+            if (!editMode && !e.requirementsMet) {
+                lines.add(Component.translatable("qshop.msg.quest_click_hint")
+                        .withStyle(s -> s.withColor(0xFFAA55)));
+            }
         }
         if (!e.requiredStages.isEmpty()) {
-            lines.add(Component.translatable("qshop.msg.req_stage").append(": " + String.join(", ", e.requiredStages))
+            lines.add(Component.translatable("qshop.msg.req_stage").append(": " + stageRequirementLabels(e))
                     .withStyle(s -> s.withColor(0xFFAA55)));
         }
         if (e.type == ShopEntryType.COMMAND && !e.commands.isEmpty()) {
@@ -1948,6 +1958,18 @@ public class ShopScreen extends Screen {
                     .withStyle(s -> s.withColor(0xAAAAAA)));
         }
         g.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    /** 阶段描述按 requiredStages 的索引对应;缺失或为空时显示阶段原文。 */
+    private static String stageRequirementLabels(ClientShopEntry entry) {
+        List<String> labels = new ArrayList<>();
+        for (int i = 0; i < entry.requiredStages.size(); i++) {
+            String stage = entry.requiredStages.get(i);
+            String description = i < entry.requiredStageDescriptions.size()
+                    ? entry.requiredStageDescriptions.get(i) : "";
+            labels.add(description == null || description.isBlank() ? stage : description);
+        }
+        return String.join(", ", labels);
     }
 
     /** 悬停价格条:出售/购买/指令显示完整价格(非 K/M 缩写);交换与"物品+指令"显示"需要: 数量×物品名" */
