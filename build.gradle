@@ -52,9 +52,14 @@ repositories {
     maven { name = 'FTB'; url = 'https://maven.ftb.dev/releases' }
 }
 
-def localModsDir = file(findProperty('local_mods_dir') ?: 'D:/Minecraft/versions/1.21.1-NeoForge_21.1.248 MOD测试/mods')
+// Optional local dependency directory for development; CI leaves it unset.
+def localModsDir = findProperty('local_mods_dir')
+        ? file(findProperty('local_mods_dir').toString())
+        : null
 def localMod = { String pattern ->
-    localModsDir.exists() ? fileTree(localModsDir).matching { include pattern }.files : []
+    localModsDir != null && localModsDir.exists()
+            ? fileTree(localModsDir).matching { include pattern }.files
+            : []
 }
 def addOptionalMod = { String configuration, String notation, String pattern ->
     def files = localMod(pattern)
