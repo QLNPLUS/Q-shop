@@ -598,7 +598,7 @@ public class ShopEditDialog extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+        renderBackground(g);
         ShopTextures.panelEdit(g,
                 tx(ShopLayoutDebug.TradeWidget.PANEL, left),
                 ty(ShopLayoutDebug.TradeWidget.PANEL, top));
@@ -668,7 +668,7 @@ public class ShopEditDialog extends Screen {
             ShopTextures.input(g, b.getX() - 2, b.getY() - 1, b.getWidth() + 4, 12, b.isFocused());
         }
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        super.render(g, mouseX, mouseY, partialTick);
         renderDebugOverlay(g);
     }
 

@@ -126,6 +126,7 @@ dependencies {
 }
 
 jar {
+    archiveFileName = "qshop-${project.version}-forge-1.20.1.jar"
     manifest {
         attributes([
                 "Specification-Title"     : "qshop",

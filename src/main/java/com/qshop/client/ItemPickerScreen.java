@@ -504,7 +504,7 @@ public class ItemPickerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+        renderBackground(g);
         ShopTextures.panelPicker(g,
                 px(ShopLayoutDebug.PickerWidget.PANEL, left),
                 py(ShopLayoutDebug.PickerWidget.PANEL, top));
@@ -545,7 +545,7 @@ public class ItemPickerScreen extends Screen {
         }
         ShopTextures.disableScissor(g);
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        super.render(g, mouseX, mouseY, partialTick);
 
         // 悬浮物品 tooltip
         if (hovered >= 0) {
