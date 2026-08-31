@@ -55,6 +55,8 @@ public class EditShopPacket implements CustomPacketPayload {
     public String itemNbt = "";                   // 交易物品 NBT(SNBT 文本,空=清除)
     public final List<String> requiredQuests = new ArrayList<>();
     public final List<String> requiredStages = new ArrayList<>();
+    public final List<String> requiredStageDescriptions = new ArrayList<>();
+    public boolean showWhenRequirementsNotMet = false;
 
     public EditShopPacket() {
     }
@@ -63,7 +65,9 @@ public class EditShopPacket implements CustomPacketPayload {
                           int globalLimit, int playerLimit, String reset, List<ShopCommand> commands,
                           String displayName, String description, ItemStack displayItem,
                           ItemStack item, ItemStack giveItem, int itemCount, String itemNbt,
-                          List<String> requiredQuests, List<String> requiredStages) {
+                          List<String> requiredQuests, List<String> requiredStages,
+                          List<String> requiredStageDescriptions,
+                          boolean showWhenRequirementsNotMet) {
         this.shopId = shopId;
         this.tabIndex = tabIndex;
         this.entryIndex = entryIndex;
@@ -81,6 +85,7 @@ public class EditShopPacket implements CustomPacketPayload {
         this.giveItem = giveItem == null ? ItemStack.EMPTY : giveItem;
         this.itemCount = itemCount;
         this.itemNbt = itemNbt == null ? "" : itemNbt;
+        this.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
         if (requiredQuests != null) {
             for (String s : requiredQuests) {
                 if (s != null && !s.isBlank()) {
@@ -93,6 +98,11 @@ public class EditShopPacket implements CustomPacketPayload {
                 if (s != null && !s.isBlank()) {
                     this.requiredStages.add(s.trim());
                 }
+            }
+        }
+        if (requiredStageDescriptions != null) {
+            for (String stageDescription : requiredStageDescriptions) {
+                this.requiredStageDescriptions.add(stageDescription == null ? "" : stageDescription.trim());
             }
         }
     }
@@ -128,6 +138,11 @@ public class EditShopPacket implements CustomPacketPayload {
         for (String s : p.requiredStages) {
             buf.writeUtf(s == null ? "" : s);
         }
+        buf.writeInt(p.requiredStageDescriptions.size());
+        for (String stageDescription : p.requiredStageDescriptions) {
+            buf.writeUtf(stageDescription == null ? "" : stageDescription);
+        }
+        buf.writeBoolean(p.showWhenRequirementsNotMet);
     }
 
     public static EditShopPacket decode(RegistryFriendlyByteBuf buf) {
@@ -160,6 +175,11 @@ public class EditShopPacket implements CustomPacketPayload {
         for (int i = 0; i < n; i++) {
             p.requiredStages.add(buf.readUtf());
         }
+        n = buf.readInt();
+        for (int i = 0; i < n; i++) {
+            p.requiredStageDescriptions.add(buf.readUtf());
+        }
+        p.showWhenRequirementsNotMet = buf.readBoolean();
         return p;
     }
     public void handle(IPayloadContext context) {
@@ -203,6 +223,9 @@ public class EditShopPacket implements CustomPacketPayload {
                 e.requiredQuests.addAll(requiredQuests);
                 e.requiredStages.clear();
                 e.requiredStages.addAll(requiredStages);
+                e.requiredStageDescriptions.clear();
+                e.requiredStageDescriptions.addAll(requiredStageDescriptions);
+                e.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
                 if (e.type == ShopEntryType.BARTER) {
                     e.give.clear();
                     e.receive.clear();

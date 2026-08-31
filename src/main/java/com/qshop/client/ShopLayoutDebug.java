@@ -112,6 +112,8 @@ public final class ShopLayoutDebug {
         LIMITS_ROW("Limits row"),
         RESET_ROW("Reset row"),
         REQUIREMENTS_ROW("Requirements row"),
+        STAGE_DESCRIPTION_ROW("Stage description row"),
+        VISIBILITY_ROW("Visibility option"),
         TYPE_ROW("Derived type row"),
         COMMAND_HEADER("Command header"),
         COMMAND_ROWS("Command rows"),

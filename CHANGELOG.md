@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.2.4 - 2026-08-31
+
+### NeoForge 1.21.1
+
+#### Added
+
+- Added stage description editing for trade entries. Descriptions map to `requiredStages` by position; blank or missing descriptions fall back to the stage ID.
+- Added `requiredStageDescriptions` persistence and client synchronization.
+- Added optional visibility for trade entries whose quest or stage requirements are not met.
+- Visible locked FTB Quests entries now open the first matching quest screen when clicked and close QShop first.
+
+#### Changed
+
+- FTB Quests requirement tooltips resolve quest IDs to quest names when client quest data is available.
+- Added a tooltip hint for opening the FTB quest screen from a visible locked entry.
+- Expanded the trade editor panel to accommodate the stage description field.
+
+### Forge 1.20.1
+
+- Stage description support was implemented and validated in the Forge workspace before this NeoForge migration.
+
 ## 1.2.3 - 2026-08-28
 
 ### NeoForge 1.21.1

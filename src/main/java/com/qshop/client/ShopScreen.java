@@ -74,6 +74,15 @@ public class ShopScreen extends Screen {
      */
     private static boolean rememberedEditMode = false;
 
+    /** 在服务端刷新回包到达前,由编辑操作显式保存当前模式。 */
+    static void rememberEditModeForTransition(boolean editMode) {
+        rememberedEditMode = editMode;
+    }
+
+    static boolean rememberedEditMode() {
+        return rememberedEditMode;
+    }
+
     int activeTab = 0;
     private int requestedServerTab = 0;
 
@@ -839,7 +848,8 @@ public class ShopScreen extends Screen {
         }
         List<ClientShopEntry> visibleEntries = new ArrayList<>();
         for (ClientShopEntry entry : all) {
-            boolean normalVisible = editMode || (entry.requirementsMet && !entryLimitReached(entry));
+            boolean normalVisible = editMode || ((entry.requirementsMet || entry.showWhenRequirementsNotMet)
+                    && !entryLimitReached(entry));
             if (normalVisible && matchesSearch(entry)) {
                 visibleEntries.add(entry);
             }
@@ -936,16 +946,19 @@ public class ShopScreen extends Screen {
     }
 
     private void addTab() {
+        rememberEditModeForTransition(editMode);
         QShopNetwork.sendToServer(new AddTabPacket(data.shopId,
                 Component.translatable("qshop.tab.default_name", data.tabs.size() + 1).getString()));
     }
 
     void openTabEdit(int tabIndex) {
+        rememberEditModeForTransition(editMode);
         Minecraft.getInstance().setScreen(new TabEditDialog(data, serverTabIndex(tabIndex)));
     }
 
     /** 打开商店信息编辑(名称/图标) */
     void openShopInfo() {
+        rememberEditModeForTransition(editMode);
         Minecraft.getInstance().setScreen(new ShopInfoDialog(data));
     }
 
@@ -1341,6 +1354,7 @@ public class ShopScreen extends Screen {
         if (a < 0 || a >= entries.size() || b < 0 || b >= entries.size() || a == b) {
             return;
         }
+        rememberEditModeForTransition(editMode);
         int serverA = serverIndex(a);
         int serverB = serverIndex(b);
         ClientShopEntry tmp = entries.get(a);
@@ -1361,6 +1375,7 @@ public class ShopScreen extends Screen {
         if (to == from + 1) {
             return; // 位置不变(插到下一个之前 = 原位置)
         }
+        rememberEditModeForTransition(editMode);
         int serverFrom = serverIndex(from);
         int serverTo = serverIndex(to);
         ClientShopEntry entry = entries.remove(from);
@@ -1484,11 +1499,15 @@ public class ShopScreen extends Screen {
         if (entryIndex < 0 || entryIndex >= data.entries.size()) {
             return;
         }
+        ClientShopEntry e = data.entries.get(entryIndex);
+        if (!editMode && !e.requirementsMet) {
+            FtbQuestClient.openFirstQuest(e.requiredQuests);
+            return;
+        }
         // 清除可能卡住的拖拽状态(幽灵会盖在交易窗上)
         pressedIndex = -1;
         dragActive = false;
         tradeIndex = entryIndex;
-        ClientShopEntry e = data.entries.get(entryIndex);
         tradeMaxUnits = computeTradeMaxUnits(e);
         int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
@@ -1785,10 +1804,12 @@ public class ShopScreen extends Screen {
     }
 
     void openEdit(int entryIndex) {
+        rememberEditModeForTransition(editMode);
         Minecraft.getInstance().setScreen(new ShopEditDialog(data, entryIndex, scroll, editMode));
     }
 
     void openAdd() {
+        rememberEditModeForTransition(editMode);
         Minecraft.getInstance().setScreen(new ShopAddDialog(data, scroll, editMode));
     }
 
@@ -1815,6 +1836,7 @@ public class ShopScreen extends Screen {
 
     /** tab 菜单按钮动作:0 编辑 / 1 删除 / 2 上移 / 3 下移 */
     private void tabMenuAction(int i) {
+        rememberEditModeForTransition(editMode);
         int serverTab = serverTabIndex(tabMenuIndex);
         switch (i) {
             case 0 -> openTabEdit(tabMenuIndex);
@@ -1836,6 +1858,7 @@ public class ShopScreen extends Screen {
 
     /** 菜单按钮动作:0 删除 / 1 复制 / 2 上移 / 3 下移 */
     private void menuAction(int i) {
+        rememberEditModeForTransition(editMode);
         switch (i) {
             case 0 -> removeEntry(menuIndex);
             case 1 -> QShopNetwork.sendToServer(new CopyEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(menuIndex)));
@@ -1857,6 +1880,7 @@ public class ShopScreen extends Screen {
     }
 
     void removeEntry(int entryIndex) {
+        rememberEditModeForTransition(editMode);
         QShopNetwork.sendToServer(new RemoveEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(entryIndex)));
     }
 
@@ -1934,11 +1958,16 @@ public class ShopScreen extends Screen {
                     .withStyle(s -> s.withColor(0xFFFF55)));
         }
         if (!e.requiredQuests.isEmpty()) {
-            lines.add(Component.translatable("qshop.msg.req_quest").append(": " + String.join(", ", e.requiredQuests))
+            lines.add(Component.translatable("qshop.msg.req_quest").append(": "
+                            + String.join(", ", FtbQuestClient.questNames(e.requiredQuests)))
                     .withStyle(s -> s.withColor(0xFFAA55)));
+            if (!editMode && !e.requirementsMet) {
+                lines.add(Component.translatable("qshop.msg.quest_click_hint")
+                        .withStyle(s -> s.withColor(0xFFAA55)));
+            }
         }
         if (!e.requiredStages.isEmpty()) {
-            lines.add(Component.translatable("qshop.msg.req_stage").append(": " + String.join(", ", e.requiredStages))
+            lines.add(Component.translatable("qshop.msg.req_stage").append(": " + stageRequirementLabels(e))
                     .withStyle(s -> s.withColor(0xFFAA55)));
         }
         if (e.type == ShopEntryType.COMMAND && !e.commands.isEmpty()) {
@@ -1947,6 +1976,18 @@ public class ShopScreen extends Screen {
                     .withStyle(s -> s.withColor(0xAAAAAA)));
         }
         g.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
+    }
+
+    /** 阶段描述按 requiredStages 的索引对应;缺失或为空时显示阶段原文。 */
+    private static String stageRequirementLabels(ClientShopEntry entry) {
+        List<String> labels = new ArrayList<>();
+        for (int i = 0; i < entry.requiredStages.size(); i++) {
+            String stage = entry.requiredStages.get(i);
+            String description = i < entry.requiredStageDescriptions.size()
+                    ? entry.requiredStageDescriptions.get(i) : "";
+            labels.add(description == null || description.isBlank() ? stage : description);
+        }
+        return String.join(", ", labels);
     }
 
     /** 悬停价格条:出售/购买/指令显示完整价格(非 K/M 缩写);交换与"物品+指令"显示"需要: 数量×物品名" */

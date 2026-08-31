@@ -51,6 +51,7 @@ public class ShopAddDialog extends Screen {
     private String cmdStr = "";
     private String questsStr = "";
     private String stagesStr = "";
+    private boolean showWhenRequirementsNotMet = false;
 
     private int left;
     private int top;
@@ -243,6 +244,13 @@ public class ShopAddDialog extends Screen {
                     54, 200, stagesStr, s -> stagesStr = s));
         }
 
+        // 条件未满足时仍显示;该选项与派生类型放在同一紧凑行。
+        addRenderableWidget(new QCheckbox(
+                tx(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, left + 128),
+                ty(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, rowReqCmdBaseY + ROW_PITCH),
+                Component.translatable("qshop.gui.show_unmet_requirements"), showWhenRequirementsNotMet,
+                v -> showWhenRequirementsNotMet = v));
+
         addRenderableWidget(new QButton(tx(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, left + 12),
                 ty(ShopLayoutDebug.TradeWidget.BOTTOM_ACTIONS, top + 150), 110, 16,
                 Component.translatable("qshop.gui.add_entry"), b -> save()));
@@ -317,7 +325,7 @@ public class ShopAddDialog extends Screen {
         }
         QShopNetwork.sendToServer(new AddEntryPacket(data.shopId, serverTabIndex(), (byte) type.ordinal(), price, currency,
                 cmdStr, item, give, ItemStack.EMPTY,
-                splitList(questsStr), splitList(stagesStr)));
+                splitList(questsStr), splitList(stagesStr), showWhenRequirementsNotMet));
         back();
     }
 
@@ -523,6 +531,12 @@ public class ShopAddDialog extends Screen {
                 x = tx(widget, left + LABEL_X);
                 y = rowReqCmd;
                 w = 226;
+                h = 16;
+            }
+            case VISIBILITY_ROW -> {
+                x = tx(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, left + 128);
+                y = ty(ShopLayoutDebug.TradeWidget.VISIBILITY_ROW, rowReqCmdBaseY + ROW_PITCH);
+                w = 110;
                 h = 16;
             }
             case TYPE_ROW -> {

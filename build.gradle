@@ -97,6 +97,7 @@ tasks.named('processResources').configure {
 }
 
 jar {
+    archiveFileName = "${mod_id}-neoforge-1.21.1-${mod_version}.jar"
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,

@@ -39,11 +39,11 @@ gradlew.bat build          # Windows
 
 ## CurseForge 自动发布
 
-仓库包含 `.github/workflows/curseforge-publish.yml`。创建并发布 GitHub Release 后, GitHub Actions 会自动构建 Java 17 的 Forge 1.20.1 JAR, 并将其上传到 CurseForge。也可以从 Actions 页面手动触发工作流补发指定 tag。
+仓库默认分支的 `.github/workflows/curseforge-publish.yml` 会在 GitHub Release 发布后同时构建 Forge 1.20.1 和 NeoForge 1.21.1,并将两个 JAR 上传到同一个 CurseForge 项目。该分支中的工作流也支持手动构建并发布 NeoForge JAR。
 
 首次使用前,在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置:
 
-- Repository variable `CURSEFORGE_PROJECT_ID`: CurseForge 项目数字 ID(不是项目 slug)
+- Repository variable `CURSEFORGE_PROJECT_ID`: `1654563`
 - Repository secret `CURSEFORGE_TOKEN`: CurseForge API token
 
 `CF_DESCRIPTION.md` 是用于复制到 CurseForge 项目页面的文档, CurseForge API 发布文件时不会自动修改项目描述;项目描述仍需在 CurseForge 后台更新。

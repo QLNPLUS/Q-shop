@@ -297,7 +297,7 @@ public final class ShopManager {
             for (int i = 0; i < tab.entries.size(); i++) {
                 ShopEntry e = tab.entries.get(i);
                 boolean requirementsMet = RequirementCheck.satisfied(player, e);
-                if (!requirementsMet && !editing) {
+                if (!requirementsMet && !editing && !e.showWhenRequirementsNotMet) {
                     continue;
                 }
                 int usedGlobal = 0;
@@ -366,20 +366,29 @@ public final class ShopManager {
     public static boolean addEntry(Shop shop, ShopEntryType type, ItemStack item, ItemStack giveItem,
                                    ItemStack displayItem, double price, String currency, String command) {
         return addEntryToTab(shop, 0, type, item, giveItem, displayItem, price, currency, command,
-                List.of(), List.of());
+                List.of(), List.of(), false);
     }
 
     /** 向指定子商店添加交易条目 */
     public static boolean addEntryToTab(Shop shop, int tabIndex, ShopEntryType type, ItemStack item, ItemStack giveItem,
                                         ItemStack displayItem, double price, String currency, String command) {
         return addEntryToTab(shop, tabIndex, type, item, giveItem, displayItem, price, currency, command,
-                List.of(), List.of());
+                List.of(), List.of(), false);
     }
 
     /** 向指定子商店添加交易条目(含任务/阶段要求) */
     public static boolean addEntryToTab(Shop shop, int tabIndex, ShopEntryType type, ItemStack item, ItemStack giveItem,
                                         ItemStack displayItem, double price, String currency, String command,
                                         List<String> requiredQuests, List<String> requiredStages) {
+        return addEntryToTab(shop, tabIndex, type, item, giveItem, displayItem, price, currency, command,
+                requiredQuests, requiredStages, false);
+    }
+
+    /** 向指定子商店添加交易条目(含任务/阶段要求与未满足时显示设置) */
+    public static boolean addEntryToTab(Shop shop, int tabIndex, ShopEntryType type, ItemStack item, ItemStack giveItem,
+                                        ItemStack displayItem, double price, String currency, String command,
+                                        List<String> requiredQuests, List<String> requiredStages,
+                                        boolean showWhenRequirementsNotMet) {
         if (shop == null) {
             return false;
         }
@@ -405,6 +414,7 @@ public final class ShopManager {
                 }
             }
         }
+        e.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
         switch (type) {
             case BARTER -> {
                 if (item == null || item.isEmpty()) {

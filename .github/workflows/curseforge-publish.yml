@@ -23,11 +23,11 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
 
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -46,21 +46,22 @@ jobs:
             exit 1
           }
 
-      - name: Build mod
+      - name: Build NeoForge mod
         run: |
           chmod +x gradlew
           ./gradlew build --no-daemon
 
-      - name: Publish mod file
+      - name: Publish NeoForge mod file
         uses: Kira-NT/mc-publish@v3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          files: build/libs/!(*-@(dev|sources|javadoc)).jar
+          files: build/libs/qshop-neoforge-1.21.1-*.jar
           version: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
-          name: QShop ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+          name: QShop ${{ github.event.release.tag_name || inputs.tag || github.ref_name }} NeoForge 1.21.1
           version-type: release
           changelog-file: CHANGELOG.md
-          loaders: forge
-          game-versions: 1.20.1
+          loaders: neoforge
+          game-versions: 1.21.1
+          java: 21

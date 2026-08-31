@@ -34,6 +34,8 @@ public class ClientShopEntry {
     public final List<ShopCommand> commands = new ArrayList<>();
     public final List<String> requiredQuests = new ArrayList<>();
     public final List<String> requiredStages = new ArrayList<>();
+    public final List<String> requiredStageDescriptions = new ArrayList<>();
+    public boolean showWhenRequirementsNotMet = false;
     public int usedGlobal = 0;
     public int usedPlayer = 0;
 
@@ -64,6 +66,8 @@ public class ClientShopEntry {
         }
         c.requiredQuests.addAll(e.requiredQuests);
         c.requiredStages.addAll(e.requiredStages);
+        c.requiredStageDescriptions.addAll(e.requiredStageDescriptions);
+        c.showWhenRequirementsNotMet = e.showWhenRequirementsNotMet;
         c.usedGlobal = usedGlobal;
         c.usedPlayer = usedPlayer;
         return c;
@@ -99,6 +103,11 @@ public class ClientShopEntry {
         for (String s : e.requiredStages) {
             buf.writeUtf(s == null ? "" : s);
         }
+        buf.writeInt(e.requiredStageDescriptions.size());
+        for (String description : e.requiredStageDescriptions) {
+            buf.writeUtf(description == null ? "" : description);
+        }
+        buf.writeBoolean(e.showWhenRequirementsNotMet);
         buf.writeInt(e.usedGlobal);
         buf.writeInt(e.usedPlayer);
     }
@@ -132,6 +141,11 @@ public class ClientShopEntry {
         for (int i = 0; i < n; i++) {
             c.requiredStages.add(buf.readUtf());
         }
+        n = buf.readInt();
+        for (int i = 0; i < n; i++) {
+            c.requiredStageDescriptions.add(buf.readUtf());
+        }
+        c.showWhenRequirementsNotMet = buf.readBoolean();
         c.usedGlobal = buf.readInt();
         c.usedPlayer = buf.readInt();
         return c;

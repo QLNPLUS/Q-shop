@@ -25,7 +25,8 @@ public final class ClientPacketHandler {
             // 服务端刷新包,但玩家已不在该商店界面(关闭/切到其他界面):忽略
             return;
         } else {
-            mc.setScreen(new ShopScreen(pkt));
+            // 回包可能在编辑对话框返回主界面前到达;仍沿用发起操作前的编辑模式。
+            mc.setScreen(new ShopScreen(pkt, 0, ShopScreen.rememberedEditMode(), pkt.activeTab));
         }
     }
 

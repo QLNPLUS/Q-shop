@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.2.3
+# QShop 1.2.4
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Choose the loader-specific QShop file for your instance, then create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -26,6 +26,10 @@ QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests 
 - Quantity controls use a slider and input box with live limit, inventory and balance checks.
 - Smooth scrolling for entry grids and sub-shop tabs.
 - Optional F8 component-coordinate debugging for the shop, trade settings, and item browser GUIs, with offsets persisted in `config/qshop_layout.json`.
+- Individual entries can optionally remain visible when their quest or stage requirements are not met.
+- A visible locked FTB Quests entry opens its matching quest screen when clicked, and QShop closes first.
+- FTB Quests tooltips show quest names when available and include a click-to-open hint.
+- Trade entry editing supports stage descriptions. Descriptions follow the order of `requiredStages`; blank descriptions fall back to the stage ID.
 
 ### Shops and sub-shops
 
@@ -52,6 +56,14 @@ QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests 
 - Gate complete sub-shops or individual entries behind FTB Quests tasks.
 - Stage requirements use **KubeJS PlayerStages**.
 - If a configured requirement has no matching provider installed, it is treated as unmet and the content stays hidden from normal players.
+- Enable an entry's **Show when requirements are not met** option to keep it visible in normal mode. Clicking a visible unmet FTB Quests entry opens the first matching quest and closes QShop.
+
+Stage descriptions are configured in the trade entry editor or the entry JSON. Each description matches the stage at the same position in `requiredStages`; an empty or missing description displays the stage ID instead:
+
+```json
+"requiredStages": ["vip", "nether"],
+"requiredStageDescriptions": ["VIP access", ""]
+```
 
 ## Commands
 
@@ -79,6 +91,11 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 - Minecraft Forge 1.20.1 (Forge 47.x)
 - Minecraft NeoForge 1.21.1 (NeoForge 21.1.x)
+
+Release files use the format `modid-modloader-modloaderVersion-modVersion.jar`:
+
+- `qshop-forge-1.20.1-1.2.4.jar`
+- `qshop-neoforge-1.21.1-1.2.4.jar`
 
 ```text
 <world>/serverconfig/qshop/currencies.json
@@ -133,7 +150,7 @@ console.log(shop.id, tab.uuid, entry.uuid)
 console.log(entry.type.name(), entry.count, entry.getCount())
 ```
 
-`getShop`, `getTab` and `getEntry` return complete Java objects. Read fields directly from the returned object: `entry.type`, `entry.item`, `entry.give`, `entry.receive`, `entry.price`, `entry.currencyId`, `entry.commands`, `entry.requiredQuests` and `entry.requiredStages`.
+`getShop`, `getTab` and `getEntry` return complete Java objects. Read fields directly from the returned object: `entry.type`, `entry.item`, `entry.give`, `entry.receive`, `entry.price`, `entry.currencyId`, `entry.commands`, `entry.requiredQuests`, `entry.requiredStages`, `entry.requiredStageDescriptions` and `entry.showWhenRequirementsNotMet`.
 
 `entry.count` and `entry.getCount()` are equivalent. `count` is the item quantity represented by one entry unit, not the number of clicks. `entry.type` is an enum; compare it with `entry.type.name()`, for example `entry.type.name() === 'BUY'`.
 
