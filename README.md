@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.2.3**（Forge 1.20.1）
+当前版本：**1.2.4**（Forge 1.20.1）
 
 ## 功能清单
 
@@ -31,18 +31,18 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.1.1/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# 产物在 build/libs/qshop-forge-1.20.1-1.2.3.jar
+# 产物在 build/libs/qshop-forge-1.20.1-1.2.4.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
 
 ## CurseForge 自动发布
 
-仓库包含 `.github/workflows/curseforge-publish.yml`。创建并发布 GitHub Release 后, GitHub Actions 会自动构建 Java 17 的 Forge 1.20.1 JAR, 并将其上传到 CurseForge。也可以从 Actions 页面手动触发工作流补发指定 tag。
+仓库包含 `.github/workflows/curseforge-publish.yml`。创建并发布 GitHub Release 后, GitHub Actions 会自动构建并上传 Forge 1.20.1 和 NeoForge 1.21.1 两个 JAR 到同一个 CurseForge 项目。NeoForge 默认从 `neoforge-1.21.1` 分支构建。也可以从 Actions 页面手动触发工作流补发指定 tag,并指定 NeoForge 分支或 tag。
 
 首次使用前,在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置:
 
-- Repository variable `CURSEFORGE_PROJECT_ID`: CurseForge 项目数字 ID(不是项目 slug)
+- Repository variable `CURSEFORGE_PROJECT_ID`: `1654563`
 - Repository secret `CURSEFORGE_TOKEN`: CurseForge API token
 
 `CF_DESCRIPTION.md` 是用于复制到 CurseForge 项目页面的文档, CurseForge API 发布文件时不会自动修改项目描述;项目描述仍需在 CurseForge 后台更新。

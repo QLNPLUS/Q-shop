@@ -9,16 +9,29 @@ on:
         description: Git tag to build and publish
         required: true
         type: string
+      neoforge_ref:
+        description: NeoForge branch or tag to build
+        required: false
+        default: neoforge-1.21.1
+        type: string
 
 permissions:
   contents: write
 
+concurrency:
+  group: curseforge-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+  NEOFORGE_REF: ${{ inputs.neoforge_ref || 'neoforge-1.21.1' }}
+
 jobs:
-  publish:
+  publish-forge:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out release source
+      - name: Check out Forge release source
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
@@ -46,21 +59,76 @@ jobs:
             exit 1
           }
 
-      - name: Build mod
+      - name: Build Forge mod
         run: |
           chmod +x gradlew
           ./gradlew build --no-daemon
 
-      - name: Publish mod file
+      - name: Publish Forge mod file
         uses: Kira-NT/mc-publish@v3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          files: build/libs/!(*-@(dev|sources|javadoc)).jar
-          version: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
-          name: QShop ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+          files: build/libs/qshop-forge-1.20.1-*.jar
+          version: ${{ env.RELEASE_VERSION }}
+          name: QShop ${{ env.RELEASE_VERSION }} Forge 1.20.1
           version-type: release
           changelog-file: CHANGELOG.md
           loaders: forge
           game-versions: 1.20.1
+          java: 17
+
+  publish-neoforge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out NeoForge source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.NEOFORGE_REF }}
+          path: neoforge
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate CurseForge configuration
+        env:
+          CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          test -n "$CURSEFORGE_PROJECT_ID" || {
+            echo "Missing repository variable CURSEFORGE_PROJECT_ID"
+            exit 1
+          }
+          test -n "$CURSEFORGE_TOKEN" || {
+            echo "Missing repository secret CURSEFORGE_TOKEN"
+            exit 1
+          }
+
+      - name: Build NeoForge mod
+        working-directory: neoforge
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - name: Publish NeoForge mod file
+        uses: Kira-NT/mc-publish@v3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: neoforge/build/libs/qshop-neoforge-1.21.1-*.jar
+          version: ${{ env.RELEASE_VERSION }}
+          name: QShop ${{ env.RELEASE_VERSION }} NeoForge 1.21.1
+          version-type: release
+          changelog-file: neoforge/CHANGELOG.md
+          loaders: neoforge
+          game-versions: 1.21.1
+          java: 21
