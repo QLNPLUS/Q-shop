@@ -64,6 +64,27 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon
 
+      - name: Prepare current Forge changelog
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        run: |
+          version="${RELEASE_VERSION#v}"
+          awk -v version="$version" '
+            found && /^##[[:space:]]+/ && $2 != version {
+              exit
+            }
+            $1 == "##" && $2 == version {
+              found = 1
+            }
+            found {
+              print
+            }
+          ' CHANGELOG.md > build/curseforge-changelog.md
+          test -s build/curseforge-changelog.md || {
+            echo "Missing CHANGELOG.md section for version $version"
+            exit 1
+          }
+
       - name: Publish Forge mod file
         uses: Kira-NT/mc-publish@v3
         with:
@@ -74,7 +95,7 @@ jobs:
           version: ${{ env.RELEASE_VERSION }}
           name: QShop ${{ env.RELEASE_VERSION }} Forge 1.20.1
           version-type: release
-          changelog-file: CHANGELOG.md
+          changelog-file: build/curseforge-changelog.md
           loaders: forge
           game-versions: 1.20.1
           java: 17
@@ -118,6 +139,28 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon
 
+      - name: Prepare current NeoForge changelog
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        working-directory: neoforge
+        run: |
+          version="${RELEASE_VERSION#v}"
+          awk -v version="$version" '
+            found && /^##[[:space:]]+/ && $2 != version {
+              exit
+            }
+            $1 == "##" && $2 == version {
+              found = 1
+            }
+            found {
+              print
+            }
+          ' CHANGELOG.md > build/curseforge-changelog.md
+          test -s build/curseforge-changelog.md || {
+            echo "Missing CHANGELOG.md section for version $version"
+            exit 1
+          }
+
       - name: Publish NeoForge mod file
         uses: Kira-NT/mc-publish@v3
         with:
@@ -128,7 +171,7 @@ jobs:
           version: ${{ env.RELEASE_VERSION }}
           name: QShop ${{ env.RELEASE_VERSION }} NeoForge 1.21.1
           version-type: release
-          changelog-file: neoforge/CHANGELOG.md
+          changelog-file: neoforge/build/curseforge-changelog.md
           loaders: neoforge
           game-versions: 1.21.1
           java: 21
