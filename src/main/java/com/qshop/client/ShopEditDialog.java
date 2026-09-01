@@ -32,7 +32,7 @@ public class ShopEditDialog extends Screen {
     private static final int GUI_W = 250;
     private static final int GUI_H = 300;
     private static final int MAX_COMMANDS = 3;
-    private static final int ROW_PITCH = 19;
+    private static final int ROW_PITCH = 17;
     private static final int LABEL_X = 12;
     private static final int CONTROL_X = 72;
     private static final int SECOND_LABEL_X = 140;

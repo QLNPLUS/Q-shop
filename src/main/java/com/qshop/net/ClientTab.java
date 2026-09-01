@@ -15,6 +15,8 @@ public class ClientTab {
     public int serverIndex = -1;
     /** 当前玩家是否满足子商店的任务与阶段要求 */
     public boolean requirementsMet = true;
+    /** 条件未满足时是否仍显示该子商店 */
+    public boolean showWhenRequirementsNotMet = false;
     /** 子商店稳定 uuid(KubeJS 按 uuid 匹配) */
     public String uuid = "";
     public String name = "";
@@ -23,11 +25,13 @@ public class ClientTab {
     public ItemStack icon = ItemStack.EMPTY;
     public final List<String> requiredQuests = new ArrayList<>();
     public final List<String> requiredStages = new ArrayList<>();
+    public final List<String> requiredStageDescriptions = new ArrayList<>();
     public final List<ClientShopEntry> entries = new ArrayList<>();
 
     public static void write(ClientTab t, FriendlyByteBuf buf) {
         buf.writeInt(t.serverIndex);
         buf.writeBoolean(t.requirementsMet);
+        buf.writeBoolean(t.showWhenRequirementsNotMet);
         buf.writeUtf(t.uuid == null ? "" : t.uuid);
         buf.writeUtf(t.name == null ? "" : t.name);
         buf.writeUtf(t.description == null ? "" : t.description);
@@ -40,6 +44,10 @@ public class ClientTab {
         for (String s : t.requiredStages) {
             buf.writeUtf(s == null ? "" : s);
         }
+        buf.writeInt(t.requiredStageDescriptions.size());
+        for (String description : t.requiredStageDescriptions) {
+            buf.writeUtf(description == null ? "" : description);
+        }
         buf.writeInt(t.entries.size());
         for (ClientShopEntry e : t.entries) {
             ClientShopEntry.write(e, buf);
@@ -50,6 +58,7 @@ public class ClientTab {
         ClientTab t = new ClientTab();
         t.serverIndex = buf.readInt();
         t.requirementsMet = buf.readBoolean();
+        t.showWhenRequirementsNotMet = buf.readBoolean();
         t.uuid = buf.readUtf();
         t.name = buf.readUtf();
         t.description = buf.readUtf();
@@ -61,6 +70,10 @@ public class ClientTab {
         n = buf.readInt();
         for (int i = 0; i < n; i++) {
             t.requiredStages.add(buf.readUtf());
+        }
+        n = buf.readInt();
+        for (int i = 0; i < n; i++) {
+            t.requiredStageDescriptions.add(buf.readUtf());
         }
         n = buf.readInt();
         for (int i = 0; i < n; i++) {

@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.2.3
+# QShop 1.3.0
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 

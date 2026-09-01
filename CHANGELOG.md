@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.0 - 2026-09-01
+
+### Forge 1.20.1
+
+#### Added
+
+- Added optional visibility for unmet sub-shop tabs and trade entries, including task navigation for visible locked content.
+- Added stage descriptions for sub-shops and trade entries.
+- Added F8 component-coordinate debugging for the sub-shop editor.
+
+#### Changed
+
+- Added dedicated dark materials for unmet tabs and entries.
+- Updated default GUI layout offsets and reduced trade-entry editor row spacing by 2px.
+- Updated the tab editor panel material.
+
 ## 1.2.4 - 2026-08-31
 
 ### Forge 1.20.1

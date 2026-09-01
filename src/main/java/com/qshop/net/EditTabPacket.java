@@ -23,17 +23,22 @@ public class EditTabPacket {
     public ItemStack icon = ItemStack.EMPTY;
     public final List<String> requiredQuests = new ArrayList<>();
     public final List<String> requiredStages = new ArrayList<>();
+    public final List<String> requiredStageDescriptions = new ArrayList<>();
+    public boolean showWhenRequirementsNotMet = false;
 
     public EditTabPacket() {
     }
 
     public EditTabPacket(String shopId, int tabIndex, String name, String description, ItemStack icon,
-                         List<String> requiredQuests, List<String> requiredStages) {
+                         List<String> requiredQuests, List<String> requiredStages,
+                         List<String> requiredStageDescriptions,
+                         boolean showWhenRequirementsNotMet) {
         this.shopId = shopId;
         this.tabIndex = tabIndex;
         this.name = name == null ? "" : name;
         this.description = description == null ? "" : description;
         this.icon = icon == null ? ItemStack.EMPTY : icon;
+        this.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
         if (requiredQuests != null) {
             for (String q : requiredQuests) {
                 if (q != null && !q.isBlank()) {
@@ -46,6 +51,11 @@ public class EditTabPacket {
                 if (s != null && !s.isBlank()) {
                     this.requiredStages.add(s.trim());
                 }
+            }
+        }
+        if (requiredStageDescriptions != null) {
+            for (String stageDescription : requiredStageDescriptions) {
+                this.requiredStageDescriptions.add(stageDescription == null ? "" : stageDescription.trim());
             }
         }
     }
@@ -64,6 +74,11 @@ public class EditTabPacket {
         for (String s : p.requiredStages) {
             buf.writeUtf(s == null ? "" : s);
         }
+        buf.writeInt(p.requiredStageDescriptions.size());
+        for (String description : p.requiredStageDescriptions) {
+            buf.writeUtf(description == null ? "" : description);
+        }
+        buf.writeBoolean(p.showWhenRequirementsNotMet);
     }
 
     public static EditTabPacket decode(FriendlyByteBuf buf) {
@@ -81,6 +96,11 @@ public class EditTabPacket {
         for (int i = 0; i < n; i++) {
             p.requiredStages.add(buf.readUtf());
         }
+        n = buf.readInt();
+        for (int i = 0; i < n; i++) {
+            p.requiredStageDescriptions.add(buf.readUtf());
+        }
+        p.showWhenRequirementsNotMet = buf.readBoolean();
         return p;
     }
 
@@ -107,6 +127,9 @@ public class EditTabPacket {
                 t.requiredQuests.addAll(requiredQuests);
                 t.requiredStages.clear();
                 t.requiredStages.addAll(requiredStages);
+                t.requiredStageDescriptions.clear();
+                t.requiredStageDescriptions.addAll(requiredStageDescriptions);
+                t.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
             });

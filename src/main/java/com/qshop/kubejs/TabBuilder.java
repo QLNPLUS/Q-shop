@@ -62,6 +62,18 @@ public class TabBuilder {
         return this;
     }
 
+    /** 添加与最近阶段要求按索引对应的显示描述。 */
+    public TabBuilder stageDescription(String description) {
+        tab.requiredStageDescriptions.add(description == null ? "" : description.trim());
+        return this;
+    }
+
+    /** 条件未满足时仍显示子商店,并使用锁定材质。 */
+    public TabBuilder showWhenRequirementsNotMet(boolean show) {
+        tab.showWhenRequirementsNotMet = show;
+        return this;
+    }
+
     /** 添加到商店并保存,返回是否成功 */
     public boolean add() {
         Shop shop = ShopManager.get(shopId);
@@ -79,6 +91,9 @@ public class TabBuilder {
                 existing.requiredQuests.addAll(tab.requiredQuests);
                 existing.requiredStages.clear();
                 existing.requiredStages.addAll(tab.requiredStages);
+                existing.requiredStageDescriptions.clear();
+                existing.requiredStageDescriptions.addAll(tab.requiredStageDescriptions);
+                existing.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
                 ShopManager.save(shop);
                 return true;
             }

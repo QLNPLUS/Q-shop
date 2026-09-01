@@ -86,7 +86,7 @@ console.log(entry.uuid)
 
 ### ShopTab
 
-常用字段：`uuid`、`name`、`icon`、`description`、`entries`、`requiredQuests`、`requiredStages`。
+常用字段：`uuid`、`name`、`icon`、`description`、`entries`、`requiredQuests`、`requiredStages`、`requiredStageDescriptions`。
 
 子商店的 `description` 会在鼠标悬停时显示为 tooltip，支持换行。`icon` 支持物品 ID、物品对象和 NBT。
 
@@ -98,7 +98,7 @@ console.log(entry.uuid)
 uuid, type, displayName, description
 item, displayItem, give, receive
 currencyId, price, globalLimit, playerLimit, reset
-commands, requiredQuests, requiredStages, count
+commands, requiredQuests, requiredStages, requiredStageDescriptions, count
 ```
 
 `count` 是 `getCount()` 的 KubeJS 属性形式，两种写法都支持：
@@ -181,6 +181,8 @@ QShop.tab('vip')
   .uuid('daily-offers')
   .quest('chapter_1')
   .stage('vip_unlocked')
+  .stageDescription('VIP 阶段')
+  .showWhenRequirementsNotMet(true)
   .add()
 ```
 
@@ -190,6 +192,8 @@ QShop.tab('vip')
 name(text)       icon(item)
 description(text) uuid(id)
 quest(id)        stage(id)
+stageDescription(text)
+showWhenRequirementsNotMet(bool)
 add()
 ```
 
@@ -204,7 +208,9 @@ QShop.removeTab('vip', 'daily-offers')
 
 最后一个子商店不能删除。
 
-当 `requiredQuests` 或 `requiredStages` 不满足时，普通玩家看不到该子商店及其交易项目；编辑模式可以继续显示受限内容。
+当 `requiredQuests` 或 `requiredStages` 不满足时，普通玩家默认看不到该子商店及其交易项目。设置
+`showWhenRequirementsNotMet: true`（或 builder 的 `.showWhenRequirementsNotMet(true)`）后，子商店会以锁定材质显示；悬停时会显示任务/阶段要求，点击未满足的 tab 会打开第一个可定位的 FTB 任务（如果有），不会切换子商店内容。
+编辑模式可以继续显示受限内容。
 
 ## 交易项目和 EntryBuilder
 
@@ -362,6 +368,7 @@ QShop.clearTabLimits('vip', 0)      // 第一个子商店的全部交易项目
 ```js
 requiredQuests: ['quest_id']
 requiredStages: ['stage_id']
+requiredStageDescriptions: ['VIP 阶段']
 ```
 
 这些条件由服务端检查：
@@ -371,7 +378,9 @@ requiredStages: ['stage_id']
 - 如果没有 GameStages，QShop 还会尝试读取 KubeJS PlayerStages；只有检测到有效阶段提供者并拥有对应阶段时才算满足。
 - GameStages 和 KubeJS stages 都没有安装时，阶段条件按未满足处理。
 
-条件不满足时，普通玩家看不到对应的子商店或交易项目；编辑模式可以继续显示受限内容。
+条件不满足时，普通玩家默认看不到对应的子商店或交易项目；编辑模式可以继续显示受限内容。
+子商店和交易项目都可以设置 `showWhenRequirementsNotMet: true`，以锁定材质保留显示。
+`requiredStageDescriptions` 按索引对应 `requiredStages`，缺失或留空时显示阶段 ID。
 
 ## 交易事件
 

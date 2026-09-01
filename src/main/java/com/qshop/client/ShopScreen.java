@@ -458,16 +458,8 @@ public class ShopScreen extends Screen {
         if (!dragActive && menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0 && hoveredTab >= 0) {
             ClientTab ct = visibleTabs.get(hoveredTab);
             if (ct != null) {
-                String desc = ct.description == null ? "" : ct.description;
-                if (!desc.isEmpty()) {
-                    // 有描述:tooltip 显示名称 + 描述(多行),并带子商店图标
-                    List<Component> lines = new ArrayList<>();
-                    lines.add(QText.parse(ct.name == null || ct.name.isEmpty() ? "Tab" : ct.name));
-                    for (String line : desc.split("\n")) {
-                        if (!line.isBlank()) {
-                            lines.add(QText.parse(line));
-                        }
-                    }
+                List<Component> lines = tabTooltipLines(ct);
+                if (lines.size() > 1) {
                     g.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
                 } else if (!ct.icon.isEmpty()) {
                     g.renderTooltip(this.font, ct.icon, mouseX, mouseY);
@@ -619,6 +611,47 @@ public class ShopScreen extends Screen {
         }
     }
 
+    /** 子商店 tooltip:描述、任务/阶段要求以及锁定任务跳转提示。 */
+    private List<Component> tabTooltipLines(ClientTab tab) {
+        String desc = tab.description == null ? "" : tab.description;
+        List<Component> lines = new ArrayList<>();
+        if (!desc.isEmpty() || !tab.requiredQuests.isEmpty() || !tab.requiredStages.isEmpty()) {
+            lines.add(QText.parse(tab.name == null || tab.name.isEmpty() ? "Tab" : tab.name));
+        }
+        if (!desc.isEmpty()) {
+            for (String line : desc.split("\\n")) {
+                if (!line.isBlank()) {
+                    lines.add(QText.parse(line));
+                }
+            }
+        }
+        if (!tab.requiredQuests.isEmpty()) {
+            lines.add(Component.translatable("qshop.msg.req_quest").append(": ")
+                    .append(String.join(", ", FtbQuestClient.questNames(tab.requiredQuests)))
+                    .withStyle(s -> s.withColor(0xFFAA55)));
+            if (!editMode && !tab.requirementsMet) {
+                lines.add(Component.translatable("qshop.msg.quest_click_hint")
+                        .withStyle(s -> s.withColor(0xFFAA55)));
+            }
+        }
+        if (!tab.requiredStages.isEmpty()) {
+            lines.add(Component.translatable("qshop.msg.req_stage").append(": " + stageRequirementLabels(tab))
+                    .withStyle(s -> s.withColor(0xFFAA55)));
+        }
+        return lines;
+    }
+
+    private static String stageRequirementLabels(ClientTab tab) {
+        List<String> labels = new ArrayList<>();
+        for (int i = 0; i < tab.requiredStages.size(); i++) {
+            String stage = tab.requiredStages.get(i);
+            String description = i < tab.requiredStageDescriptions.size()
+                    ? tab.requiredStageDescriptions.get(i) : "";
+            labels.add(description == null || description.isBlank() ? stage : description);
+        }
+        return String.join(", ", labels);
+    }
+
     /** 刷新 GUI 缓冲(双保险:GuiGraphics 缓冲 + 全局 renderBuffers 缓冲) */
     private static void flushAll(GuiGraphics g) {
         g.flush();
@@ -659,7 +692,7 @@ public class ShopScreen extends Screen {
             boolean sel = i == activeTab;
             boolean hover = tabInteractive && mouseX >= x + 3 && mouseX <= x + 3 + TAB_W
                     && mouseY >= Math.max(ty, ty0) && mouseY <= Math.min(ty + TAB_H, endY);
-            ShopTextures.tabButton(g, x + 3, ty, sel, hover);
+            ShopTextures.tabButton(g, x + 3, ty, sel, hover, !t.requirementsMet);
             if (!t.icon.isEmpty()) {
                 g.renderItem(t.icon, x + 3 + (TAB_W - 16) / 2, ty + 1);
             }
@@ -794,7 +827,7 @@ public class ShopScreen extends Screen {
     private void applyVisibleTabs(int preferredServerTab) {
         visibleTabs.clear();
         for (ClientTab tab : data.tabs) {
-            if (!data.editing || editMode || tab.requirementsMet) {
+            if (!data.editing || editMode || tab.requirementsMet || tab.showWhenRequirementsNotMet) {
                 visibleTabs.add(tab);
             }
         }
@@ -999,7 +1032,7 @@ public class ShopScreen extends Screen {
         ClientShopEntry e = data.entries.get(index);
         // 方形槽 1:1(不含下方价格),价格文字在槽下方
         int slot = cellH;
-        ShopTextures.slot(g, x, y, slot, slot, hover, editMode);
+        ShopTextures.slot(g, x, y, slot, slot, hover, editMode, !editMode && !e.requirementsMet);
         ItemStack icon = cellIcon(e);
         if (!icon.isEmpty()) {
             // 图标在槽内居中
@@ -1201,7 +1234,12 @@ public class ShopScreen extends Screen {
                         // 编辑模式:右键 = tab 菜单(编辑/删除/上移/下移)
                         openTabMenu(i, (int) mouseX, (int) mouseY);
                     } else if (button == 0 || button == 1) {
-                        switchTab(i);
+                        ClientTab tab = visibleTabs.get(i);
+                        if (!editMode && !tab.requirementsMet) {
+                            FtbQuestClient.openFirstQuest(tab.requiredQuests);
+                        } else {
+                            switchTab(i);
+                        }
                     }
                     return true;
                 }
