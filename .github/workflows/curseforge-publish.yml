@@ -32,6 +32,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Remove local proxy settings
+        run: sed -i -E '/^systemProp\.(http|https)\.proxy(Host|Port)=|^org\.gradle\.java\.home=/d' gradle.properties
+
+      - name: Prepare CurseForge version
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+
       - name: Validate CurseForge configuration
         env:
           CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
@@ -51,21 +59,29 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon
 
+      - name: Verify NeoForge artifact
+        env:
+          CURSEFORGE_VERSION: ${{ env.CURSEFORGE_VERSION }}
+        run: |
+          find build/libs -maxdepth 1 -type f -name '*.jar' -print
+          expected="qshop-neoforge-1.21.1-${CURSEFORGE_VERSION}.jar"
+          test -f "build/libs/$expected"
+          echo "CURSEFORGE_FILE=build/libs/$expected" >> "$GITHUB_ENV"
+
       - name: Prepare current NeoForge changelog
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
         run: |
           version="${RELEASE_VERSION#v}"
           awk -v version="$version" '
-            found && /^##[[:space:]]+/ && $2 != version {
-              exit
+            /^##[[:space:]]+/ {
+              heading = $2
+              gsub(/^\[/, "", heading)
+              gsub(/\].*$/, "", heading)
+              if (found && heading != version) exit
+              if (heading == version) found = 1
             }
-            $1 == "##" && $2 == version {
-              found = 1
-            }
-            found {
-              print
-            }
+            found { print }
           ' CHANGELOG.md > build/curseforge-changelog.md
           test -s build/curseforge-changelog.md || {
             echo "Missing CHANGELOG.md section for version $version"
@@ -78,9 +94,9 @@ jobs:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          files: build/libs/qshop-neoforge-1.21.1-*.jar
-          version: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
-          name: QShop ${{ github.event.release.tag_name || inputs.tag || github.ref_name }} NeoForge 1.21.1
+          files: ${{ env.CURSEFORGE_FILE }}
+          version: ${{ env.CURSEFORGE_VERSION }}
+          name: qshop-neoforge-1.21.1-${{ env.CURSEFORGE_VERSION }}
           version-type: release
           changelog-file: build/curseforge-changelog.md
           loaders: neoforge

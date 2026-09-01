@@ -108,8 +108,8 @@ Useful read-only fields are:
 | Object | Fields commonly used in scripts |
 | --- | --- |
 | `Shop` | `id`, `uuid`, `displayName`, `currency`, `icon`, `tabs` |
-| `ShopTab` | `uuid`, `name`, `icon`, `description`, `entries`, `requiredQuests`, `requiredStages` |
-| `ShopEntry` | `uuid`, `type`, `displayName`, `description`, `item`, `displayItem`, `give`, `receive`, `currencyId`, `price`, `globalLimit`, `playerLimit`, `reset`, `commands`, `requiredQuests`, `requiredStages`, `count` |
+| `ShopTab` | `uuid`, `name`, `icon`, `description`, `entries`, `requiredQuests`, `requiredStages`, `requiredStageDescriptions` |
+| `ShopEntry` | `uuid`, `type`, `displayName`, `description`, `item`, `displayItem`, `give`, `receive`, `currencyId`, `price`, `globalLimit`, `playerLimit`, `reset`, `commands`, `requiredQuests`, `requiredStages`, `requiredStageDescriptions`, `count` |
 
 For example:
 
@@ -233,6 +233,8 @@ QShop.tab('vip')
   .description('Refreshes every day')
   .quest('chapter_1')
   .stage('vip_unlocked')
+  .stageDescription('VIP stage')
+  .showWhenRequirementsNotMet(true)
   .add()
 ```
 
@@ -246,10 +248,12 @@ Tab option fields:
 | `description` | string | Hover tooltip. Newlines are allowed. |
 | `requiredQuests` | string[] | FTB Quests task ids that must be complete. |
 | `requiredStages` | string[] | Stage ids that must be present. |
+| `requiredStageDescriptions` | string[] | Display labels matched by index to `requiredStages`. |
+| `showWhenRequirementsNotMet` | boolean | Keeps the tab visible with the locked material when requirements are not met. Defaults to `false`. |
 
-The `icon` accepts the same item forms as trade entries, including `{ item, count, nbt }`. The tab `description` is shown as a hover tooltip and may contain newlines.
+The `icon` accepts the same item forms as trade entries, including `{ item, count, nbt }`. The tab `description` is shown as a hover tooltip and may contain newlines. `requiredStageDescriptions` uses the same indexes as `requiredStages`; missing or blank labels fall back to the stage id.
 
-When requirements are not satisfied, the tab and its entries are hidden from normal players. Edit mode may still show restricted content for administration.
+When requirements are not satisfied, the tab and its entries are hidden from normal players by default. Set `showWhenRequirementsNotMet: true` (or call `.showWhenRequirementsNotMet(true)`) to keep a tab visible with the locked material. Hovering a locked tab shows its task/stage requirements, and clicking it opens the first matching FTB Quests task when available; it does not switch tabs. Edit mode may still show restricted content for administration.
 
 ### Remove tabs
 
@@ -301,6 +305,8 @@ Numeric `tabRef` values are zero-based indexes. String `tabRef` values are tab U
 | `commands` | object[] | COMMAND or post-trade actions | Commands run after a successful trade. |
 | `requiredQuests` | string[] | all | FTB Quests requirements. |
 | `requiredStages` | string[] | all | Stage requirements. |
+| `requiredStageDescriptions` | string[] | all | Display labels matched by index to `requiredStages`. |
+| `showWhenRequirementsNotMet` | boolean | all | Keeps the entry visible with the locked material when requirements are not met. Defaults to `false`. |
 
 `BUY` means the player pays currency and receives `item`. `SELL` means the player gives `item` and receives currency. `BARTER` exchanges `give` for `receive`, optionally charging `price` in `currency`. `COMMAND` charges the configured price and executes `commands`.
 
@@ -415,6 +421,7 @@ Available methods:
 name(text)       icon(item)
 description(text) uuid(id)
 quest(id)        stage(id)
+stageDescription(text)
 add()
 ```
 

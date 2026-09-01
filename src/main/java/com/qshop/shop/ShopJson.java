@@ -327,6 +327,16 @@ public final class ShopJson {
                 }
                 to.add("requiredStages", arr);
             }
+            if (!t.requiredStageDescriptions.isEmpty()) {
+                JsonArray arr = new JsonArray();
+                for (String description : t.requiredStageDescriptions) {
+                    arr.add(description == null ? "" : description);
+                }
+                to.add("requiredStageDescriptions", arr);
+            }
+            if (t.showWhenRequirementsNotMet) {
+                to.addProperty("showWhenRequirementsNotMet", true);
+            }
             JsonArray es = new JsonArray();
             for (ShopEntry e : t.entries) {
                 es.add(entryToJson(e));
@@ -431,6 +441,13 @@ public final class ShopJson {
                         }
                     }
                 }
+                if (to.has("requiredStageDescriptions")) {
+                    for (JsonElement de : to.getAsJsonArray("requiredStageDescriptions")) {
+                        t.requiredStageDescriptions.add(de.getAsString().trim());
+                    }
+                }
+                t.showWhenRequirementsNotMet = to.has("showWhenRequirementsNotMet")
+                        && to.get("showWhenRequirementsNotMet").getAsBoolean();
                 if (to.has("entries")) {
                     for (JsonElement ee : to.getAsJsonArray("entries")) {
                         parseEntryInto(shop, ee, t.entries);

@@ -281,19 +281,21 @@ public final class ShopManager {
         for (int ti = 0; ti < shop.tabs.size(); ti++) {
             ShopTab tab = shop.tabs.get(ti);
             boolean tabMet = RequirementCheck.satisfied(player, tab);
-            if (!tabMet && !editing) {
-                // 子商店的任务/阶段要求未满足:非编辑玩家看不到该子商店
+            if (!tabMet && !editing && !tab.showWhenRequirementsNotMet) {
+                // 子商店的任务/阶段要求未满足且未开启显示:非编辑玩家看不到该子商店
                 continue;
             }
             ClientTab ct = new ClientTab();
             ct.serverIndex = ti;
             ct.requirementsMet = tabMet;
+            ct.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
             ct.uuid = tab.uuid == null ? "" : tab.uuid;
             ct.name = tab.name;
             ct.description = tab.description == null ? "" : tab.description;
             ct.icon = tab.icon.copy();
             ct.requiredQuests.addAll(tab.requiredQuests);
             ct.requiredStages.addAll(tab.requiredStages);
+            ct.requiredStageDescriptions.addAll(tab.requiredStageDescriptions);
             for (int i = 0; i < tab.entries.size(); i++) {
                 ShopEntry e = tab.entries.get(i);
                 boolean requirementsMet = RequirementCheck.satisfied(player, e);

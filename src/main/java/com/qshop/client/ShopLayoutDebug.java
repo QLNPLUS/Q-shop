@@ -33,9 +33,12 @@ public final class ShopLayoutDebug {
     private static final EnumMap<TradeWidget, Position> TRADE_POSITIONS = new EnumMap<>(TradeWidget.class);
     private static final EnumMap<PickerWidget, Position> DEFAULT_PICKER_POSITIONS = defaultPickerPositions();
     private static final EnumMap<PickerWidget, Position> PICKER_POSITIONS = new EnumMap<>(PickerWidget.class);
+    private static final EnumMap<TabWidget, Position> DEFAULT_TAB_POSITIONS = defaultTabPositions();
+    private static final EnumMap<TabWidget, Position> TAB_POSITIONS = new EnumMap<>(TabWidget.class);
     private static Widget selected = Widget.GRID;
     private static TradeWidget selectedTrade = TradeWidget.PANEL;
     private static PickerWidget selectedPicker = PickerWidget.PANEL;
+    private static TabWidget selectedTab = TabWidget.PANEL;
     private static Layout activeLayout = Layout.STANDARD;
     private static DebugScreen activeScreen = DebugScreen.SHOP;
     private static boolean enabled;
@@ -44,7 +47,8 @@ public final class ShopLayoutDebug {
     public enum DebugScreen {
         SHOP("Shop"),
         TRADE_SETTINGS("Trade settings"),
-        ITEM_PICKER("Item browser");
+        ITEM_PICKER("Item browser"),
+        TAB_SETTINGS("Tab settings");
 
         private final String label;
 
@@ -149,6 +153,31 @@ public final class ShopLayoutDebug {
         }
     }
 
+    public enum TabWidget {
+        PANEL("Panel"),
+        TITLE("Title"),
+        NAME_ROW("Name row"),
+        ICON_ROW("Icon row"),
+        QUESTS_ROW("Quest requirements row"),
+        STAGES_ROW("Stage requirements row"),
+        STAGE_DESCRIPTIONS_ROW("Stage descriptions row"),
+        DESCRIPTION_ROW("Description row"),
+        VISIBILITY_ROW("Visibility option"),
+        DELETE_BUTTON("Delete button"),
+        SAVE_BUTTON("Save button"),
+        CANCEL_BUTTON("Cancel button");
+
+        private final String label;
+
+        TabWidget(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
     private ShopLayoutDebug() {
     }
 
@@ -201,6 +230,10 @@ public final class ShopLayoutDebug {
         return selectedPicker;
     }
 
+    public static TabWidget selectedTab() {
+        return selectedTab;
+    }
+
     public static void selectNext(boolean reverse) {
         int direction = reverse ? -1 : 1;
         switch (activeScreen) {
@@ -213,6 +246,11 @@ public final class ShopLayoutDebug {
                 PickerWidget[] widgets = PickerWidget.values();
                 int index = selectedPicker.ordinal();
                 selectedPicker = widgets[Math.floorMod(index + direction, widgets.length)];
+            }
+            case TAB_SETTINGS -> {
+                TabWidget[] widgets = TabWidget.values();
+                int index = selectedTab.ordinal();
+                selectedTab = widgets[Math.floorMod(index + direction, widgets.length)];
             }
             default -> {
                 Widget[] widgets = Widget.values();
@@ -246,6 +284,14 @@ public final class ShopLayoutDebug {
         return normalY + position(widget).y();
     }
 
+    public static int x(TabWidget widget, int normalX) {
+        return normalX + position(widget).x();
+    }
+
+    public static int y(TabWidget widget, int normalY) {
+        return normalY + position(widget).y();
+    }
+
     public static void moveSelected(int dx, int dy) {
         if (!isEnabled()) {
             return;
@@ -259,6 +305,11 @@ public final class ShopLayoutDebug {
             case ITEM_PICKER -> {
                 Position current = position(selectedPicker);
                 PICKER_POSITIONS.put(selectedPicker,
+                        new Position(clamp(current.x() + dx), clamp(current.y() + dy)));
+            }
+            case TAB_SETTINGS -> {
+                Position current = position(selectedTab);
+                TAB_POSITIONS.put(selectedTab,
                         new Position(clamp(current.x() + dx), clamp(current.y() + dy)));
             }
             default -> {
@@ -313,10 +364,16 @@ public final class ShopLayoutDebug {
                 DEFAULT_PICKER_POSITIONS.getOrDefault(widget, new Position(0, 0)));
     }
 
+    private static Position position(TabWidget widget) {
+        return TAB_POSITIONS.getOrDefault(widget,
+                DEFAULT_TAB_POSITIONS.getOrDefault(widget, new Position(0, 0)));
+    }
+
     private static Position selectedPosition() {
         return switch (activeScreen) {
             case TRADE_SETTINGS -> position(selectedTrade);
             case ITEM_PICKER -> position(selectedPicker);
+            case TAB_SETTINGS -> position(selectedTab);
             default -> position(selected);
         };
     }
@@ -325,6 +382,7 @@ public final class ShopLayoutDebug {
         return switch (activeScreen) {
             case TRADE_SETTINGS -> selectedTrade.label();
             case ITEM_PICKER -> selectedPicker.label();
+            case TAB_SETTINGS -> selectedTab.label();
             default -> selected.label();
         };
     }
@@ -343,23 +401,23 @@ public final class ShopLayoutDebug {
         standard.put(Widget.PANEL, new Position(0, 0));
         standard.put(Widget.TAB_BAR, new Position(0, 0));
         standard.put(Widget.GRID, new Position(0, 0));
-        standard.put(Widget.ADD_BUTTON, new Position(28, -4));
-        standard.put(Widget.EDIT_BUTTON, new Position(22, -4));
-        standard.put(Widget.SEARCH_BOX, new Position(-1, -19));
-        standard.put(Widget.SEARCH_BUTTON, new Position(16, -4));
-        standard.put(Widget.LAYOUT_BUTTON, new Position(10, -4));
-        standard.put(Widget.CLOSE_BUTTON, new Position(4, -4));
+        standard.put(Widget.ADD_BUTTON, new Position(27, -3));
+        standard.put(Widget.EDIT_BUTTON, new Position(21, -3));
+        standard.put(Widget.SEARCH_BOX, new Position(-3, -19));
+        standard.put(Widget.SEARCH_BUTTON, new Position(15, -3));
+        standard.put(Widget.LAYOUT_BUTTON, new Position(9, -3));
+        standard.put(Widget.CLOSE_BUTTON, new Position(3, -3));
 
         EnumMap<Widget, Position> wide = positions.get(Layout.WIDE);
         wide.put(Widget.PANEL, new Position(0, 0));
         wide.put(Widget.TAB_BAR, new Position(0, 0));
-        wide.put(Widget.GRID, new Position(6, -15));
-        wide.put(Widget.ADD_BUTTON, new Position(28, -4));
-        wide.put(Widget.EDIT_BUTTON, new Position(22, -4));
-        wide.put(Widget.SEARCH_BOX, new Position(-1, -20));
-        wide.put(Widget.SEARCH_BUTTON, new Position(16, -4));
-        wide.put(Widget.LAYOUT_BUTTON, new Position(10, -4));
-        wide.put(Widget.CLOSE_BUTTON, new Position(4, -4));
+        wide.put(Widget.GRID, new Position(6, -14));
+        wide.put(Widget.ADD_BUTTON, new Position(27, -4));
+        wide.put(Widget.EDIT_BUTTON, new Position(21, -4));
+        wide.put(Widget.SEARCH_BOX, new Position(-3, -20));
+        wide.put(Widget.SEARCH_BUTTON, new Position(15, -4));
+        wide.put(Widget.LAYOUT_BUTTON, new Position(9, -4));
+        wide.put(Widget.CLOSE_BUTTON, new Position(3, -4));
         return positions;
     }
 
@@ -376,6 +434,21 @@ public final class ShopLayoutDebug {
         for (PickerWidget widget : PickerWidget.values()) {
             positions.put(widget, new Position(0, 0));
         }
+        return positions;
+    }
+
+    private static EnumMap<TabWidget, Position> defaultTabPositions() {
+        EnumMap<TabWidget, Position> positions = new EnumMap<>(TabWidget.class);
+        for (TabWidget widget : TabWidget.values()) {
+            positions.put(widget, new Position(0, 0));
+        }
+        positions.put(TabWidget.NAME_ROW, new Position(0, -5));
+        positions.put(TabWidget.ICON_ROW, new Position(0, -10));
+        positions.put(TabWidget.QUESTS_ROW, new Position(0, -11));
+        positions.put(TabWidget.STAGES_ROW, new Position(0, 9));
+        positions.put(TabWidget.STAGE_DESCRIPTIONS_ROW, new Position(0, 9));
+        positions.put(TabWidget.DESCRIPTION_ROW, new Position(0, -46));
+        positions.put(TabWidget.VISIBILITY_ROW, new Position(0, -10));
         return positions;
     }
 
@@ -397,6 +470,7 @@ public final class ShopLayoutDebug {
         }
         TRADE_POSITIONS.clear();
         PICKER_POSITIONS.clear();
+        TAB_POSITIONS.clear();
         Path file = file();
         if (!Files.isRegularFile(file)) {
             return;
@@ -437,6 +511,10 @@ public final class ShopLayoutDebug {
                 JsonElement picker = screens.get("item_picker");
                 if (picker != null && picker.isJsonObject()) {
                     readPickerWidgets(picker.getAsJsonObject().getAsJsonObject("widgets"));
+                }
+                JsonElement tab = screens.get("tab_settings");
+                if (tab != null && tab.isJsonObject()) {
+                    readTabWidgets(tab.getAsJsonObject().getAsJsonObject("widgets"));
                 }
             }
         } catch (Exception exception) {
@@ -499,6 +577,20 @@ public final class ShopLayoutDebug {
         }
     }
 
+    private static void readTabWidgets(JsonObject widgets) {
+        if (widgets == null) {
+            return;
+        }
+        for (TabWidget widget : TabWidget.values()) {
+            JsonElement raw = widgets.get(widget.name().toLowerCase(Locale.ROOT));
+            if (raw != null && raw.isJsonObject()) {
+                JsonObject value = raw.getAsJsonObject();
+                TAB_POSITIONS.put(widget,
+                        new Position(clamp(readInt(value, "x")), clamp(readInt(value, "y"))));
+            }
+        }
+    }
+
     private static void save() {
         JsonObject root = new JsonObject();
         root.addProperty("version", 3);
@@ -523,6 +615,7 @@ public final class ShopLayoutDebug {
         JsonObject screens = new JsonObject();
         screens.add("trade_settings", saveTradeWidgets("Trade settings", TRADE_POSITIONS, DEFAULT_TRADE_POSITIONS));
         screens.add("item_picker", savePickerWidgets("Item browser", PICKER_POSITIONS, DEFAULT_PICKER_POSITIONS));
+        screens.add("tab_settings", saveTabWidgets("Tab settings", TAB_POSITIONS, DEFAULT_TAB_POSITIONS));
         root.add("screens", screens);
         Path file = file();
         try {
@@ -556,6 +649,20 @@ public final class ShopLayoutDebug {
         screen.addProperty("label", label);
         JsonObject widgets = new JsonObject();
         for (PickerWidget widget : PickerWidget.values()) {
+            Position position = positions.getOrDefault(widget, defaults.getOrDefault(widget, new Position(0, 0)));
+            widgets.add(widget.name().toLowerCase(Locale.ROOT), positionJson(position));
+        }
+        screen.add("widgets", widgets);
+        return screen;
+    }
+
+    private static JsonObject saveTabWidgets(String label,
+                                              EnumMap<TabWidget, Position> positions,
+                                              EnumMap<TabWidget, Position> defaults) {
+        JsonObject screen = new JsonObject();
+        screen.addProperty("label", label);
+        JsonObject widgets = new JsonObject();
+        for (TabWidget widget : TabWidget.values()) {
             Position position = positions.getOrDefault(widget, defaults.getOrDefault(widget, new Position(0, 0)));
             widgets.add(widget.name().toLowerCase(Locale.ROOT), positionJson(position));
         }

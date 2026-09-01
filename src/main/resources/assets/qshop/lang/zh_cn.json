@@ -126,6 +126,7 @@
   "qshop.gui.req_stages": "阶段",
   "qshop.gui.stage_descriptions": "阶段描述",
   "qshop.gui.show_unmet_requirements": "未满足时显示",
+  "qshop.gui.show_tab_when_unmet": "未满足时显示子商店",
   "qshop.msg.req_quest": "需要完成任务",
   "qshop.msg.quest_click_hint": "点击跳转任务界面",
   "qshop.msg.req_stage": "需要阶段",

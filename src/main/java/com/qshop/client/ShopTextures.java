@@ -44,6 +44,7 @@ public final class ShopTextures {
     private static final ResourceLocation SLOT_HOVER = rl("slot_hover");
     private static final ResourceLocation SLOT_EDIT = rl("slot_edit");
     private static final ResourceLocation SLOT_EDIT_HOVER = rl("slot_edit_hover");
+    private static final ResourceLocation SLOT_UNMET = rl("slot_unmet");
     private static final ResourceLocation BTN = rl("button");
     private static final ResourceLocation BTN_HOVER = rl("button_hover");
     private static final ResourceLocation BTN_DISABLED = rl("button_disabled");
@@ -82,6 +83,7 @@ public final class ShopTextures {
     private static final ResourceLocation TAB_BTN = rl("tab_btn");
     private static final ResourceLocation TAB_BTN_HOVER = rl("tab_btn_hover");
     private static final ResourceLocation TAB_BTN_SEL = rl("tab_btn_sel");
+    private static final ResourceLocation TAB_BTN_UNMET = rl("tab_btn_unmet");
     private static final ResourceLocation MENU_PANEL = rl("menu_panel");
     private static final ResourceLocation TRADE_PANEL = rl("trade_panel");
     private static final ResourceLocation SCROLL_TRACK = rl("scroll_track");
@@ -152,7 +154,12 @@ public final class ShopTextures {
 
     /** 子商店按钮 40x24(选中/悬停三态) */
     public static void tabButton(GuiGraphics g, int x, int y, boolean selected, boolean hover) {
-        ResourceLocation tex = selected ? TAB_BTN_SEL : (hover ? TAB_BTN_HOVER : TAB_BTN);
+        tabButton(g, x, y, selected, hover, false);
+    }
+
+    /** 子商店按钮;未满足条件时使用独立暗色材质。 */
+    public static void tabButton(GuiGraphics g, int x, int y, boolean selected, boolean hover, boolean unmet) {
+        ResourceLocation tex = unmet ? TAB_BTN_UNMET : (selected ? TAB_BTN_SEL : (hover ? TAB_BTN_HOVER : TAB_BTN));
         blit9(g, tex, x, y, 40, 24, 40, 24, TAB_BTN_BORDER);
     }
 
@@ -274,7 +281,12 @@ public final class ShopTextures {
     private static final int SLOT_BORDER = 3;
 
     public static void slot(GuiGraphics g, int x, int y, int w, int h, boolean hover, boolean edit) {
-        ResourceLocation tex = hover ? (edit ? SLOT_EDIT_HOVER : SLOT_HOVER) : (edit ? SLOT_EDIT : SLOT);
+        slot(g, x, y, w, h, hover, edit, false);
+    }
+
+    /** 交易条目格子;未满足条件时使用独立暗色材质。 */
+    public static void slot(GuiGraphics g, int x, int y, int w, int h, boolean hover, boolean edit, boolean unmet) {
+        ResourceLocation tex = unmet ? SLOT_UNMET : (hover ? (edit ? SLOT_EDIT_HOVER : SLOT_HOVER) : (edit ? SLOT_EDIT : SLOT));
         blit9(g, tex, x, y, w, h, 20, 20, SLOT_BORDER);
     }
 

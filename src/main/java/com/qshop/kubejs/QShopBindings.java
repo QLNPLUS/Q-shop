@@ -62,7 +62,8 @@ import java.util.stream.Stream;
  * QShop.addTab('vip', '武器', 'minecraft:iron_sword');       // 图标可选
  * QShop.addTab('vip', '防具', 'minecraft:diamond_chestplate', 'my-fixed-tab-uuid'); // 指定 uuid,空则随机
  * QShop.addTab('vip', { name: '每日卡池', icon: 'minecraft:paper', uuid: 'daily',
- *     description: '每日刷新', requiredQuests: ['q1'], requiredStages: ['vip'] });   // 推荐:全字段
+ *     description: '每日刷新', requiredQuests: ['q1'], requiredStages: ['vip'],
+ *     requiredStageDescriptions: ['VIP 阶段'] });   // 推荐:全字段
  * QShop.updateTab('vip', 0, '装备', 'minecraft:diamond_chestplate');   // 按序号(旧式)
  * QShop.updateTab('vip', 'daily', { name: '新名', description: '新描述', requiredQuests: [] }); // 推荐
  * let tabUuid = QShop.getShopTabUuid('vip', 0);
@@ -261,7 +262,9 @@ final class QShopBindings {
      *     uuid: 'daily-tab-uuid',           // 可选,留空随机
      *     description: '每日刷新',           // 可选,悬停 tooltip
      *     requiredQuests: ['quest-id-1'],   // 可选,FTB 任务
-     *     requiredStages: ['vip']           // 可选,阶段
+     *     requiredStages: ['vip'],          // 可选,阶段
+     *     requiredStageDescriptions: ['VIP 阶段'], // 可选,阶段显示描述
+     *     showWhenRequirementsNotMet: true  // 可选,未满足时显示锁定 tab
      * });
      * </pre>
      */
@@ -296,6 +299,11 @@ final class QShopBindings {
             }
             readStringList(options, "requiredQuests", t.requiredQuests);
             readStringList(options, "requiredStages", t.requiredStages);
+            readStringListPreserveEmpty(options, "requiredStageDescriptions", t.requiredStageDescriptions);
+            if (options.has("showWhenRequirementsNotMet")
+                    && options.get("showWhenRequirementsNotMet").isJsonPrimitive()) {
+                t.showWhenRequirementsNotMet = options.get("showWhenRequirementsNotMet").getAsBoolean();
+            }
             shop.tabs.add(t);
             ShopManager.save(shop);
             return true;
@@ -361,7 +369,7 @@ final class QShopBindings {
     /**
      * 修改子商店(统一入口):tabRef 为 Number=序号 / String=uuid;
      * nameOrOptions 传字符串 = 仅改名称;传 JsonObject = 只更新其中出现的字段
-     * (icon 传 null 表示清除;requiredQuests/requiredStages 传空数组表示清空)。
+     * (icon 传 null 表示清除;requiredQuests/requiredStages/requiredStageDescriptions 传空数组表示清空)。
      * <pre>
      * QShop.updateTab('vip', 0, '新名');               // 仅改名称(旧式)
      * QShop.updateTab('vip', 0, '新名', 'minecraft:diamond'); // + 图标(旧式)
@@ -369,6 +377,7 @@ final class QShopBindings {
      *     name: '新名字',
      *     description: '新描述',
      *     requiredQuests: [],               // 清空任务要求
+     *     requiredStageDescriptions: [],    // 清空阶段描述
      * });
      * QShop.updateTab('vip', 0, { icon: null });        // 清除图标
      * </pre>
@@ -410,6 +419,14 @@ final class QShopBindings {
             if (options.has("requiredStages")) {
                 t.requiredStages.clear();
                 readStringList(options, "requiredStages", t.requiredStages);
+            }
+            if (options.has("requiredStageDescriptions")) {
+                t.requiredStageDescriptions.clear();
+                readStringListPreserveEmpty(options, "requiredStageDescriptions", t.requiredStageDescriptions);
+            }
+            if (options.has("showWhenRequirementsNotMet")
+                    && options.get("showWhenRequirementsNotMet").isJsonPrimitive()) {
+                t.showWhenRequirementsNotMet = options.get("showWhenRequirementsNotMet").getAsBoolean();
             }
             ShopManager.save(shop);
             return true;
@@ -467,6 +484,16 @@ final class QShopBindings {
             if (el != null && el.isJsonPrimitive() && !el.getAsString().isBlank()) {
                 target.add(el.getAsString().trim());
             }
+        }
+    }
+
+    /** 读取阶段描述并保留中间空字符串,以维持与 requiredStages 的索引对应。 */
+    private static void readStringListPreserveEmpty(JsonObject options, String key, List<String> target) {
+        if (!options.has(key) || !options.get(key).isJsonArray()) {
+            return;
+        }
+        for (JsonElement el : options.getAsJsonArray(key)) {
+            target.add(el != null && el.isJsonPrimitive() ? el.getAsString().trim() : "");
         }
     }
 
@@ -941,11 +968,11 @@ final class QShopBindings {
      * </pre>
      *
      * <p><b>池条目 = 标准交易条目 JSON(与 addEntry / 商店配置文件完全相同的格式),
-     * 支持 ShopEntry 的全部 16 个字段</b>:
+     * 支持 ShopEntry 的全部 18 个字段</b>:
      * <pre>
      * uuid / type / displayName / description / displayItem / item / give / receive /
      * currency / price / globalLimit / playerLimit / limitReset / commands /
-     * requiredQuests / requiredStages
+     * requiredQuests / requiredStages / requiredStageDescriptions / showWhenRequirementsNotMet
      * </pre>
      * 外加一个仅用于抽卡的选择字段 <b>weight</b>(权重,默认 1;不是条目字段)。
      * 每次生成都会赋予全新 uuid(限购计数从零开始)。</p>
@@ -1043,7 +1070,7 @@ final class QShopBindings {
             return null;
         }
         try {
-            ShopEntry e = ShopJson.entryFromJson(o); // 完整 16 字段解析(未知物品抛异常)
+            ShopEntry e = ShopJson.entryFromJson(o); // 完整 18 字段解析(未知物品抛异常)
             boolean empty = e.item.isEmpty() && e.give.isEmpty() && e.receive.isEmpty();
             if (e.type != ShopEntryType.COMMAND && empty) {
                 QShopMod.LOGGER.warn("QShop: refreshTab 跳过空条目 {}", o);

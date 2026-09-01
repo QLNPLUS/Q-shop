@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.2.3**（NeoForge 1.21.1）
+当前版本：**1.3.0**（NeoForge 1.21.1）
 
 ## 功能清单
 
@@ -31,8 +31,8 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.8/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# NeoForge 产物: build/libs/qshop-neoforge-1.21.1-1.2.3.jar
-# Forge 1.20.1 分支产物: build/libs/qshop-forge-1.20.1-1.2.3.jar
+# NeoForge 产物: build/libs/qshop-neoforge-1.21.1-1.3.0.jar
+# Forge 1.20.1 分支产物: build/libs/qshop-forge-1.20.1-1.3.0.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -119,9 +119,9 @@ searchActive = false
 `enableLayoutDebug = true` 后，在商店、添加/编辑交易和物品浏览器界面按 `F8` 可启用布局调试；偏移会保存到 `config/qshop_layout.json`。
 7x3 和 8x4 使用独立的偏移数据，切换布局不会互相影响；旧版共享偏移文件会自动迁移到 7x3。
 添加条目、编辑模式、搜索、布局切换和关闭按钮均使用独立的 16x16 图标及独立偏移，可在调试模式中分别调整。
-交易设置界面按交易行分组调整，物品浏览器可分别调整面板、模式按钮、关闭/返回按钮、搜索框和物品网格。
+交易设置界面按交易行分组调整，编辑子商店界面可分别调整面板、各输入行、图标按钮组、显示条件勾选框以及删除/保存/取消按钮；物品浏览器可分别调整面板、模式按钮、关闭/返回按钮、搜索框和物品网格。
 调试模式中按 `Tab` 选择组件，方向键移动 5 像素，按住 `Alt` 移动 1 像素；输入框获得焦点时方向键仍用于编辑文本。
-首次移动新增界面时，配置文件会自动写入 `screens.trade_settings` 和 `screens.item_picker` 节点。
+首次移动新增界面时，配置文件会自动写入 `screens.trade_settings`、`screens.tab_settings` 和 `screens.item_picker` 节点。
 `lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
 `searchActive` 会记录搜索按钮是否启用；启用后重启游戏会恢复搜索框，搜索文本本身不会保存。
 搜索范围是当前 tab 的交易项目；普通文本会优先匹配交易项自定义名称，再匹配交易格内最终显示物品的名称/ID（包括自定义展示物品）。同时支持 `#tag` 标签和 `@namespace` 命名空间，空格分隔的多个条件会同时生效。
@@ -365,20 +365,24 @@ QShop.addTab('vip', {
   uuid: 'daily-tab-uuid',            // 可选,留空随机
   description: '每日刷新',           // 可选,悬停 tooltip
   requiredQuests: ['quest-1'],       // 可选,FTB 任务门槛
-  requiredStages: ['vip']            // 可选,阶段门槛
+  requiredStages: ['vip'],           // 可选,阶段门槛
+  requiredStageDescriptions: ['VIP 阶段'], // 可选,阶段显示描述
+  showWhenRequirementsNotMet: true   // 可选,条件未满足时仍显示锁定 tab
 });
 QShop.updateTab('vip', 'daily-tab-uuid', {
   name: '新名字',
   description: '新描述',
   icon: null,                        // null 清除图标
   requiredQuests: [],                // 空数组清空列表
-  requiredStages: ['vip']
+  requiredStages: ['vip'],
+  requiredStageDescriptions: ['VIP 阶段'],
+  showWhenRequirementsNotMet: true
 });
 // 旧式写法仍可用:QShop.addTab('vip', '武器', 'minecraft:iron_sword', 'uuid');
 //           QShop.updateTab('vip', 0, '新名'); / QShop.updateTabByUuid('vip', uuid, '新名', null);
 
 // 刷新子商店:第二个参数是 tab UUID 或从 0 开始的数字索引,不是 tab 名称
-// 池条目 = 标准 ShopEntry JSON(与 addEntry 同格式,支持全部 16 个字段)+ weight(权重)
+// 池条目 = 标准 ShopEntry JSON(与 addEntry 同格式,支持全部 18 个字段)+ weight(权重)
 // 'daily-tab-uuid' 必须是子商店的 uuid
 QShop.refreshTab('card', 'daily-tab-uuid', 10, [
   { type: 'BUY', item: { item: 'minecraft:diamond', count: 1, nbt: '{...}' },
@@ -405,7 +409,7 @@ QShop.clearShopLimits('card')
 
 ### 历史 JSON 字段参考（1.0.4 不可用于写入）
 
-**交易条目(ShopEntry)共 16 个字段**,`addEntry/updateEntry/updateEntryByUuid/refreshTab` 池条目与商店 JSON 文件均用同一套 schema:
+**交易条目(ShopEntry)共 18 个字段**,`addEntry/updateEntry/updateEntryByUuid/refreshTab` 池条目与商店 JSON 文件均用同一套 schema:
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -424,10 +428,12 @@ QShop.clearShopLimits('card')
 | `commands` | `[{command,op,silent}]` | 购买后执行的指令 |
 | `requiredQuests` | string[] | FTB 任务门槛 |
 | `requiredStages` | string[] | 阶段门槛 |
+| `requiredStageDescriptions` | string[] | 阶段显示描述,按 `requiredStages` 索引对应 |
+| `showWhenRequirementsNotMet` | boolean | 条件未满足时仍显示锁定条目,默认 false |
 
 物品写法三种:`"minecraft:diamond"`、`{"item":"minecraft:oak_log","count":8,"nbt":"{...}"}`、base64。
 
-**子商店(ShopTab)共 7 个字段**,经 `addTab(shopId, options)` / `updateTab(shopId, tabRef, options)` 设置:
+**子商店(ShopTab)共 9 个字段**,经 `addTab(shopId, options)` / `updateTab(shopId, tabRef, options)` 设置:
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -436,8 +442,10 @@ QShop.clearShopLimits('card')
 | `icon` | item | 图标 |
 | `description` | string | 描述(悬停 tooltip) |
 | `entries` | entry[] | 交易条目(由条目 API 管理) |
-| `requiredQuests` | string[] | FTB 任务门槛(未满足时非编辑玩家看不到该子商店) |
+| `requiredQuests` | string[] | FTB 任务门槛 |
 | `requiredStages` | string[] | 阶段门槛 |
+| `requiredStageDescriptions` | string[] | 阶段显示描述,按 `requiredStages` 索引对应 |
+| `showWhenRequirementsNotMet` | boolean | 条件未满足时仍显示锁定 tab,默认 false |
 
 注意:`updateTab` 只更新 options 里出现的字段;`icon: null` 清除图标,`requiredQuests: []` 清空列表。
 `addTab/updateTab` 的旧式位置参数写法(名称/图标/uuid)仍然兼容。
