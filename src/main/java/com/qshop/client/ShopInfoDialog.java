@@ -16,7 +16,7 @@ import java.util.function.Consumer;
  * 编辑商店信息:显示名 + 图标 + 默认货币(编辑模式下,在 tab 栏顶部右键商店名呼出)。
  * 支持 § 颜色代码,保存后商店名/标题立即生效。
  */
-public class ShopInfoDialog extends Screen {
+public class ShopInfoDialog extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_H = 200;
@@ -41,6 +41,16 @@ public class ShopInfoDialog extends Screen {
         this.nameStr = data.shopName;
         this.icon = data.icon.copy();
         this.currencyStr = data.shopCurrency == null ? "" : data.shopCurrency;
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     @Override
@@ -121,7 +131,7 @@ public class ShopInfoDialog extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         nameBox.setFocused(false);
         currencyBox.setFocused(false);
         if (nameBox.mouseClicked(mouseX, mouseY, button)) {
@@ -132,12 +142,11 @@ public class ShopInfoDialog extends Screen {
             currencyBox.setFocused(true);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelTab(g, left, top);
 
         g.drawString(this.font, Component.translatable("qshop.gui.edit_shop"), left + LABEL_X, top + 8, 0xFFFFFF);
@@ -162,7 +171,7 @@ public class ShopInfoDialog extends Screen {
                     left + LABEL_X, top + 89, 0xFFFFFF);
         }
 
-        super.render(g, mouseX, mouseY, partialTick);
+        super.renderContent(g, mouseX, mouseY, partialTick);
 
         if (!icon.isEmpty() && mouseX >= left + CONTROL_X && mouseX < left + CONTROL_X + 20
                 && mouseY >= top + 48 && mouseY < top + 68) {

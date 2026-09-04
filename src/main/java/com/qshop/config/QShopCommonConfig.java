@@ -9,6 +9,10 @@ import java.util.List;
  */
 public final class QShopCommonConfig {
 
+    /** Preferred starting value; the usable range follows the current Minecraft GUI Scale. */
+    public static final double DEFAULT_GUI_SCALE = 5.0D;
+    public static final double GUI_SCALE_STEP = 0.2D;
+
     public static final ForgeConfigSpec SPEC;
     /** Whether to show the translucent tab list fade masks. */
     public static final ForgeConfigSpec.BooleanValue SHOW_FADE_MASKS;
@@ -20,6 +24,8 @@ public final class QShopCommonConfig {
     public static final ForgeConfigSpec.ConfigValue<String> LAST_LAYOUT;
     /** Whether the local client should reopen the shop search box after restart. */
     public static final ForgeConfigSpec.BooleanValue SEARCH_ACTIVE;
+    /** Local QShop component scale preference, bounded for the current Minecraft GUI scale and window. */
+    public static final ForgeConfigSpec.ConfigValue<Double> GUI_SCALE;
     /** Whether a death applies currency retention rules. */
     public static final ForgeConfigSpec.BooleanValue LOSE_CURRENCY_ON_DEATH;
     /** Retention used for currencies without an explicit rule. */
@@ -81,6 +87,11 @@ public final class QShopCommonConfig {
                         "Whether the shop search box is active. The state is restored after restarting the game.",
                         "默认 false / Default: false")
                 .define("searchActive", false);
+        GUI_SCALE = b.comment(
+                        "QShop 界面使用自身缩放值，并随 Minecraft GUI Scale 根据当前窗口动态调整可用范围。",
+                        "QShop uses its own local scale value and dynamically adjusts its usable range for the current window and Minecraft GUI Scale.",
+                        "默认偏好值 5.0 / Default preference: 5.0")
+                .define("guiScale", DEFAULT_GUI_SCALE, QShopCommonConfig::validGuiScale);
         b.pop();
         SPEC = b.build();
     }
@@ -144,6 +155,24 @@ public final class QShopCommonConfig {
         }
     }
 
+    public static double guiScale() {
+        double value = GUI_SCALE.get();
+        if (!Double.isFinite(value) || value <= 0.0D) {
+            setGuiScale(DEFAULT_GUI_SCALE);
+            return DEFAULT_GUI_SCALE;
+        }
+        return value;
+    }
+
+    /** Persists the QShop-only component scale immediately. */
+    public static void setGuiScale(double scale) {
+        double value = Double.isFinite(scale) && scale > 0.0D ? scale : DEFAULT_GUI_SCALE;
+        if (Math.abs(GUI_SCALE.get() - value) > 0.0001D) {
+            GUI_SCALE.set(value);
+            SPEC.save();
+        }
+    }
+
     private static boolean validRule(Object value) {
         return value instanceof String && splitRule((String) value) != null;
     }
@@ -151,6 +180,14 @@ public final class QShopCommonConfig {
     private static boolean validLayout(Object value) {
         return value instanceof String
                 && ("standard".equalsIgnoreCase((String) value) || "wide".equalsIgnoreCase((String) value));
+    }
+
+    private static boolean validGuiScale(Object value) {
+        if (!(value instanceof Number)) {
+            return false;
+        }
+        double numeric = ((Number) value).doubleValue();
+        return Double.isFinite(numeric) && numeric > 0.0D;
     }
 
     private static String[] splitRule(String raw) {

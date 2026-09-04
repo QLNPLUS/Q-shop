@@ -238,18 +238,25 @@ public final class ShopTextures {
     // ---------------- 裁剪 ----------------
 
     /**
-     * 启用裁剪(左上角坐标 + 宽高,自动换算 GUI 缩放与 Y 翻转)。
+     * 启用裁剪(左上角坐标 + 宽高,同时换算 QShop 局部缩放、物理 GUI 缩放与 Y 翻转)。
      * 先 flush 保证裁剪只影响后续绘制的元素。
      */
     public static void enableScissor(GuiGraphics g, int x, int y, int w, int h) {
         g.flush();
-        com.mojang.blaze3d.platform.Window window = net.minecraft.client.Minecraft.getInstance().getWindow();
-        double scale = window.getGuiScale();
+        net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+        com.mojang.blaze3d.platform.Window window = minecraft.getWindow();
+        int viewportWidth = minecraft.screen == null ? window.getGuiScaledWidth() : minecraft.screen.width;
+        int viewportHeight = minecraft.screen == null ? window.getGuiScaledHeight() : minecraft.screen.height;
+        double left = QShopScreenInput.toScaledCoordinate(x, viewportWidth);
+        double top = QShopScreenInput.toScaledCoordinate(y, viewportHeight);
+        double right = QShopScreenInput.toScaledCoordinate(x + w, viewportWidth);
+        double bottom = QShopScreenInput.toScaledCoordinate(y + h, viewportHeight);
+        double guiScale = window.getGuiScale();
         com.mojang.blaze3d.systems.RenderSystem.enableScissor(
-                (int) (x * scale),
-                window.getHeight() - (int) ((y + h) * scale),
-                (int) (w * scale),
-                (int) (h * scale));
+                (int) Math.floor(left * guiScale),
+                window.getHeight() - (int) Math.ceil(bottom * guiScale),
+                Math.max(0, (int) Math.ceil((right - left) * guiScale)),
+                Math.max(0, (int) Math.ceil((bottom - top) * guiScale)));
     }
 
     public static void disableScissor(GuiGraphics g) {

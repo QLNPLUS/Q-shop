@@ -32,7 +32,7 @@ import java.util.Map;
  * 搜索支持:普通文字按名称、#标签(如 #minecraft:planks)、@命名空间(如 @tacz)。
  * 网格带平滑滚动动画;选择后通过回调返回 ItemStack;返回/关闭均回到上一个界面。
  */
-public class ItemPickerScreen extends Screen {
+public class ItemPickerScreen extends QShopScreen {
 
     public interface Picker {
         void onPick(ItemStack stack);
@@ -61,6 +61,16 @@ public class ItemPickerScreen extends Screen {
         super(Component.translatable("qshop.gui.pick_item"));
         this.previous = previous;
         this.picker = picker;
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     @Override
@@ -432,7 +442,7 @@ public class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         // 先全部取消聚焦,再聚焦被点击的输入框
         if (searchBox != null) {
             searchBox.setFocused(false);
@@ -449,7 +459,7 @@ public class ItemPickerScreen extends Screen {
             onClose();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
@@ -492,19 +502,18 @@ public class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    protected boolean mouseScrolledContent(double mouseX, double mouseY, double delta) {
         int direction = delta > 0 ? 1 : delta < 0 ? -1 : 0;
         int ns = Mth.clamp(scroll - direction * COLS, 0, maxScroll());
         if (ns != scroll) {
             scroll = ns;
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolledContent(mouseX, mouseY, delta);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelPicker(g,
                 px(ShopLayoutDebug.PickerWidget.PANEL, left),
                 py(ShopLayoutDebug.PickerWidget.PANEL, top));
@@ -545,7 +554,7 @@ public class ItemPickerScreen extends Screen {
         }
         ShopTextures.disableScissor(g);
 
-        super.render(g, mouseX, mouseY, partialTick);
+        super.renderContent(g, mouseX, mouseY, partialTick);
 
         // 悬浮物品 tooltip
         if (hovered >= 0) {
