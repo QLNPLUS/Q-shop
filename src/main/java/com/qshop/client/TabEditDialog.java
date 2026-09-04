@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 /**
  * 编辑子商店(tab)的名字、图标与任务/阶段要求(图标类似交易条目的展示物品,通过物品选择器选取)。
  */
-public class TabEditDialog extends Screen {
+public class TabEditDialog extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_H = 200;
@@ -60,6 +60,16 @@ public class TabEditDialog extends Screen {
             this.stageDescriptionsStr = String.join(",", tab.requiredStageDescriptions);
             this.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
         }
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     @Override
@@ -296,7 +306,7 @@ public class TabEditDialog extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         nameBox.setFocused(false);
         descBox.setFocused(false);
         questsBox.setFocused(false);
@@ -322,12 +332,11 @@ public class TabEditDialog extends Screen {
             stageDescriptionsBox.setFocused(true);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelTab(g,
                 tx(ShopLayoutDebug.TabWidget.PANEL, left),
                 ty(ShopLayoutDebug.TabWidget.PANEL, top));

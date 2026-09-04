@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 - 2026-09-04
+
+### Added
+
+- Added the full trade-entry editor flow for creating new entries in edit mode.
+- Added the configured inventory-key shortcut for closing the main QShop screen when no text field is focused.
+- Added `Shift` + mouse-wheel zoom for QShop screens and saved the local zoom preference in the QShop configuration.
+- Adjusted the QShop zoom range dynamically to fit the current window and Minecraft GUI Scale, and doubled the zoom change per mouse-wheel step.
+
 ## 1.3.0 - 2026-09-01
 
 ### NeoForge 1.21.1

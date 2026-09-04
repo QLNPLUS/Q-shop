@@ -21,7 +21,7 @@ import java.util.function.Consumer;
  * 由二者组合推导条目类型:物品+货币=出售,货币+物品=购买,物品+物品=交换,货币/物品+指令=指令。
  * 布局为"流式重排":切换勾选后隐藏的行消失、后续行上移,不留空洞。
  */
-public class ShopAddDialog extends Screen {
+public class ShopAddDialog extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_H = 200;
@@ -71,6 +71,16 @@ public class ShopAddDialog extends Screen {
                 break;
             }
         }
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     private ShopEntryType derivedType() {
@@ -400,7 +410,7 @@ public class ShopAddDialog extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         for (EditBox b : collectBoxes()) {
             b.setFocused(false);
         }
@@ -410,7 +420,7 @@ public class ShopAddDialog extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     private List<EditBox> collectBoxes() {
@@ -424,8 +434,7 @@ public class ShopAddDialog extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelAdd(g,
                 tx(ShopLayoutDebug.TradeWidget.PANEL, left),
                 ty(ShopLayoutDebug.TradeWidget.PANEL, top));

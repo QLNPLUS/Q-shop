@@ -192,68 +192,82 @@ public class EditShopPacket implements CustomPacketPayload {
                 if (shop == null) {
                     return;
                 }
-                var list = shop.entriesOf(tabIndex);
-                if (entryIndex < 0 || entryIndex >= list.size()) {
-                    return;
-                }
-                ShopEntry e = list.get(entryIndex);
                 ShopEntryType[] types = ShopEntryType.values();
-                if (typeId >= 0 && typeId < types.length) {
-                    e.type = types[typeId];
-                }
-                e.price = Math.max(0, price);
-                if (currency == null || currency.isEmpty() || CurrencyRegistry.get(currency) != null) {
-                    e.currencyId = currency == null ? "" : currency;
-                }
-                e.globalLimit = globalLimit < -1 ? -1 : globalLimit;
-                e.playerLimit = playerLimit < -1 ? -1 : playerLimit;
-                e.reset = LimitReset.fromName(reset);
-                e.commands.clear();
-                if (e.type == ShopEntryType.COMMAND) {
-                    for (ShopCommand sc : commands) {
-                        if (sc.command != null && !sc.command.isEmpty()) {
-                            e.commands.add(sc);
-                        }
+                ShopEntryType entryType = typeId >= 0 && typeId < types.length
+                        ? types[typeId] : ShopEntryType.BUY;
+                var list = shop.entriesOf(tabIndex);
+                if (entryIndex < 0) {
+                    ShopEntry e = new ShopEntry();
+                    apply(e, entryType);
+                    if (!validNewEntry(e)) {
+                        return;
                     }
-                }
-                e.displayName = displayName == null ? "" : displayName;
-                e.description = description == null ? "" : description;
-                e.displayItem = displayItem == null ? ItemStack.EMPTY : displayItem.copy();
-                e.requiredQuests.clear();
-                e.requiredQuests.addAll(requiredQuests);
-                e.requiredStages.clear();
-                e.requiredStages.addAll(requiredStages);
-                e.requiredStageDescriptions.clear();
-                e.requiredStageDescriptions.addAll(requiredStageDescriptions);
-                e.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
-                if (e.type == ShopEntryType.BARTER) {
-                    e.give.clear();
-                    e.receive.clear();
-                    if (item != null && !item.isEmpty()) {
-                        e.receive.add(item.copy());
-                    }
-                    if (giveItem != null && !giveItem.isEmpty()) {
-                        e.give.add(giveItem.copy());
-                    }
-                    if (!e.receive.isEmpty()) {
-                        applyItemDetails(e.receive.get(0), itemCount, itemNbt);
-                    }
-                    e.item = ItemStack.EMPTY;
+                    e.ensureUuid();
+                    list.add(e);
                 } else {
-                    if (item != null && !item.isEmpty()) {
-                        e.item = item.copy();
+                    if (entryIndex >= list.size()) {
+                        return;
                     }
-                    if (!e.item.isEmpty()) {
-                        applyItemDetails(e.item, itemCount, itemNbt);
-                    }
-                    if (e.type != ShopEntryType.COMMAND) {
-                        e.give.clear();
-                        e.receive.clear();
-                    }
+                    apply(list.get(entryIndex), entryType);
                 }
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
         });
+    }
+
+    private void apply(ShopEntry e, ShopEntryType entryType) {
+        e.type = entryType;
+        e.price = Math.max(0, price);
+        if (currency == null || currency.isEmpty() || CurrencyRegistry.get(currency) != null) {
+            e.currencyId = currency == null ? "" : currency;
+        }
+        e.globalLimit = globalLimit < -1 ? -1 : globalLimit;
+        e.playerLimit = playerLimit < -1 ? -1 : playerLimit;
+        e.reset = LimitReset.fromName(reset);
+        e.commands.clear();
+        if (e.type == ShopEntryType.COMMAND) {
+            for (ShopCommand sc : commands) {
+                if (sc.command != null && !sc.command.isEmpty()) {
+                    e.commands.add(sc);
+                }
+            }
+        }
+        e.displayName = displayName == null ? "" : displayName;
+        e.description = description == null ? "" : description;
+        e.displayItem = displayItem == null ? ItemStack.EMPTY : displayItem.copy();
+        e.requiredQuests.clear();
+        e.requiredQuests.addAll(requiredQuests);
+        e.requiredStages.clear();
+        e.requiredStages.addAll(requiredStages);
+        e.requiredStageDescriptions.clear();
+        e.requiredStageDescriptions.addAll(requiredStageDescriptions);
+        e.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
+        if (e.type == ShopEntryType.BARTER) {
+            e.item = ItemStack.EMPTY;
+            e.give.clear();
+            e.receive.clear();
+            if (item != null && !item.isEmpty()) {
+                e.receive.add(item.copy());
+            }
+            if (giveItem != null && !giveItem.isEmpty()) {
+                e.give.add(giveItem.copy());
+            }
+            if (!e.receive.isEmpty()) {
+                applyItemDetails(e.receive.get(0), itemCount, itemNbt);
+            }
+        } else {
+            e.give.clear();
+            e.receive.clear();
+            e.item = item == null ? ItemStack.EMPTY : item.copy();
+            if (!e.item.isEmpty()) {
+                applyItemDetails(e.item, itemCount, itemNbt);
+            }
+        }
+    }
+
+    private static boolean validNewEntry(ShopEntry e) {
+        return e.type == ShopEntryType.COMMAND
+                || (e.type == ShopEntryType.BARTER ? !e.receive.isEmpty() : !e.item.isEmpty());
     }
 
     /** 应用交易物品的数量与 NBT(SNBT 文本;空文本清除 NBT) */

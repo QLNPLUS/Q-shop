@@ -9,7 +9,7 @@
 
 ## Full Description
 
-# QShop 1.3.0
+# QShop 1.4.0
 
 **QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Choose the loader-specific QShop file for your instance, then create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
@@ -94,8 +94,8 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 Release files use the format `modid-modloader-modloaderVersion-modVersion.jar`:
 
-- `qshop-forge-1.20.1-1.3.0.jar`
-- `qshop-neoforge-1.21.1-1.3.0.jar`
+- `qshop-forge-1.20.1-1.4.0.jar`
+- `qshop-neoforge-1.21.1-1.4.0.jar`
 
 ```text
 <world>/serverconfig/qshop/currencies.json

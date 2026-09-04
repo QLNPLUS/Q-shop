@@ -40,7 +40,7 @@ import java.util.Optional;
  * 商店主界面:可切换 7x3 / 8x4 的列 x 行网格,平滑滚动动画;
  * 点击条目打开交易子窗口;编辑模式支持拖拽交换排序、右键菜单(悬浮式,不替换界面)。
  */
-public class ShopScreen extends Screen {
+public class ShopScreen extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_W_WIDE = 280;
@@ -179,6 +179,16 @@ public class ShopScreen extends Screen {
     }
 
     @Override
+    protected int qshopContentWidth() {
+        return TAB_BAR_W + 6 + panelWidth();
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
+    }
+
+    @Override
     protected void init() {
         ShopLayoutDebug.beginScreen(wideLayout);
         configureLayout();
@@ -193,7 +203,10 @@ public class ShopScreen extends Screen {
 
     private void configureLayout() {
         int width = wideLayout ? GUI_W_WIDE : GUI_W;
-        this.left = Math.max(TAB_BAR_W + 8, (this.width - width) / 2);
+        int groupWidth = TAB_BAR_W + 6 + width;
+        int groupLeft = (this.width - groupWidth) / 2;
+        // left stores the panel origin; include the tab bar in the centered group.
+        this.left = groupLeft + TAB_BAR_W + 6;
         this.top = (this.height - GUI_H) / 2;
         if (wideLayout) {
             // 8x4:略缩小格子和行距，保留 200px 面板高度，并为滚动条留出右侧空间。
@@ -383,8 +396,7 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         if (wideLayout) {
             ShopTextures.panelWide(g, panelX(), panelY());
         } else {
@@ -1133,7 +1145,7 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         // 浮层在按下阶段关闭后，同一次鼠标序列仍由浮层消费，不能落到底层条目。
         if (overlayPointerCapture && menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0) {
             return true;
@@ -1304,11 +1316,11 @@ public class ShopScreen extends Screen {
             openTrade(index);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    protected boolean mouseDraggedContent(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (overlayPointerCapture && menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0) {
             return true;
         }
@@ -1332,11 +1344,11 @@ public class ShopScreen extends Screen {
             dragActive = true;
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDraggedContent(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    protected boolean mouseReleasedContent(double mouseX, double mouseY, int button) {
         if (overlayPointerCapture) {
             overlayPointerCapture = false;
             pressedIndex = -1;
@@ -1383,7 +1395,7 @@ public class ShopScreen extends Screen {
             openEdit(index);
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleasedContent(mouseX, mouseY, button);
     }
 
     /** 本地预览交换并通知服务端 */
@@ -1482,7 +1494,15 @@ public class ShopScreen extends Screen {
                 return true;
             }
         }
+        if (QShopScreenInput.handleInventoryKey(this, keyCode, scanCode, hasFocusedInput())) {
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean hasFocusedInput() {
+        return (searchBox != null && searchBox.isFocused())
+                || (tradeUnitsBox != null && tradeUnitsBox.isFocused());
     }
 
     @Override
@@ -1499,7 +1519,7 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+    protected boolean mouseScrolledContent(double mouseX, double mouseY, double deltaX, double deltaY) {
         if (menuIndex >= 0 || tabMenuIndex >= 0 || tradeIndex >= 0) {
             return true; // 菜单/交易窗打开时锁定商店滚动
         }
@@ -1517,7 +1537,7 @@ public class ShopScreen extends Screen {
             scroll = ns;
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
+        return super.mouseScrolledContent(mouseX, mouseY, deltaX, deltaY);
     }
 
     private static int wheelDirection(double delta) {
@@ -1848,7 +1868,7 @@ public class ShopScreen extends Screen {
 
     void openAdd() {
         rememberEditModeForTransition(editMode);
-        Minecraft.getInstance().setScreen(new ShopAddDialog(data, scroll, editMode));
+        Minecraft.getInstance().setScreen(new ShopEditDialog(data, scroll, editMode));
     }
 
     /** 打开编辑模式右键菜单(悬浮在商店界面上,不替换屏幕) */

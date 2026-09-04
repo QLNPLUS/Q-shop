@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * 组合推导条目类型。布局为"流式重排":切换勾选后,隐藏的行消失、后续行上移补齐,
  * 不会留下空洞;指令区独立成块,不与首行指令冲突。
  */
-public class ShopEditDialog extends Screen {
+public class ShopEditDialog extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_H = 300;
@@ -54,6 +54,7 @@ public class ShopEditDialog extends Screen {
     private final ClientShopEntry entry;
     private final int backScroll;
     private final boolean backEditMode;
+    private final boolean adding;
 
     // ---- 交易形状(勾选状态,可由用户切换;保存时按组合推导类型) ----
     private boolean giveItemMode = true;
@@ -85,63 +86,99 @@ public class ShopEditDialog extends Screen {
     private int commandBaseY;
 
     public ShopEditDialog(OpenShopPacket data, int entryIndex, int backScroll, boolean backEditMode) {
+        this(data, entryIndex, backScroll, backEditMode, false);
+    }
+
+    /** Opens the full editor with blank values for creating a new entry. */
+    public ShopEditDialog(OpenShopPacket data, int backScroll, boolean backEditMode) {
+        this(data, -1, backScroll, backEditMode, true);
+    }
+
+    private ShopEditDialog(OpenShopPacket data, int entryIndex, int backScroll, boolean backEditMode,
+                           boolean adding) {
         super(Component.translatable("qshop.gui.edit_title"));
         this.data = data;
-        this.entry = data.entries.get(entryIndex);
-        this.entryIndex = this.entry.serverIndex >= 0 ? this.entry.serverIndex : entryIndex;
         this.backScroll = backScroll;
         this.backEditMode = backEditMode;
+        this.adding = adding;
 
-        this.titleStr = entry.displayName == null ? "" : entry.displayName;
-        this.descStr = entry.description == null ? "" : entry.description;
-        this.displayItem = entry.displayItem.copy();
-        switch (entry.type) {
-            case BUY -> {
-                giveItemMode = false;
-                shopMode = 1;
-                shopItem = entry.item.copy();
-            }
-            case SELL -> {
-                giveItemMode = true;
-                shopMode = 0;
-                playerItem = entry.item.copy();
-            }
-            case BARTER -> {
-                giveItemMode = true;
-                shopMode = 1;
-                playerItem = entry.give.isEmpty() ? ItemStack.EMPTY : entry.give.get(0).copy();
-                shopItem = entry.receive.isEmpty() ? ItemStack.EMPTY : entry.receive.get(0).copy();
-            }
-            case COMMAND -> {
-                giveItemMode = !entry.item.isEmpty();
-                shopMode = 2;
-                playerItem = entry.item.copy();
-            }
+        if (adding) {
+            this.entry = new ClientShopEntry();
+            this.entry.type = ShopEntryType.SELL;
+            this.entry.currencyId = data.shopCurrency;
+            this.entryIndex = -1;
+            this.giveItemMode = true;
+            this.shopMode = 0;
+            this.priceStr = "1";
+        } else {
+            this.entry = data.entries.get(entryIndex);
+            this.entryIndex = this.entry.serverIndex >= 0 ? this.entry.serverIndex : entryIndex;
         }
-        this.priceStr = com.qshop.currency.CurrencyRegistry.format(entry.price);
-        this.globalStr = String.valueOf(entry.globalLimit);
-        this.playerStr = String.valueOf(entry.playerLimit);
+
+        if (!adding) {
+            this.titleStr = entry.displayName == null ? "" : entry.displayName;
+            this.descStr = entry.description == null ? "" : entry.description;
+            this.displayItem = entry.displayItem.copy();
+            switch (entry.type) {
+                case BUY -> {
+                    giveItemMode = false;
+                    shopMode = 1;
+                    shopItem = entry.item.copy();
+                }
+                case SELL -> {
+                    giveItemMode = true;
+                    shopMode = 0;
+                    playerItem = entry.item.copy();
+                }
+                case BARTER -> {
+                    giveItemMode = true;
+                    shopMode = 1;
+                    playerItem = entry.give.isEmpty() ? ItemStack.EMPTY : entry.give.get(0).copy();
+                    shopItem = entry.receive.isEmpty() ? ItemStack.EMPTY : entry.receive.get(0).copy();
+                }
+                case COMMAND -> {
+                    giveItemMode = !entry.item.isEmpty();
+                    shopMode = 2;
+                    playerItem = entry.item.copy();
+                }
+            }
+            this.priceStr = com.qshop.currency.CurrencyRegistry.format(entry.price);
+            this.globalStr = String.valueOf(entry.globalLimit);
+            this.playerStr = String.valueOf(entry.playerLimit);
+        }
         for (int i = 0; i < data.currencies.size(); i++) {
             if (data.currencies.get(i).id.equals(entry.currencyId)) {
                 this.currencyIdx = i;
                 break;
             }
         }
-        this.reset = LimitReset.fromName(entry.resetName);
-        for (ShopCommand sc : entry.commands) {
-            CommandData cd = new CommandData();
-            cd.cmd = sc.command;
-            cd.op = sc.op;
-            cd.silent = sc.silent;
-            commands.add(cd);
+        if (!adding) {
+            this.reset = LimitReset.fromName(entry.resetName);
+            for (ShopCommand sc : entry.commands) {
+                CommandData cd = new CommandData();
+                cd.cmd = sc.command;
+                cd.op = sc.op;
+                cd.silent = sc.silent;
+                commands.add(cd);
+            }
+            this.questsStr = String.join(",", entry.requiredQuests);
+            this.stagesStr = String.join(",", entry.requiredStages);
+            this.stageDescriptionsStr = String.join(",", entry.requiredStageDescriptions);
+            this.showWhenRequirementsNotMet = entry.showWhenRequirementsNotMet;
         }
         while (commands.isEmpty()) {
             commands.add(new CommandData());
         }
-        this.questsStr = String.join(",", entry.requiredQuests);
-        this.stagesStr = String.join(",", entry.requiredStages);
-        this.stageDescriptionsStr = String.join(",", entry.requiredStageDescriptions);
-        this.showWhenRequirementsNotMet = entry.showWhenRequirementsNotMet;
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     private ShopEntryType derivedType() {
@@ -625,7 +662,7 @@ public class ShopEditDialog extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         for (EditBox b : collectBoxes()) {
             b.setFocused(false);
         }
@@ -635,12 +672,11 @@ public class ShopEditDialog extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelEdit(g,
                 tx(ShopLayoutDebug.TradeWidget.PANEL, left),
                 ty(ShopLayoutDebug.TradeWidget.PANEL, top));

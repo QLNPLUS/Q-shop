@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  * 物品详情编辑子窗口:数量 + NBT(多行编辑,支持 Ctrl+A/X/C/V 等快捷键)。
  * 保存后通过回调把新物品写回父界面(展示物品 / 交易物品均可编辑)。
  */
-public class ItemNbtScreen extends Screen {
+public class ItemNbtScreen extends QShopScreen {
 
     private static final int GUI_W = 250;
     private static final int GUI_H = 280;
@@ -39,6 +39,16 @@ public class ItemNbtScreen extends Screen {
         this.parent = parent;
         this.stack = stack;
         this.onSave = onSave;
+    }
+
+    @Override
+    protected int qshopContentWidth() {
+        return GUI_W;
+    }
+
+    @Override
+    protected int qshopContentHeight() {
+        return GUI_H;
     }
 
     @Override
@@ -96,7 +106,7 @@ public class ItemNbtScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         countBox.setFocused(false);
         nbtBox.setFocused(false);
         if (countBox.mouseClicked(mouseX, mouseY, button)) {
@@ -107,7 +117,7 @@ public class ItemNbtScreen extends Screen {
             nbtBox.setFocused(true);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClickedContent(mouseX, mouseY, button);
     }
 
     @Override
@@ -133,8 +143,7 @@ public class ItemNbtScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        ShopTextures.background(g, this.width, this.height);
+    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelEdit(g, left, top);
 
         if (!stack.isEmpty()) {
