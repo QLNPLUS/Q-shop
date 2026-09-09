@@ -2,8 +2,11 @@ package com.qshop.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -208,10 +211,12 @@ public class MultilineTextBox extends AbstractWidget {
     // ---------------- 输入路由 ----------------
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         if (!isFocused()) {
             return false;
         }
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
         if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
@@ -296,10 +301,11 @@ public class MultilineTextBox extends AbstractWidget {
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
+    public boolean charTyped(CharacterEvent event) {
         if (!isFocused()) {
             return false;
         }
+        int codePoint = event.codepoint();
         if (codePoint >= 32) {
             insertText(String.valueOf(codePoint));
             return true;
@@ -308,7 +314,10 @@ public class MultilineTextBox extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0 && isMouseOver(mouseX, mouseY)) {
             setFocused(true);
             int line = Mth.clamp(scrollLines + (int) ((mouseY - getY()) / font.lineHeight), 0, lineCount() - 1);
@@ -342,7 +351,7 @@ public class MultilineTextBox extends AbstractWidget {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int x = getX();
         int y = getY();
         int w = getWidth();
@@ -375,7 +384,7 @@ public class MultilineTextBox extends AbstractWidget {
                     g.fill(sx, ty - 1, sx + sw, ty + lineH - 1, 0x804040A0);
                 }
             }
-            g.drawString(font, value.substring(s, e), x + 2, ty, 0xFFFFFFFF);
+            g.text(font, value.substring(s, e), x + 2, ty, 0xFFFFFFFF);
             // 光标(闪烁)
             if (isFocused() && line == lineOf(cursor) && (System.currentTimeMillis() / 500) % 2 == 0) {
                 int col = colOf(cursor);

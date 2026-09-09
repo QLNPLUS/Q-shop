@@ -7,7 +7,7 @@ import com.qshop.currency.Currency;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.world.item.ItemStack;
 
@@ -22,7 +22,7 @@ import java.util.Map;
 public class OpenShopPacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<OpenShopPacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "open_shop"));
+            Identifier.fromNamespaceAndPath(QShopMod.MODID, "open_shop"));
     public static final StreamCodec<RegistryFriendlyByteBuf, OpenShopPacket> STREAM_CODEC =
             CustomPacketPayload.codec(OpenShopPacket::encode, OpenShopPacket::decode);
 

@@ -64,11 +64,11 @@ public class PurchaseCounts {
 
     public void deserialize(CompoundTag tag) {
         map.clear();
-        for (String key : tag.getAllKeys()) {
-            CompoundTag en = tag.getCompound(key);
+        for (String key : tag.keySet()) {
+            CompoundTag en = tag.getCompoundOrEmpty(key);
             Entry e = new Entry();
-            e.count = en.getInt("count");
-            e.period = en.getString("period");
+            e.count = en.getIntOr("count", 0);
+            e.period = en.getStringOr("period", "all");
             map.put(key, e);
         }
     }

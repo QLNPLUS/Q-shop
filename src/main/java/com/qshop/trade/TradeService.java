@@ -19,7 +19,7 @@ import com.qshop.wallet.WalletCapability;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -53,7 +53,7 @@ public final class TradeService {
             return;
         }
         if (QShopServerConfig.tradeMessagesInActionBar()) {
-            player.displayClientMessage(msg, true);
+            player.sendSystemMessage(msg, true);
         } else {
             player.sendSystemMessage(msg);
         }
@@ -102,7 +102,7 @@ public final class TradeService {
         QShopSavedData data = null;
         boolean track = e.globalLimit > 0 || e.playerLimit > 0;
         if (e.globalLimit > 0) {
-            data = QShopSavedData.get(player.getServer());
+            data = QShopSavedData.get(player.level().getServer());
             usedGlobal = data.globalCounts.getCount(key, period);
         }
         if (e.playerLimit > 0) {
@@ -256,7 +256,7 @@ public final class TradeService {
                     continue;
                 }
                 String cmd = sc.command
-                        .replace("%player%", player.getGameProfile().getName())
+                        .replace("%player%", player.getGameProfile().name())
                         .replace("%player_uuid%", player.getUUID().toString())
                         .replace("%shop%", shop.id)
                         .replace("%shop_uuid%", shop.uuid.toString())
@@ -267,15 +267,14 @@ public final class TradeService {
                         .replace("%currency%", e.currencyId)
                         .replace("%multiplier%", String.valueOf(commandUnits));
                 try {
-                    CommandSourceStack source = new CommandSourceStack(
-                            player, player.position(), player.getRotationVector(), null,
-                            sc.op ? 4 : 0,
-                            player.getGameProfile().getName(), player.getDisplayName(),
-                            player.getServer(), player);
+                    CommandSourceStack source = player.createCommandSourceStack()
+                            .withPermission(sc.op
+                                    ? net.minecraft.server.permissions.LevelBasedPermissionSet.OWNER
+                                    : net.minecraft.server.permissions.LevelBasedPermissionSet.ALL);
                     if (sc.silent) {
                         source = source.withSuppressedOutput();
                     }
-                    player.getServer().getCommands().performPrefixedCommand(source, cmd);
+                    player.level().getServer().getCommands().performPrefixedCommand(source, cmd);
                 } catch (Exception ex) {
                     LOGGER.warn("QShop: 购买指令执行失败: {}", cmd, ex);
                 }
@@ -322,7 +321,7 @@ public final class TradeService {
     public static TradeResult tradeHandler(ServerPlayer player, IItemHandler inventory,
                                             String shopRef, Object tabRef, Object entryRef,
                                             int requestedUnits, ShopEntryType expectedType,
-                                            ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                            Identifier source, @Nullable BlockPos sourcePos) {
         if (player == null || inventory == null || shopRef == null || expectedType == null
                 || requestedUnits < 1) {
             return TradeResult.failure(TradeResult.Status.INVALID_ARGUMENT, requestedUnits,
@@ -372,7 +371,7 @@ public final class TradeService {
         int usedPlayer = 0;
         boolean track = e.globalLimit > 0 || e.playerLimit > 0;
         if (e.globalLimit > 0) {
-            data = QShopSavedData.get(player.getServer());
+            data = QShopSavedData.get(player.level().getServer());
             usedGlobal = data.globalCounts.getCount(key, period);
         }
         if (e.playerLimit > 0) {
@@ -499,7 +498,7 @@ public final class TradeService {
     public static TradeResult barterHandler(ServerPlayer player, IItemHandler input,
                                              IItemHandler output, String shopRef,
                                              Object tabRef, Object entryRef, int requestedUnits,
-                                             ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                             Identifier source, @Nullable BlockPos sourcePos) {
         if (player == null || input == null || output == null || shopRef == null
                 || requestedUnits < 1) {
             return TradeResult.failure(TradeResult.Status.INVALID_ARGUMENT, requestedUnits,
@@ -550,7 +549,7 @@ public final class TradeService {
         int usedPlayer = 0;
         boolean track = e.globalLimit > 0 || e.playerLimit > 0;
         if (e.globalLimit > 0) {
-            data = QShopSavedData.get(player.getServer());
+            data = QShopSavedData.get(player.level().getServer());
             usedGlobal = data.globalCounts.getCount(key, period);
         }
         if (e.playerLimit > 0) {

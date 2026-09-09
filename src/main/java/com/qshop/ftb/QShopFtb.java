@@ -1,7 +1,7 @@
 package com.qshop.ftb;
 
 import com.qshop.QShopMod;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.ModList;
 
 import java.util.Locale;
@@ -49,15 +49,13 @@ public final class QShopFtb {
     }
 
     private static void registerTypes() {
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath("qshop", "money");
+        Identifier id = Identifier.fromNamespaceAndPath("qshop", "money");
         QShopMoneyTask.TYPE = dev.ftb.mods.ftbquests.quest.task.TaskTypes.register(id,
                 QShopMoneyTask::new,
-                () -> dev.ftb.mods.ftblibrary.icon.Icon.getIcon("qshop:textures/gui/ftb_money.png"))
-                .setDisplayName(net.minecraft.network.chat.Component.translatable("qshop.ftb.task_money"));
+                () -> dev.ftb.mods.ftblibrary.icon.Icon.getIcon("qshop:textures/gui/ftb_money.png"));
         QShopMoneyReward.TYPE = dev.ftb.mods.ftbquests.quest.reward.RewardTypes.register(id,
                 QShopMoneyReward::new,
-                () -> dev.ftb.mods.ftblibrary.icon.Icon.getIcon("qshop:textures/gui/ftb_money.png"))
-                .setDisplayName(net.minecraft.network.chat.Component.translatable("qshop.ftb.reward_money"));
+                () -> dev.ftb.mods.ftblibrary.icon.Icon.getIcon("qshop:textures/gui/ftb_money.png"));
     }
 
     /** 配置的货币 id(空 = QShop 默认货币) */

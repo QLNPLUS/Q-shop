@@ -5,7 +5,7 @@ import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.RemoveTabPacket;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -167,7 +167,7 @@ public class TabEditDialog extends QShopScreen {
                 ty(ShopLayoutDebug.TabWidget.DELETE_BUTTON, top + 154), 110, 16,
                 Component.translatable("qshop.gui.delete_tab"), b -> {
                     // 用服务端子商店序号发送(隐藏过滤后可见序号会错位)
-                    QShopNetwork.sendToServer(new RemoveTabPacket(data.shopId, tab.serverIndex));
+                    QShopClientNetwork.sendToServer(new RemoveTabPacket(data.shopId, tab.serverIndex));
                     back();
                 }));
         addRenderableWidget(new QButton(
@@ -203,7 +203,7 @@ public class TabEditDialog extends QShopScreen {
     }
 
     private void save() {
-        QShopNetwork.sendToServer(new EditTabPacket(data.shopId, tab.serverIndex, nameStr, descStr, icon,
+                    QShopClientNetwork.sendToServer(new EditTabPacket(data.shopId, tab.serverIndex, nameStr, descStr, icon,
                 splitList(questsStr), splitList(stagesStr), splitStageDescriptions(stageDescriptionsStr),
                 showWhenRequirementsNotMet));
         back();
@@ -238,7 +238,7 @@ public class TabEditDialog extends QShopScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
         if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
             ShopLayoutDebug.toggle();
             rebuildTabWidgets();
@@ -262,22 +262,22 @@ public class TabEditDialog extends QShopScreen {
                 return true;
             }
         }
-        if (nameBox.isFocused() && nameBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (nameBox.isFocused() && nameBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        if (descBox.isFocused() && descBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (descBox.isFocused() && descBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        if (questsBox.isFocused() && questsBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (questsBox.isFocused() && questsBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        if (stagesBox.isFocused() && stagesBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (stagesBox.isFocused() && stagesBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        if (stageDescriptionsBox.isFocused() && stageDescriptionsBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (stageDescriptionsBox.isFocused() && stageDescriptionsBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     private boolean hasFocusedBox() {
@@ -286,23 +286,23 @@ public class TabEditDialog extends QShopScreen {
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (nameBox.isFocused() && nameBox.charTyped(codePoint, modifiers)) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
+        if (nameBox.isFocused() && nameBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        if (descBox.isFocused() && descBox.charTyped(codePoint, modifiers)) {
+        if (descBox.isFocused() && descBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        if (questsBox.isFocused() && questsBox.charTyped(codePoint, modifiers)) {
+        if (questsBox.isFocused() && questsBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        if (stagesBox.isFocused() && stagesBox.charTyped(codePoint, modifiers)) {
+        if (stagesBox.isFocused() && stagesBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        if (stageDescriptionsBox.isFocused() && stageDescriptionsBox.charTyped(codePoint, modifiers)) {
+        if (stageDescriptionsBox.isFocused() && stageDescriptionsBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
@@ -312,23 +312,23 @@ public class TabEditDialog extends QShopScreen {
         questsBox.setFocused(false);
         stagesBox.setFocused(false);
         stageDescriptionsBox.setFocused(false);
-        if (nameBox.mouseClicked(mouseX, mouseY, button)) {
+        if (nameBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             nameBox.setFocused(true);
             return true;
         }
-        if (descBox.mouseClicked(mouseX, mouseY, button)) {
+        if (descBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             descBox.setFocused(true);
             return true;
         }
-        if (questsBox.mouseClicked(mouseX, mouseY, button)) {
+        if (questsBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             questsBox.setFocused(true);
             return true;
         }
-        if (stagesBox.mouseClicked(mouseX, mouseY, button)) {
+        if (stagesBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             stagesBox.setFocused(true);
             return true;
         }
-        if (stageDescriptionsBox.mouseClicked(mouseX, mouseY, button)) {
+        if (stageDescriptionsBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             stageDescriptionsBox.setFocused(true);
             return true;
         }
@@ -336,39 +336,39 @@ public class TabEditDialog extends QShopScreen {
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelTab(g,
                 tx(ShopLayoutDebug.TabWidget.PANEL, left),
                 ty(ShopLayoutDebug.TabWidget.PANEL, top));
 
-        g.drawString(this.font, Component.translatable("qshop.gui.edit_tab"),
+        g.text(this.font, Component.translatable("qshop.gui.edit_tab"),
                 tx(ShopLayoutDebug.TabWidget.TITLE, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.TITLE, top + 8), 0xFFFFFF);
+                ty(ShopLayoutDebug.TabWidget.TITLE, top + 8), 0xFFFFFFFF);
 
-        g.drawString(this.font, Component.translatable("qshop.gui.tab_name"),
+        g.text(this.font, Component.translatable("qshop.gui.tab_name"),
                 tx(ShopLayoutDebug.TabWidget.NAME_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.NAME_ROW, top + 29), 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.tab_icon"),
+                ty(ShopLayoutDebug.TabWidget.NAME_ROW, top + 29), 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.tab_icon"),
                 tx(ShopLayoutDebug.TabWidget.ICON_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.ICON_ROW, top + 51), 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.req_quests"),
+                ty(ShopLayoutDebug.TabWidget.ICON_ROW, top + 51), 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.req_quests"),
                 tx(ShopLayoutDebug.TabWidget.QUESTS_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.QUESTS_ROW, top + 69), 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.req_stages"),
+                ty(ShopLayoutDebug.TabWidget.QUESTS_ROW, top + 69), 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.req_stages"),
                 tx(ShopLayoutDebug.TabWidget.STAGES_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.STAGES_ROW, top + 87), 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.stage_descriptions"),
+                ty(ShopLayoutDebug.TabWidget.STAGES_ROW, top + 87), 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.stage_descriptions"),
                 tx(ShopLayoutDebug.TabWidget.STAGE_DESCRIPTIONS_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.STAGE_DESCRIPTIONS_ROW, top + 105), 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.tab_desc"),
+                ty(ShopLayoutDebug.TabWidget.STAGE_DESCRIPTIONS_ROW, top + 105), 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.tab_desc"),
                 tx(ShopLayoutDebug.TabWidget.DESCRIPTION_ROW, left + LABEL_X),
-                ty(ShopLayoutDebug.TabWidget.DESCRIPTION_ROW, top + 123), 0xFFFFFF);
+                ty(ShopLayoutDebug.TabWidget.DESCRIPTION_ROW, top + 123), 0xFFFFFFFF);
 
         // 图标(不画 slot 背景)
         int iconX = tx(ShopLayoutDebug.TabWidget.ICON_ROW, left + CONTROL_X + 2);
         int iconY = ty(ShopLayoutDebug.TabWidget.ICON_ROW, top + 48);
         if (!icon.isEmpty()) {
-            g.renderItem(icon, iconX, iconY);
+            g.item(icon, iconX, iconY);
         }
 
         for (EditBox box : editBoxes()) {
@@ -376,7 +376,7 @@ public class TabEditDialog extends QShopScreen {
                     box.getWidth() + 4, 12, box.isFocused());
         }
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        ShopTextures.extractWidgetRenderStates(this, g, mouseX, mouseY, partialTick);
 
         if (!icon.isEmpty() && mouseX >= iconX - 2 && mouseX < iconX + 18
                 && mouseY >= iconY && mouseY < iconY + 20) {
@@ -389,7 +389,7 @@ public class TabEditDialog extends QShopScreen {
         return List.of(nameBox, questsBox, stagesBox, stageDescriptionsBox, descBox);
     }
 
-    private void renderDebugOverlay(GuiGraphics g) {
+    private void renderDebugOverlay(GuiGraphicsExtractor g) {
         if (!ShopLayoutDebug.isEnabled()) {
             return;
         }
@@ -475,12 +475,10 @@ public class TabEditDialog extends QShopScreen {
                 return;
             }
         }
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500.0f);
+        g.pose().pushMatrix();
+        g.pose().translate(0, 0);
         ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
-        g.flush();
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override

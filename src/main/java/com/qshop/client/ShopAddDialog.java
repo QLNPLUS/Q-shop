@@ -5,7 +5,7 @@ import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
 import com.qshop.shop.ShopEntryType;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -333,7 +333,7 @@ public class ShopAddDialog extends QShopScreen {
                 give = ItemStack.EMPTY;
             }
         }
-        QShopNetwork.sendToServer(new AddEntryPacket(data.shopId, serverTabIndex(), (byte) type.ordinal(), price, currency,
+        QShopClientNetwork.sendToServer(new AddEntryPacket(data.shopId, serverTabIndex(), (byte) type.ordinal(), price, currency,
                 cmdStr, item, give, ItemStack.EMPTY,
                 splitList(questsStr), splitList(stagesStr), showWhenRequirementsNotMet));
         back();
@@ -358,7 +358,7 @@ public class ShopAddDialog extends QShopScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
         if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
             ShopLayoutDebug.toggle();
             rebuild();
@@ -383,11 +383,11 @@ public class ShopAddDialog extends QShopScreen {
             }
         }
         for (EditBox b : collectBoxes()) {
-            if (b.isFocused() && b.keyPressed(keyCode, scanCode, modifiers)) {
+            if (b.isFocused() && b.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
                 return true;
             }
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     private boolean hasFocusedBox() {
@@ -400,13 +400,13 @@ public class ShopAddDialog extends QShopScreen {
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
         for (EditBox b : collectBoxes()) {
-            if (b.isFocused() && b.charTyped(codePoint, modifiers)) {
+            if (b.isFocused() && b.charTyped(characterEvent(codePoint))) {
                 return true;
             }
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
@@ -415,7 +415,7 @@ public class ShopAddDialog extends QShopScreen {
             b.setFocused(false);
         }
         for (EditBox b : collectBoxes()) {
-            if (b.mouseClicked(mouseX, mouseY, button)) {
+            if (b.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
                 b.setFocused(true);
                 return true;
             }
@@ -434,60 +434,60 @@ public class ShopAddDialog extends QShopScreen {
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelAdd(g,
                 tx(ShopLayoutDebug.TradeWidget.PANEL, left),
                 ty(ShopLayoutDebug.TradeWidget.PANEL, top));
 
         ShopEntryType type = derivedType();
 
-        // drawString 的 Y 是字形顶部；按 14px 行高垂直居中。
-        g.drawString(this.font, Component.translatable("qshop.gui.player_give"),
-                tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + LABEL_X), rowPlayerGive + 2, 0xFFFFFF);
+        // text 的 Y 是字形顶部；按 14px 行高垂直居中。
+        g.text(this.font, Component.translatable("qshop.gui.player_give"),
+                tx(ShopLayoutDebug.TradeWidget.PLAYER_GIVE_ROW, left + LABEL_X), rowPlayerGive + 2, 0xFFFFFFFF);
         if (giveItemMode) {
-            g.drawString(this.font, Component.translatable("qshop.gui.player_item"),
-                    tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + LABEL_X), rowPlayerItem + 2, 0xFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.player_item"),
+                    tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + LABEL_X), rowPlayerItem + 2, 0xFFFFFFFF);
             drawItemIcon(g, playerItem,
                     tx(ShopLayoutDebug.TradeWidget.PLAYER_ITEM_ROW, left + CONTROL_X), rowPlayerItem);
         }
-        g.drawString(this.font, Component.translatable("qshop.gui.shop_give"),
-                tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + LABEL_X), rowShopGive + 2, 0xFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.shop_give"),
+                tx(ShopLayoutDebug.TradeWidget.SHOP_GIVE_ROW, left + LABEL_X), rowShopGive + 2, 0xFFFFFFFF);
         if (shopMode == 1) {
-            g.drawString(this.font, Component.translatable("qshop.gui.shop_item"),
-                    tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + LABEL_X), rowShopItem + 2, 0xFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.shop_item"),
+                    tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + LABEL_X), rowShopItem + 2, 0xFFFFFFFF);
             drawItemIcon(g, shopItem,
                     tx(ShopLayoutDebug.TradeWidget.SHOP_ITEM_ROW, left + CONTROL_X), rowShopItem);
         }
         if (showPrice()) {
-            g.drawString(this.font, priceLabel(),
-                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + LABEL_X), rowPrice + 2, 0xFFFFFF);
-            g.drawString(this.font, Component.translatable("qshop.gui.currency"),
-                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + SECOND_LABEL_X), rowPrice + 2, 0xFFFFFF);
+            g.text(this.font, priceLabel(),
+                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + LABEL_X), rowPrice + 2, 0xFFFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.currency"),
+                    tx(ShopLayoutDebug.TradeWidget.PRICE_ROW, left + SECOND_LABEL_X), rowPrice + 2, 0xFFFFFFFF);
         }
         if (shopMode == 2) {
-            g.drawString(this.font, Component.translatable("qshop.gui.commands"),
-                    tx(ShopLayoutDebug.TradeWidget.COMMAND_ROWS, left + LABEL_X), rowReqCmd + 2, 0xFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.commands"),
+                    tx(ShopLayoutDebug.TradeWidget.COMMAND_ROWS, left + LABEL_X), rowReqCmd + 2, 0xFFFFFFFF);
         } else {
-            g.drawString(this.font, Component.translatable("qshop.gui.req_quests"),
-                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + LABEL_X), rowReqCmd + 2, 0xFFFFFF);
-            g.drawString(this.font, Component.translatable("qshop.gui.req_stages"),
-                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_LABEL_X), rowReqCmd + 2, 0xFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.req_quests"),
+                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + LABEL_X), rowReqCmd + 2, 0xFFFFFFFF);
+            g.text(this.font, Component.translatable("qshop.gui.req_stages"),
+                    tx(ShopLayoutDebug.TradeWidget.REQUIREMENTS_ROW, left + SECOND_LABEL_X), rowReqCmd + 2, 0xFFFFFFFF);
         }
         int typeY = ty(ShopLayoutDebug.TradeWidget.TYPE_ROW, rowReqCmdBaseY + ROW_PITCH);
-        g.drawString(this.font, Component.translatable("qshop.gui.type"),
-                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + LABEL_X), typeY + 9, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.type." + type.name()),
-                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + CONTROL_X), typeY + 9, 0xFFAA00);
+        g.text(this.font, Component.translatable("qshop.gui.type"),
+                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + LABEL_X), typeY + 9, 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.type." + type.name()),
+                tx(ShopLayoutDebug.TradeWidget.TYPE_ROW, left + CONTROL_X), typeY + 9, 0xFFFFAA00);
 
         for (EditBox b : collectBoxes()) {
             ShopTextures.input(g, b.getX() - 2, b.getY() - 1, b.getWidth() + 4, 12, b.isFocused());
         }
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        ShopTextures.extractWidgetRenderStates(this, g, mouseX, mouseY, partialTick);
         renderDebugOverlay(g);
     }
 
-    private void renderDebugOverlay(GuiGraphics g) {
+    private void renderDebugOverlay(GuiGraphicsExtractor g) {
         if (!ShopLayoutDebug.isEnabled()) {
             return;
         }
@@ -564,12 +564,10 @@ public class ShopAddDialog extends QShopScreen {
                 return;
             }
         }
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500.0f);
+        g.pose().pushMatrix();
+        g.pose().translate(0, 0);
         ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
-        g.flush();
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     private String priceLabel() {
@@ -580,10 +578,10 @@ public class ShopAddDialog extends QShopScreen {
     }
 
     /** 物品图标:直接画物品(16x16),不画 slot 背景 */
-    private void drawItemIcon(GuiGraphics g, ItemStack stack, int x, int y) {
+    private void drawItemIcon(GuiGraphicsExtractor g, ItemStack stack, int x, int y) {
         if (!stack.isEmpty()) {
-            g.renderItem(stack, x + 2, y);
-            g.renderItemDecorations(this.font, stack, x + 2, y);
+            g.item(stack, x + 2, y);
+            g.itemDecorations(this.font, stack, x + 2, y);
         }
     }
 

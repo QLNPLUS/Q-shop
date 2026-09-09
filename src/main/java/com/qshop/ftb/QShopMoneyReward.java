@@ -4,7 +4,9 @@ import com.qshop.currency.CurrencyRegistry;
 import com.qshop.api.CurrencyService;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
-import dev.ftb.mods.ftblibrary.config.ConfigGroup;
+import de.marhali.json5.Json5Object;
+import dev.ftb.mods.ftblibrary.client.config.EditableConfigGroup;
+import dev.ftb.mods.ftblibrary.json5.Json5Util;
 import dev.ftb.mods.ftblibrary.util.TooltipList;
 import dev.ftb.mods.ftbquests.quest.Quest;
 import dev.ftb.mods.ftbquests.quest.reward.Reward;
@@ -40,21 +42,21 @@ public class QShopMoneyReward extends Reward {
     }
 
     @Override
-    public void writeData(CompoundTag nbt, HolderLookup.Provider provider) {
-        super.writeData(nbt, provider);
-        nbt.putString("currency", currency == null ? "" : currency);
-        nbt.putLong("value", value);
+    public void writeData(Json5Object data, HolderLookup.Provider provider) {
+        super.writeData(data, provider);
+        data.addProperty("currency", currency == null ? "" : currency);
+        data.addProperty("value", value);
         if (randomBonus > 0) {
-            nbt.putInt("random_bonus", randomBonus);
+            data.addProperty("random_bonus", randomBonus);
         }
     }
 
     @Override
-    public void readData(CompoundTag nbt, HolderLookup.Provider provider) {
-        super.readData(nbt, provider);
-        currency = nbt.getString("currency");
-        value = nbt.getLong("value");
-        randomBonus = nbt.getInt("random_bonus");
+    public void readData(Json5Object data, HolderLookup.Provider provider) {
+        super.readData(data, provider);
+        currency = Json5Util.getString(data, "currency").orElse("");
+        value = Math.max(1L, Json5Util.getLong(data, "value").orElse(1L));
+        randomBonus = Math.max(0, Json5Util.getInt(data, "random_bonus").orElse(0));
     }
 
     @Override
@@ -74,7 +76,7 @@ public class QShopMoneyReward extends Reward {
     }
 
     @Override
-    public void fillConfigGroup(ConfigGroup config) {
+    public void fillConfigGroup(EditableConfigGroup config) {
         super.fillConfigGroup(config);
         config.addString("currency", currency, v -> currency = v, "");
         config.addLong("value", value, v -> value = v, 1, 1, Long.MAX_VALUE);
@@ -90,7 +92,7 @@ public class QShopMoneyReward extends Reward {
         String id = QShopFtb.resolveCurrency(currency);
         long amount = value;
         if (randomBonus > 0) {
-            amount += player.serverLevel().random.nextInt(randomBonus + 1);
+            amount += player.level().getRandom().nextInt(randomBonus + 1);
         }
         CurrencyService.INSTANCE.deposit(player, id, amount,
                 CurrencyService.SOURCE_FTB_REWARD, null);
@@ -120,7 +122,7 @@ public class QShopMoneyReward extends Reward {
     public void addMouseOverText(TooltipList list) {
         super.addMouseOverText(list);
         // 悬停 tooltip:默认缩写 + 货币类型(如 "1K ￥"),按住 Shift 显示完整数字(如 "1000 ￥")
-        boolean shift = net.minecraft.client.gui.screens.Screen.hasShiftDown();
+        boolean shift = net.minecraft.client.Minecraft.getInstance().hasShiftDown();
         String text = shift ? CurrencyRegistry.format(value) : QShopFtb.formatCompact(value);
         if (randomBonus > 0) {
             String max = shift ? CurrencyRegistry.format(value + randomBonus) : QShopFtb.formatCompact(value + randomBonus);

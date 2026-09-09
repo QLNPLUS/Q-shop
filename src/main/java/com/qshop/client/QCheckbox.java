@@ -1,8 +1,9 @@
 package com.qshop.client;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.network.chat.Component;
@@ -29,7 +30,7 @@ public class QCheckbox extends AbstractButton {
     }
 
     @Override
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         selected = !selected;
         if (onChanged != null) {
             onChanged.accept(selected);
@@ -42,10 +43,10 @@ public class QCheckbox extends AbstractButton {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.checkbox(g, getX(), getY() + (height - 12) / 2, selected, isHovered());
         var font = Minecraft.getInstance().font;
-        g.drawString(font, getMessage(), getX() + 16, getY() + (height - font.lineHeight) / 2, 0xFFFFFF);
+        g.text(font, getMessage(), getX() + 16, getY() + (height - font.lineHeight) / 2, 0xFFFFFFFF);
     }
 
     /** 交互区域 = 勾选框材质非透明像素(+ 文字标签) */

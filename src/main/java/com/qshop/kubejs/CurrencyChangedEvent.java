@@ -2,7 +2,7 @@ package com.qshop.kubejs;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 import javax.annotation.Nullable;
@@ -15,7 +15,7 @@ public class CurrencyChangedEvent implements KubeEvent {
     private final double oldValue;
     private final double newValue;
     @Nullable
-    private final ResourceLocation source;
+    private final Identifier source;
     @Nullable
     private final BlockPos sourcePos;
 
@@ -28,7 +28,7 @@ public class CurrencyChangedEvent implements KubeEvent {
     }
 
     public CurrencyChangedEvent(ServerPlayer player, String currency, double oldValue, double newValue,
-                                @Nullable ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                @Nullable Identifier source, @Nullable BlockPos sourcePos) {
         this.player = player;
         this.currency = currency == null ? "" : currency;
         this.oldValue = oldValue;
@@ -58,7 +58,7 @@ public class CurrencyChangedEvent implements KubeEvent {
     }
 
     @Nullable
-    public ResourceLocation getSource() {
+    public Identifier getSource() {
         return source;
     }
 

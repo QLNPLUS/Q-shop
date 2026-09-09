@@ -6,7 +6,7 @@ import com.qshop.client.ClientPacketHandler;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class SyncWalletPacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<SyncWalletPacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "sync_wallet"));
+            Identifier.fromNamespaceAndPath(QShopMod.MODID, "sync_wallet"));
     public static final StreamCodec<FriendlyByteBuf, SyncWalletPacket> STREAM_CODEC =
             CustomPacketPayload.codec(SyncWalletPacket::encode, SyncWalletPacket::decode);
 

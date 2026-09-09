@@ -15,7 +15,7 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -31,7 +31,7 @@ import java.util.List;
 public class EditShopPacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<EditShopPacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "edit_shop"));
+            Identifier.fromNamespaceAndPath(QShopMod.MODID, "edit_shop"));
     public static final StreamCodec<RegistryFriendlyByteBuf, EditShopPacket> STREAM_CODEC =
             CustomPacketPayload.codec(EditShopPacket::encode, EditShopPacket::decode);
 
@@ -185,7 +185,7 @@ public class EditShopPacket implements CustomPacketPayload {
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
                 ServerPlayer player = (ServerPlayer) context.player();
-                if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
+                if (player == null || !player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER) || !player.isCreative()) {
                     return;
                 }
                 Shop shop = ShopManager.get(shopId);
@@ -275,7 +275,7 @@ public class EditShopPacket implements CustomPacketPayload {
         stack.setCount(Mth.clamp(count, 1, 1000));
         if (nbtText != null && !nbtText.isBlank()) {
             try {
-                ItemStackData.setCustomTag(stack, TagParser.parseTag(nbtText.trim()));
+                ItemStackData.setCustomTag(stack, TagParser.parseCompoundFully(nbtText.trim()));
             } catch (Exception ex) {
                 // NBT 解析失败则保留原 NBT
             }

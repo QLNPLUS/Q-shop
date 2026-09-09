@@ -3,7 +3,7 @@ package com.qshop.api;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.trade.TradeService;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -37,7 +37,7 @@ public final class QShopAddonApi {
     /** Executes a SELL entry with an addon source and block position. */
     public static TradeResult sell(ServerPlayer player, IItemHandler inventory,
                                    String shopRef, int tabIndex, int entryIndex,
-                                   int requestedUnits, ResourceLocation source,
+                                   int requestedUnits, Identifier source,
                                    @Nullable BlockPos sourcePos) {
         return TradeService.tradeHandler(player, inventory, shopRef, tabIndex, entryIndex,
                 requestedUnits, ShopEntryType.SELL, source, sourcePos);
@@ -54,7 +54,7 @@ public final class QShopAddonApi {
     /** Executes a SELL entry using a tab UUID/index and entry UUID/index reference. */
     public static TradeResult sell(ServerPlayer player, IItemHandler inventory,
                                    String shopRef, Object tabRef, Object entryRef,
-                                   int requestedUnits, ResourceLocation source,
+                                   int requestedUnits, Identifier source,
                                    @Nullable BlockPos sourcePos) {
         return TradeService.tradeHandler(player, inventory, shopRef, tabRef, entryRef,
                 requestedUnits, ShopEntryType.SELL, source, sourcePos);
@@ -71,7 +71,7 @@ public final class QShopAddonApi {
     /** Executes a BUY entry with an addon source and block position. */
     public static TradeResult buy(ServerPlayer player, IItemHandler inventory,
                                   String shopRef, int tabIndex, int entryIndex,
-                                  int requestedUnits, ResourceLocation source,
+                                  int requestedUnits, Identifier source,
                                   @Nullable BlockPos sourcePos) {
         return TradeService.tradeHandler(player, inventory, shopRef, tabIndex, entryIndex,
                 requestedUnits, ShopEntryType.BUY, source, sourcePos);
@@ -88,7 +88,7 @@ public final class QShopAddonApi {
     /** Executes a BUY entry using a tab UUID/index and entry UUID/index reference. */
     public static TradeResult buy(ServerPlayer player, IItemHandler inventory,
                                    String shopRef, Object tabRef, Object entryRef,
-                                   int requestedUnits, ResourceLocation source,
+                                   int requestedUnits, Identifier source,
                                    @Nullable BlockPos sourcePos) {
         return TradeService.tradeHandler(player, inventory, shopRef, tabRef, entryRef,
                 requestedUnits, ShopEntryType.BUY, source, sourcePos);
@@ -106,7 +106,7 @@ public final class QShopAddonApi {
     public static TradeResult barter(ServerPlayer player, IItemHandler input,
                                      IItemHandler output, String shopRef,
                                      int tabIndex, int entryIndex, int requestedUnits,
-                                     ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                     Identifier source, @Nullable BlockPos sourcePos) {
         return TradeService.barterHandler(player, input, output, shopRef, tabIndex, entryIndex,
                 requestedUnits, source, sourcePos);
     }
@@ -123,7 +123,7 @@ public final class QShopAddonApi {
     public static TradeResult barter(ServerPlayer player, IItemHandler input,
                                      IItemHandler output, String shopRef,
                                      Object tabRef, Object entryRef, int requestedUnits,
-                                     ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                     Identifier source, @Nullable BlockPos sourcePos) {
         return TradeService.barterHandler(player, input, output, shopRef, tabRef, entryRef,
                 requestedUnits, source, sourcePos);
     }

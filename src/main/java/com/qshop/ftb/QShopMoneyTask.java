@@ -4,7 +4,9 @@ import com.qshop.currency.CurrencyRegistry;
 import com.qshop.api.CurrencyService;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
-import dev.ftb.mods.ftblibrary.config.ConfigGroup;
+import de.marhali.json5.Json5Object;
+import dev.ftb.mods.ftblibrary.client.config.EditableConfigGroup;
+import dev.ftb.mods.ftblibrary.json5.Json5Util;
 import dev.ftb.mods.ftblibrary.util.TooltipList;
 import dev.ftb.mods.ftbquests.quest.Quest;
 import dev.ftb.mods.ftbquests.quest.TeamData;
@@ -69,17 +71,17 @@ public class QShopMoneyTask extends Task implements ISingleLongValueTask {
     }
 
     @Override
-    public void writeData(CompoundTag nbt, HolderLookup.Provider provider) {
-        super.writeData(nbt, provider);
-        nbt.putString("currency", currency == null ? "" : currency);
-        nbt.putLong("value", value);
+    public void writeData(Json5Object data, HolderLookup.Provider provider) {
+        super.writeData(data, provider);
+        data.addProperty("currency", currency == null ? "" : currency);
+        data.addProperty("value", value);
     }
 
     @Override
-    public void readData(CompoundTag nbt, HolderLookup.Provider provider) {
-        super.readData(nbt, provider);
-        currency = nbt.getString("currency");
-        value = nbt.getLong("value");
+    public void readData(Json5Object data, HolderLookup.Provider provider) {
+        super.readData(data, provider);
+        currency = Json5Util.getString(data, "currency").orElse("");
+        value = Math.max(1L, Json5Util.getLong(data, "value").orElse(1L));
     }
 
     @Override
@@ -97,7 +99,7 @@ public class QShopMoneyTask extends Task implements ISingleLongValueTask {
     }
 
     @Override
-    public void fillConfigGroup(ConfigGroup config) {
+    public void fillConfigGroup(EditableConfigGroup config) {
         super.fillConfigGroup(config);
         config.addString("currency", currency, v -> currency = v, "");
         config.addLong("value", value, v -> value = v, 1, 1, Long.MAX_VALUE);

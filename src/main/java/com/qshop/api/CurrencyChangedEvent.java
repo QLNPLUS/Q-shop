@@ -1,7 +1,7 @@
 package com.qshop.api;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.Event;
 
@@ -22,13 +22,13 @@ public class CurrencyChangedEvent extends Event {
     private final String currency;
     private final double oldValue;
     private final double newValue;
-    private final ResourceLocation source;
+    private final Identifier source;
     @Nullable
     private final BlockPos sourcePos;
 
     public CurrencyChangedEvent(ServerPlayer player, String currency,
                                 double oldValue, double newValue,
-                                ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                Identifier source, @Nullable BlockPos sourcePos) {
         this(player, player == null ? null : player.getUUID(), currency,
                 oldValue, newValue, source, sourcePos);
     }
@@ -36,7 +36,7 @@ public class CurrencyChangedEvent extends Event {
     /** Creates an event for an online player or an offline UUID. */
     public CurrencyChangedEvent(@Nullable ServerPlayer player, UUID playerUuid,
                                 String currency, double oldValue, double newValue,
-                                ResourceLocation source, @Nullable BlockPos sourcePos) {
+                                Identifier source, @Nullable BlockPos sourcePos) {
         if (playerUuid == null) {
             throw new IllegalArgumentException("Player UUID must not be null");
         }
@@ -75,7 +75,7 @@ public class CurrencyChangedEvent extends Event {
         return newValue - oldValue;
     }
 
-    public ResourceLocation getSource() {
+    public Identifier getSource() {
         return source;
     }
 

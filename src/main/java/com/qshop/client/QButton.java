@@ -1,7 +1,7 @@
 package com.qshop.client;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -15,12 +15,12 @@ public class QButton extends Button {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.button(g, getX(), getY(), width, height, isHovered(), active);
         var font = Minecraft.getInstance().font;
         String label = font.plainSubstrByWidth(getMessage().getString(), Math.max(0, width - 6));
         int color = active ? 0xFFFFFFFF : 0xFF9A9A9A;
-        g.drawCenteredString(font, label, getX() + width / 2, getY() + (height - font.lineHeight) / 2, color);
+        g.centeredText(font, label, getX() + width / 2, getY() + (height - font.lineHeight) / 2, color);
     }
 
     /** 交互区域 = 按钮材质非透明像素(修改材质大小即可改变按钮大小) */

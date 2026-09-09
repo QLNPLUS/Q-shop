@@ -42,13 +42,13 @@ public final class QShopCommands {
                         .then(Commands.argument("shop", StringArgumentType.word())
                                 .executes(ctx -> open(ctx, StringArgumentType.getString(ctx, "shop"), null))
                                 .then(Commands.argument("player", EntityArgument.player())
-                                        .requires(s -> s.hasPermission(2))
+                                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                         .executes(ctx -> open(ctx, StringArgumentType.getString(ctx, "shop"),
                                                 EntityArgument.getPlayer(ctx, "player"))))))
                 .then(Commands.literal("list").executes(QShopCommands::list))
                 .then(Commands.literal("balance").executes(QShopCommands::balance))
                 .then(Commands.literal("reload")
-                        .requires(s -> s.hasPermission(2))
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(ctx -> {
                             ShopManager.reload();
                             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.reloaded", ShopManager.all().size()), true);
@@ -57,13 +57,13 @@ public final class QShopCommands {
                 // ---------------- 货币管理 ----------------
                 .then(Commands.literal("currency")
                         .then(Commands.literal("list").executes(QShopCommands::currencyList))
-                        .then(Commands.literal("create").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("create").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                 .then(Commands.argument("id", StringArgumentType.word())
                                         .then(Commands.argument("name", StringArgumentType.string())
                                                 .executes(ctx -> currencyCreate(ctx, null))
                                                 .then(Commands.argument("color", StringArgumentType.string())
                                                         .executes(ctx -> currencyCreate(ctx, StringArgumentType.getString(ctx, "color")))))))
-                        .then(Commands.literal("give").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("give").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
@@ -71,7 +71,7 @@ public final class QShopCommands {
                                                         .then(Commands.argument("trigger", BoolArgumentType.bool())
                                                                 .executes(ctx -> currencyChange(ctx, true,
                                                                         BoolArgumentType.getBool(ctx, "trigger"))))))))
-                        .then(Commands.literal("take").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("take").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
@@ -79,7 +79,7 @@ public final class QShopCommands {
                                                         .then(Commands.argument("trigger", BoolArgumentType.bool())
                                                                 .executes(ctx -> currencyChange(ctx, false,
                                                                         BoolArgumentType.getBool(ctx, "trigger"))))))))
-                        .then(Commands.literal("set").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("set").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .then(Commands.argument("currency", StringArgumentType.word())
                                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0))
@@ -90,7 +90,7 @@ public final class QShopCommands {
                 // ---------------- 商店管理 ----------------
                 .then(Commands.literal("shop")
                         .then(Commands.literal("list").executes(QShopCommands::list))
-                        .then(Commands.literal("create").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("create").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                 .then(Commands.argument("id", StringArgumentType.word())
                                         .executes(ctx -> shopCreate(ctx, null, null))
                                         .then(Commands.argument("displayName", StringArgumentType.string())
@@ -100,7 +100,7 @@ public final class QShopCommands {
                                                                 StringArgumentType.getString(ctx, "displayName"),
                                                                 StringArgumentType.getString(ctx, "currency"))))))))
                 // ---------------- 游戏内编辑 ----------------
-                .then(Commands.literal("edit").requires(s -> s.hasPermission(2))
+                .then(Commands.literal("edit").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.argument("shop", StringArgumentType.word())
                                 .then(Commands.literal("add")
                                         .then(Commands.argument("type", StringArgumentType.word())
@@ -122,7 +122,7 @@ public final class QShopCommands {
                                                                 .executes(ctx -> setField(ctx))))))))
                 // ---------------- 工具 ----------------
                 .then(Commands.literal("item")
-                        .requires(s -> s.hasPermission(2))
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(ctx -> {
                             if (!(ctx.getSource().getEntity() instanceof ServerPlayer player)) {
                                 ctx.getSource().sendFailure(Component.translatable("qshop.cmd.player_required"));
@@ -200,12 +200,12 @@ public final class QShopCommands {
             CurrencyService.INSTANCE.deposit(player, currency, amount,
                     CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_give",
-                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
+                    player.getGameProfile().name(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         } else {
             CurrencyService.INSTANCE.withdraw(player, currency, amount,
                     CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_take",
-                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
+                    player.getGameProfile().name(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
         }
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
         return 1;
@@ -222,7 +222,7 @@ public final class QShopCommands {
         CurrencyService.INSTANCE.set(player, currency, amount,
                 CurrencyService.SOURCE_COMMAND, null, trigger);
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_set",
-                player.getGameProfile().getName(), CurrencyRegistry.displayName(currency), CurrencyRegistry.format(amount)), true);
+                player.getGameProfile().name(), CurrencyRegistry.displayName(currency), CurrencyRegistry.format(amount)), true);
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
         return 1;
     }

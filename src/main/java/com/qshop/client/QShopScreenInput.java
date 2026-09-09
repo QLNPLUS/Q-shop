@@ -3,11 +3,13 @@ package com.qshop.client;
 import com.qshop.config.QShopCommonConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 
 /** Shared keyboard and local coordinate behavior for the QShop screen chain. */
 public final class QShopScreenInput {
 
     private static final double MIN_SCALE_RATIO = 0.6D;
+    private static final double MAX_PRACTICAL_SCALE = 2.0D;
     private static final double SCREEN_MARGIN_LOGICAL_UNITS = 8.0D;
 
     private QShopScreenInput() {
@@ -54,6 +56,7 @@ public final class QShopScreenInput {
         if (!Double.isFinite(maximum) || maximum <= 0.0D) {
             maximum = Double.MIN_NORMAL;
         }
+        maximum = Math.min(maximum, MAX_PRACTICAL_SCALE);
         return new ScaleBounds(maximum * MIN_SCALE_RATIO, maximum);
     }
 
@@ -75,7 +78,7 @@ public final class QShopScreenInput {
         if (inputFocused) {
             return false;
         }
-        if (Minecraft.getInstance().options.keyInventory.matches(keyCode, scanCode)) {
+        if (Minecraft.getInstance().options.keyInventory.matches(new KeyEvent(keyCode, scanCode, 0))) {
             screen.onClose();
             return true;
         }

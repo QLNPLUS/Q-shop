@@ -4,7 +4,7 @@ import com.qshop.net.EditShopInfoPacket;
 import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -104,41 +104,41 @@ public class ShopInfoDialog extends QShopScreen {
     }
 
     private void save() {
-        QShopNetwork.sendToServer(new EditShopInfoPacket(data.shopId, nameStr, icon, currencyStr));
+        QShopClientNetwork.sendToServer(new EditShopInfoPacket(data.shopId, nameStr, icon, currencyStr));
         back();
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (nameBox.isFocused() && nameBox.keyPressed(keyCode, scanCode, modifiers)) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
+        if (nameBox.isFocused() && nameBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        if (currencyBox.isFocused() && currencyBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (currencyBox.isFocused() && currencyBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (nameBox.isFocused() && nameBox.charTyped(codePoint, modifiers)) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
+        if (nameBox.isFocused() && nameBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        if (currencyBox.isFocused() && currencyBox.charTyped(codePoint, modifiers)) {
+        if (currencyBox.isFocused() && currencyBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
     protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         nameBox.setFocused(false);
         currencyBox.setFocused(false);
-        if (nameBox.mouseClicked(mouseX, mouseY, button)) {
+        if (nameBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             nameBox.setFocused(true);
             return true;
         }
-        if (currencyBox.mouseClicked(mouseX, mouseY, button)) {
+        if (currencyBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             currencyBox.setFocused(true);
             return true;
         }
@@ -146,17 +146,17 @@ public class ShopInfoDialog extends QShopScreen {
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelTab(g, left, top);
 
-        g.drawString(this.font, Component.translatable("qshop.gui.edit_shop"), left + LABEL_X, top + 8, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.shop_name"), left + LABEL_X, top + 29, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.tab_icon"), left + LABEL_X, top + 51, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.shop_currency"), left + LABEL_X, top + 73, 0xFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.edit_shop"), left + LABEL_X, top + 8, 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.shop_name"), left + LABEL_X, top + 29, 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.tab_icon"), left + LABEL_X, top + 51, 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.shop_currency"), left + LABEL_X, top + 73, 0xFFFFFFFF);
 
         // 图标(不画 slot 背景)
         if (!icon.isEmpty()) {
-            g.renderItem(icon, left + CONTROL_X + 2, top + 48);
+            g.item(icon, left + CONTROL_X + 2, top + 48);
         }
 
         ShopTextures.input(g, left + CONTROL_X, top + 27, 168, 12, nameBox.isFocused());
@@ -167,11 +167,11 @@ public class ShopInfoDialog extends QShopScreen {
             String hint = data.currencies.stream()
                     .map(c -> c.id)
                     .collect(java.util.stream.Collectors.joining(", "));
-            g.drawString(this.font, Component.literal(Component.translatable("qshop.gui.available").getString() + ": " + hint),
-                    left + LABEL_X, top + 89, 0xFFFFFF);
+            g.text(this.font, Component.literal(Component.translatable("qshop.gui.available").getString() + ": " + hint),
+                    left + LABEL_X, top + 89, 0xFFFFFFFF);
         }
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        ShopTextures.extractWidgetRenderStates(this, g, mouseX, mouseY, partialTick);
 
         if (!icon.isEmpty() && mouseX >= left + CONTROL_X && mouseX < left + CONTROL_X + 20
                 && mouseY >= top + 48 && mouseY < top + 68) {

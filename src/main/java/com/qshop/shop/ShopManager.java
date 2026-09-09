@@ -276,7 +276,7 @@ public final class ShopManager {
         Map<String, Double> balances = wallet == null ? new HashMap<>() : wallet.snapshot();
         QShopSavedData data = null;
         shop.ensureTabs();
-        boolean editing = player.hasPermissions(2) && player.isCreative();
+        boolean editing = player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER) && player.isCreative();
         List<ClientTab> tabs = new ArrayList<>();
         for (int ti = 0; ti < shop.tabs.size(); ti++) {
             ShopTab tab = shop.tabs.get(ti);
@@ -311,7 +311,7 @@ public final class ShopManager {
                         : shop.id + "|" + ti + "|" + i;
                 if (e.globalLimit > 0) {
                     if (data == null) {
-                        data = QShopSavedData.get(player.getServer());
+                        data = QShopSavedData.get(player.level().getServer());
                     }
                     usedGlobal = data.globalCounts.getCount(key, period);
                 }

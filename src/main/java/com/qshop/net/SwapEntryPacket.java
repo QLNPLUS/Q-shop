@@ -7,7 +7,7 @@ import com.qshop.shop.ShopManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 public class SwapEntryPacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<SwapEntryPacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "swap_entry"));
+            Identifier.fromNamespaceAndPath(QShopMod.MODID, "swap_entry"));
     public static final StreamCodec<FriendlyByteBuf, SwapEntryPacket> STREAM_CODEC =
             CustomPacketPayload.codec(SwapEntryPacket::encode, SwapEntryPacket::decode);
 
@@ -56,7 +56,7 @@ public class SwapEntryPacket implements CustomPacketPayload {
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
                 ServerPlayer player = (ServerPlayer) context.player();
-                if (player == null || !player.hasPermissions(2) || !player.isCreative()) {
+                if (player == null || !player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER) || !player.isCreative()) {
                     return;
                 }
                 Shop shop = ShopManager.get(shopId);

@@ -54,7 +54,7 @@ public class AfterTradeEvent implements KubeEvent {
     }
 
     public String getPlayerName() {
-        return player == null ? "" : player.getGameProfile().getName();
+        return player == null ? "" : player.getGameProfile().name();
     }
 
     public int getTabIndex() {

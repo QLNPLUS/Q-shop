@@ -1,7 +1,8 @@
 package com.qshop.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.network.chat.Component;
@@ -14,6 +15,7 @@ public class QIconButton extends AbstractButton {
     private final ShopTextures.Icon icon;
     private final Runnable action;
     private boolean active;
+    private Component qshopTooltip;
 
     public QIconButton(int x, int y, ShopTextures.Icon icon, Runnable action) {
         super(x, y, 16, 16, Component.literal(""));
@@ -22,12 +24,21 @@ public class QIconButton extends AbstractButton {
     }
 
     @Override
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         action.run();
     }
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    /** Tooltip text submitted by the containing QShop screen in screen coordinates. */
+    public void setQShopTooltip(Component tooltip) {
+        this.qshopTooltip = tooltip;
+    }
+
+    public Component qshopTooltip() {
+        return qshopTooltip;
     }
 
     @Override
@@ -36,7 +47,7 @@ public class QIconButton extends AbstractButton {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.icon(g, getX() + 2, getY() + 2, icon, active, isHovered());
     }
 

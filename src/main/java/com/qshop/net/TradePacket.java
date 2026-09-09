@@ -6,7 +6,7 @@ import com.qshop.trade.TradeService;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -17,7 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 public class TradePacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<TradePacket> TYPE = new CustomPacketPayload.Type<>(
-            ResourceLocation.fromNamespaceAndPath(QShopMod.MODID, "trade"));
+            Identifier.fromNamespaceAndPath(QShopMod.MODID, "trade"));
     public static final StreamCodec<FriendlyByteBuf, TradePacket> STREAM_CODEC =
             CustomPacketPayload.codec(TradePacket::encode, TradePacket::decode);
 

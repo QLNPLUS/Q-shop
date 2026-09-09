@@ -2,14 +2,14 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.146'
 }
 
 version = mod_version
 group = mod_group_id
-base { archivesName = "${mod_id}-neoforge-1.21.1" }
+base { archivesName = "${mod_id}-neoforge-26.1.2" }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
@@ -26,7 +26,7 @@ neoForge {
             server()
         }
         data {
-            data()
+            clientData()
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,
                     '--existing', file('src/main/resources/').absolutePath
@@ -39,7 +39,7 @@ neoForge {
 
     mods {
         "${mod_id}" {
-            sourceSet sourceSets.main
+            sourceSet(sourceSets.main)
         }
     }
 }
@@ -72,13 +72,14 @@ dependencies {
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}", '*ftb-quests-neoforge-*.jar')
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}", 'ftb-library-neoforge-*.jar')
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}", '*ftb-teams-neoforge-*.jar')
-    addOptionalMod('compileOnly', 'dev.architectury:architectury-neoforge:13.0.11', 'architectury-*-neoforge.jar')
+    // Architectury has no published 26.1.2 artifact at this time; keep local jars optional.
+    addOptionalMod('compileOnly', 'dev.architectury:architectury-neoforge:21.1.8', 'architectury-*-neoforge.jar')
     addOptionalMod('runtimeOnly', "dev.latvian.mods:kubejs-neoforge:${kubejs_version}", 'kubejs-neoforge-*.jar')
     addOptionalMod('runtimeOnly', 'dev.latvian.mods:rhino:2101.2.7-build.85', 'rhino-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}", '*ftb-quests-neoforge-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}", 'ftb-library-neoforge-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}", '*ftb-teams-neoforge-*.jar')
-    addOptionalMod('runtimeOnly', 'dev.architectury:architectury-neoforge:13.0.11', 'architectury-*-neoforge.jar')
+    addOptionalMod('runtimeOnly', 'dev.architectury:architectury-neoforge:21.1.8', 'architectury-*-neoforge.jar')
 }
 
 tasks.named('processResources').configure {
@@ -102,7 +103,7 @@ tasks.named('processResources').configure {
 }
 
 jar {
-    archiveFileName = "${mod_id}-neoforge-1.21.1-${mod_version}.jar"
+    archiveFileName = "${mod_id}-neoforge-26.1.2-${mod_version}.jar"
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
@@ -127,5 +128,5 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release = 21
+    options.release = 25
 }

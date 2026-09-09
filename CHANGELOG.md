@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0 - 2026-09-09
+
+### Added
+
+- Added the NeoForge 26.1.2 release target with the shared QShop trade-screen features.
+- Added x1, x10, x100 and x1000 quantity-step controls to the trade screen for large purchases.
+
+### Fixed
+
+- Fixed broken nine-slice controls, invisible interface text and incorrectly positioned tooltips on NeoForge 26.1.2.
+
 ## 1.5.0 - 2026-09-09
 
 ### Added

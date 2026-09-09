@@ -11,7 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
@@ -44,13 +44,13 @@ public final class CurrencyService {
     private static final String NEOFORGE_ATTACHMENTS_KEY = "neoforge:attachments";
     private static final Object OFFLINE_WALLET_LOCK = new Object();
 
-    public static final ResourceLocation SOURCE_API = ResourceLocation.fromNamespaceAndPath("qshop", "api");
-    public static final ResourceLocation SOURCE_TRADE = ResourceLocation.fromNamespaceAndPath("qshop", "trade");
-    public static final ResourceLocation SOURCE_COMMAND = ResourceLocation.fromNamespaceAndPath("qshop", "command");
-    public static final ResourceLocation SOURCE_FTB_REWARD = ResourceLocation.fromNamespaceAndPath("qshop", "ftb_reward");
-    public static final ResourceLocation SOURCE_FTB_TASK = ResourceLocation.fromNamespaceAndPath("qshop", "ftb_task");
-    public static final ResourceLocation SOURCE_KUBEJS = ResourceLocation.fromNamespaceAndPath("qshop", "kubejs");
-    public static final ResourceLocation SOURCE_DEATH = ResourceLocation.fromNamespaceAndPath("qshop", "death");
+    public static final Identifier SOURCE_API = Identifier.fromNamespaceAndPath("qshop", "api");
+    public static final Identifier SOURCE_TRADE = Identifier.fromNamespaceAndPath("qshop", "trade");
+    public static final Identifier SOURCE_COMMAND = Identifier.fromNamespaceAndPath("qshop", "command");
+    public static final Identifier SOURCE_FTB_REWARD = Identifier.fromNamespaceAndPath("qshop", "ftb_reward");
+    public static final Identifier SOURCE_FTB_TASK = Identifier.fromNamespaceAndPath("qshop", "ftb_task");
+    public static final Identifier SOURCE_KUBEJS = Identifier.fromNamespaceAndPath("qshop", "kubejs");
+    public static final Identifier SOURCE_DEATH = Identifier.fromNamespaceAndPath("qshop", "death");
 
     private CurrencyService() {
     }
@@ -125,13 +125,13 @@ public final class CurrencyService {
 
     /** Adds a positive amount with an addon-provided source and block position. */
     public double deposit(ServerPlayer player, String currencyId, double amount,
-                          ResourceLocation source, @Nullable BlockPos sourcePos) {
+                          Identifier source, @Nullable BlockPos sourcePos) {
         return deposit(player, currencyId, amount, source, sourcePos, true);
     }
 
     /** Internal-compatible overload used by commands with an explicit event flag. */
     public double deposit(ServerPlayer player, String currencyId, double amount,
-                          ResourceLocation source, @Nullable BlockPos sourcePos,
+                          Identifier source, @Nullable BlockPos sourcePos,
                           boolean triggerEvent) {
         validateAmount(amount);
         IWallet wallet = wallet(player, currencyId);
@@ -152,13 +152,13 @@ public final class CurrencyService {
 
     /** Adds currency by UUID with addon source metadata. */
     public double deposit(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                          ResourceLocation source, @Nullable BlockPos sourcePos) {
+                          Identifier source, @Nullable BlockPos sourcePos) {
         return deposit(server, playerUuid, currencyId, amount, source, sourcePos, true);
     }
 
     /** Adds currency by UUID with explicit event control. */
     public double deposit(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                          ResourceLocation source, @Nullable BlockPos sourcePos,
+                          Identifier source, @Nullable BlockPos sourcePos,
                           boolean triggerEvent) {
         validateAmount(amount);
         validateServerAndUuid(server, playerUuid);
@@ -193,13 +193,13 @@ public final class CurrencyService {
 
     /** Removes a positive amount with an addon-provided source and block position. */
     public boolean withdraw(ServerPlayer player, String currencyId, double amount,
-                            ResourceLocation source, @Nullable BlockPos sourcePos) {
+                            Identifier source, @Nullable BlockPos sourcePos) {
         return withdraw(player, currencyId, amount, source, sourcePos, true);
     }
 
     /** Internal-compatible overload used by commands with an explicit event flag. */
     public boolean withdraw(ServerPlayer player, String currencyId, double amount,
-                            ResourceLocation source, @Nullable BlockPos sourcePos,
+                            Identifier source, @Nullable BlockPos sourcePos,
                             boolean triggerEvent) {
         validateAmount(amount);
         IWallet wallet = wallet(player, currencyId);
@@ -222,13 +222,13 @@ public final class CurrencyService {
 
     /** Removes currency by UUID with addon source metadata. */
     public boolean withdraw(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                            ResourceLocation source, @Nullable BlockPos sourcePos) {
+                            Identifier source, @Nullable BlockPos sourcePos) {
         return withdraw(server, playerUuid, currencyId, amount, source, sourcePos, true);
     }
 
     /** Removes currency by UUID with explicit event control. */
     public boolean withdraw(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                            ResourceLocation source, @Nullable BlockPos sourcePos,
+                            Identifier source, @Nullable BlockPos sourcePos,
                             boolean triggerEvent) {
         validateAmount(amount);
         validateServerAndUuid(server, playerUuid);
@@ -265,13 +265,13 @@ public final class CurrencyService {
 
     /** Sets a non-negative balance with an addon-provided source and block position. */
     public double set(ServerPlayer player, String currencyId, double amount,
-                      ResourceLocation source, @Nullable BlockPos sourcePos) {
+                      Identifier source, @Nullable BlockPos sourcePos) {
         return set(player, currencyId, amount, source, sourcePos, true);
     }
 
     /** Internal-compatible overload used by commands with an explicit event flag. */
     public double set(ServerPlayer player, String currencyId, double amount,
-                      ResourceLocation source, @Nullable BlockPos sourcePos,
+                      Identifier source, @Nullable BlockPos sourcePos,
                       boolean triggerEvent) {
         if (!Double.isFinite(amount) || amount < 0) {
             throw new IllegalArgumentException("Currency balance must be finite and non-negative");
@@ -294,13 +294,13 @@ public final class CurrencyService {
 
     /** Sets currency by UUID with addon source metadata. */
     public double set(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                      ResourceLocation source, @Nullable BlockPos sourcePos) {
+                      Identifier source, @Nullable BlockPos sourcePos) {
         return set(server, playerUuid, currencyId, amount, source, sourcePos, true);
     }
 
     /** Sets currency by UUID with explicit event control. */
     public double set(MinecraftServer server, UUID playerUuid, String currencyId, double amount,
-                      ResourceLocation source, @Nullable BlockPos sourcePos,
+                      Identifier source, @Nullable BlockPos sourcePos,
                       boolean triggerEvent) {
         if (!Double.isFinite(amount) || amount < 0) {
             throw new IllegalArgumentException("Currency balance must be finite and non-negative");
@@ -344,7 +344,7 @@ public final class CurrencyService {
     }
 
     private static void finish(ServerPlayer player, IWallet wallet, String currencyId,
-                               double oldValue, double newValue, ResourceLocation source,
+                               double oldValue, double newValue, Identifier source,
                                @Nullable BlockPos sourcePos, boolean triggerEvent) {
         finish(player, player.getUUID(), wallet, currencyId, oldValue, newValue,
                 source, sourcePos, triggerEvent);
@@ -352,7 +352,7 @@ public final class CurrencyService {
 
     private static void finish(@Nullable ServerPlayer player, UUID playerUuid, IWallet wallet,
                                String currencyId, double oldValue, double newValue,
-                               ResourceLocation source, @Nullable BlockPos sourcePos,
+                               Identifier source, @Nullable BlockPos sourcePos,
                                boolean triggerEvent) {
         if (player != null) {
             QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
@@ -360,7 +360,7 @@ public final class CurrencyService {
         if (!triggerEvent || Double.compare(oldValue, newValue) == 0) {
             return;
         }
-        ResourceLocation actualSource = source == null ? SOURCE_API : source;
+        Identifier actualSource = source == null ? SOURCE_API : source;
         BlockPos actualSourcePos = sourcePos == null ? null : sourcePos.immutable();
         NeoForge.EVENT_BUS.post(new CurrencyChangedEvent(
                 player, playerUuid, currencyId, oldValue, newValue, actualSource, actualSourcePos));
@@ -387,12 +387,12 @@ public final class CurrencyService {
         }
         try {
             CompoundTag playerData = NbtIo.readCompressed(file.toPath(), NbtAccounter.unlimitedHeap());
-            CompoundTag forgeAttachments = playerData.getCompound(NEOFORGE_ATTACHMENTS_KEY);
-            CompoundTag forgeCaps = playerData.getCompound(FORGE_CAPS_KEY);
+            CompoundTag forgeAttachments = playerData.getCompoundOrEmpty(NEOFORGE_ATTACHMENTS_KEY);
+            CompoundTag forgeCaps = playerData.getCompoundOrEmpty(FORGE_CAPS_KEY);
             WalletImpl wallet = new WalletImpl();
             CompoundTag walletTag = forgeAttachments.contains(WALLET_CAPABILITY_KEY)
-                    ? forgeAttachments.getCompound(WALLET_CAPABILITY_KEY)
-                    : forgeCaps.getCompound(WALLET_CAPABILITY_KEY);
+                    ? forgeAttachments.getCompoundOrEmpty(WALLET_CAPABILITY_KEY)
+                    : forgeCaps.getCompoundOrEmpty(WALLET_CAPABILITY_KEY);
             wallet.deserializeNBT(walletTag);
             return new OfflineWallet(file, playerData, forgeAttachments, wallet);
         } catch (IOException | RuntimeException ex) {

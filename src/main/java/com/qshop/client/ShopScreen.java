@@ -18,10 +18,9 @@ import com.qshop.net.TradePacket;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.util.QText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -45,7 +44,7 @@ public class ShopScreen extends QShopScreen {
     private static final int GUI_W = 250;
     private static final int GUI_W_WIDE = 280;
     private static final int GUI_H = 200;
-    // 原版 renderItemDecorations 会把基础层数量文字提升约 +200Z；幽灵必须高于它。
+    // 原版 itemDecorations 会把基础层数量文字提升约 +200Z；幽灵必须高于它。
     private static final float DRAG_LAYER_Z = 350.0f;
     private static final float TAB_MASK_LAYER_Z = 300.0f;
     private static final float TRADE_LAYER_Z = 400.0f;
@@ -119,12 +118,17 @@ public class ShopScreen extends QShopScreen {
     // ---- 交易悬浮窗(小窗口悬浮在主商店之上,不关闭主界面) ----
     private static final int TRADE_W = 150;
     private static final int TRADE_H = 133;
+    private static final int TRADE_STEP_BUTTON_W = 32;
+    private static final int TRADE_SLIDER_W = 88;
+    private static final int TRADE_STEP_BUTTON_GAP = 4;
     private int tradeIndex = -1;
     private int tradeMaxUnits = 0;
+    private int tradeStep = 1;
     private boolean tradeSyncing = false;
     private boolean overlayPointerCapture = false;
     private EditBox tradeUnitsBox;
     private QSlider tradeSlider;
+    private QButton tradeStepButton;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
 
     // ---- 商店搜索 ----
@@ -145,11 +149,11 @@ public class ShopScreen extends QShopScreen {
         }
 
         @Override
-        public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-            g.pose().pushPose();
-            g.pose().translate(SEARCH_TEXT_X_OFFSET, SEARCH_TEXT_Y_OFFSET, 0.0D);
-            super.renderWidget(g, mouseX, mouseY, partialTick);
-            g.pose().popPose();
+        public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+            g.pose().pushMatrix();
+            g.pose().translate(SEARCH_TEXT_X_OFFSET, SEARCH_TEXT_Y_OFFSET);
+            super.extractWidgetRenderState(g, mouseX, mouseY, partialTick);
+            g.pose().popMatrix();
         }
     }
 
@@ -337,7 +341,7 @@ public class ShopScreen extends QShopScreen {
         if (data.editing && editMode) {
             QIconButton addButton = new QIconButton(addButtonX(), addButtonY(), ShopTextures.Icon.ADD,
                     this::openAdd);
-            addButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.add")));
+            addButton.setQShopTooltip(Component.translatable("qshop.gui.add"));
             addRenderableWidget(addButton);
         }
         if (data.editing) {
@@ -353,18 +357,18 @@ public class ShopScreen extends QShopScreen {
                         layout();
                     });
             editButton.setActive(editMode);
-            editButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.edit")));
+            editButton.setQShopTooltip(Component.translatable("qshop.gui.edit"));
             addRenderableWidget(editButton);
         }
         QIconButton searchButton = new QIconButton(searchButtonX(), searchButtonY(), ShopTextures.Icon.SEARCH,
                 this::toggleSearch);
         searchButton.setActive(searchActive);
-        searchButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.search")));
+        searchButton.setQShopTooltip(Component.translatable("qshop.gui.search"));
         addRenderableWidget(searchButton);
 
         QIconButton layoutButton = new QIconButton(layoutButtonX(), layoutButtonY(), ShopTextures.Icon.LAYOUT,
                 this::toggleLayout);
-        layoutButton.setTooltip(Tooltip.create(Component.translatable("qshop.gui.layout_switch")));
+        layoutButton.setQShopTooltip(Component.translatable("qshop.gui.layout_switch"));
         addRenderableWidget(layoutButton);
         addRenderableWidget(new QIconButton(closeButtonX(), closeButtonY(), ShopTextures.Icon.CLOSE, this::onClose));
     }
@@ -396,7 +400,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (wideLayout) {
             ShopTextures.panelWide(g, panelX(), panelY());
         } else {
@@ -408,15 +412,15 @@ public class ShopScreen extends QShopScreen {
 
         // 空商店提示(网格区域居中)
         if (data.entries.isEmpty()) {
-            g.drawCenteredString(this.font, Component.translatable("qshop.gui.empty"),
-                    gridX() + (cols * stepX) / 2, gridY() + gridViewportHeight() / 2 - 4, 0xFFFFFF);
+            g.centeredText(this.font, Component.translatable("qshop.gui.empty"),
+                    gridX() + (cols * stepX) / 2, gridY() + gridViewportHeight() / 2 - 4, 0xFFFFFFFF);
         }
 
         // 滚动动画(以"行"为单位插值,时间基准,帧率无关)
         int maxScroll = maxScroll();
         scroll = Mth.clamp(scroll, 0, maxScroll);
         float target = scroll / (float) cols;
-        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
         rowAnim += (target - rowAnim) * Math.min(1.0f, delta * 15f);
         if (Math.abs(target - rowAnim) < 0.005f) {
             rowAnim = target;
@@ -459,7 +463,7 @@ public class ShopScreen extends QShopScreen {
         }
 
         // 主界面控件先绘制，浮层不会再被关闭/编辑按钮覆盖。
-        renderWidgets(g, mouseX, mouseY, partialTick, false);
+        extractWidgetRenderStates(g, mouseX, mouseY, partialTick, false);
 
         // 悬浮 tooltip(菜单/交易窗打开时不显示,避免盖住它们)
         // 槽位部分 = 物品 tooltip;价格条部分 = 完整价格 / 交换数量(与余额 tooltip 同理)
@@ -494,8 +498,8 @@ public class ShopScreen extends QShopScreen {
 
         // 拖拽幽灵高于主界面的物品和控件。
         if (dragActive && pressedIndex >= 0 && menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0) {
-            g.pose().pushPose();
-            g.pose().translate(0, 0, DRAG_LAYER_Z);
+            g.pose().pushMatrix();
+            g.pose().translate(0, 0);
             int tgt = indexAt(mouseX, mouseY);
             if (tgt >= 0 && tgt != pressedIndex) {
                 int tc = tgt % cols;
@@ -504,7 +508,7 @@ public class ShopScreen extends QShopScreen {
                 ShopTextures.slot(g, gx + tc * stepX, ty, cellH, cellH, true, true);
             }
             drawCell(g, pressedIndex, (int) mouseX - cellW / 2, (int) mouseY - 24, true, mouseX, mouseY, true);
-            // 数量徽标:原版 renderItemDecorations 内部硬编码 z+200,会把数字顶到幽灵层之上;
+            // 数量徽标:原版 itemDecorations 内部硬编码 z+200,会把数字顶到幽灵层之上;
             // 这里在幽灵图层(DRAG_LAYER_Z)内手动绘制,数字属于幽灵本身
             ClientShopEntry ge = data.entries.get(pressedIndex);
             ItemStack gicon = cellIcon(ge);
@@ -513,41 +517,38 @@ public class ShopScreen extends QShopScreen {
                 int gix = (int) mouseX - cellW / 2 + (gslot - 16) / 2;
                 int giy = (int) mouseY - 24 + (gslot - 16) / 2;
                 String cnt = String.valueOf(gicon.getCount());
-                g.drawString(this.font, cnt, gix + 17 - this.font.width(cnt), giy + 9, 0xFFFFFF, true);
+                g.text(this.font, cnt, gix + 17 - this.font.width(cnt), giy + 9, 0xFFFFFFFF, true);
             }
-            g.flush();
-            g.pose().popPose();
+            g.pose().popMatrix();
         }
 
         // 交易窗口和它自己的控件位于同一个显式浮层。
         if (tradeIndex >= 0) {
-            g.pose().pushPose();
-            g.pose().translate(0, 0, TRADE_LAYER_Z);
+            g.pose().pushMatrix();
+            g.pose().translate(0, 0);
             drawTradePanel(g);
-            renderWidgets(g, mouseX, mouseY, partialTick, true);
-            g.flush();
-            g.pose().popPose();
+            extractWidgetRenderStates(g, mouseX, mouseY, partialTick, true);
+            g.pose().popMatrix();
         }
 
         // 右键菜单始终位于最高层(条目菜单与 tab 菜单互斥,不会同时出现)。
         if (menuIndex >= 0 || tabMenuIndex >= 0) {
-            g.pose().pushPose();
-            g.pose().translate(0, 0, MENU_LAYER_Z);
+            g.pose().pushMatrix();
+            g.pose().translate(0, 0);
             if (menuIndex >= 0) {
                 renderMenu(g, mouseX, mouseY);
             }
             if (tabMenuIndex >= 0) {
                 renderTabMenu(g, mouseX, mouseY);
             }
-            g.flush();
-            g.pose().popPose();
+            g.pose().popMatrix();
         }
 
         renderLayoutDebug(g);
 
     }
 
-    private void renderLayoutDebug(GuiGraphics g) {
+    private void renderLayoutDebug(GuiGraphicsExtractor g) {
         if (!ShopLayoutDebug.isEnabled()) {
             return;
         }
@@ -615,18 +616,23 @@ public class ShopScreen extends QShopScreen {
                 return;
             }
         }
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, MENU_LAYER_Z + 50.0f);
+        g.pose().pushMatrix();
+        g.pose().translate(0, 0);
         ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
-        g.flush();
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
-    private void renderWidgets(GuiGraphics g, int mouseX, int mouseY, float partialTick, boolean tradeLayer) {
+    private void extractWidgetRenderStates(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, boolean tradeLayer) {
         for (var child : this.children()) {
             if (child instanceof AbstractWidget widget && tradeWidgets.contains(widget) == tradeLayer) {
-                widget.render(g, mouseX, mouseY, partialTick);
+                widget.extractRenderState(g, mouseX, mouseY, partialTick);
+                if (widget instanceof QIconButton iconButton
+                        && iconButton.isHovered() && iconButton.qshopTooltip() != null) {
+                    int screenMouseX = (int) Math.round(QShopScreenInput.toScaledCoordinate(mouseX, width));
+                    int screenMouseY = (int) Math.round(QShopScreenInput.toScaledCoordinate(mouseY, height));
+                    g.setTooltipForNextFrame(this.font, List.of(iconButton.qshopTooltip()),
+                            Optional.empty(), screenMouseX, screenMouseY);
+                }
             }
         }
     }
@@ -672,30 +678,29 @@ public class ShopScreen extends QShopScreen {
         return String.join(", ", labels);
     }
 
-    /** 刷新 GUI 缓冲(双保险:GuiGraphics 缓冲 + 全局 renderBuffers 缓冲) */
-    private static void flushAll(GuiGraphics g) {
-        g.flush();
+    /** 刷新 GUI 缓冲(双保险:GuiGraphicsExtractor 缓冲 + 全局 renderBuffers 缓冲) */
+    private static void flushAll(GuiGraphicsExtractor g) {
         Minecraft.getInstance().renderBuffers().bufferSource().endBatch();
     }
 
     /** 左侧子商店 tab 栏:顶部商店名,中间可滚动的子商店列表,底部余额 */
-    private void renderTabBar(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderTabBar(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         int x = tabBarX();
         int y = tabBarY();
         ShopTextures.tabBar(g, x, y);
 
         // 顶部:商店图标 + 名称
         if (!data.icon.isEmpty()) {
-            g.renderItem(data.icon, x + (TAB_BAR_W - 16) / 2, y + 3);
+            g.item(data.icon, x + (TAB_BAR_W - 16) / 2, y + 3);
         }
-        g.drawCenteredString(this.font, QText.clip(this.title, this.font, TAB_BAR_W - 4),
-                x + TAB_BAR_W / 2, y + 21, 0xFFFFFF);
+        g.centeredText(this.font, QText.clip(this.title, this.font, TAB_BAR_W - 4),
+                x + TAB_BAR_W / 2, y + 21, 0xFFFFFFFF);
 
         // 子商店列表使用独立裁剪区和平滑像素滚动。
         int ty0 = y + 38;
         int endY = ty0 + TAB_LIST_H;
         tabScroll = Mth.clamp(tabScroll, 0, maxTabScroll());
-        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
         tabScrollAnim += (tabScroll - tabScrollAnim) * Math.min(1.0f, delta * 15f);
         if (Math.abs(tabScroll - tabScrollAnim) < 0.05f) {
             tabScrollAnim = tabScroll;
@@ -713,7 +718,7 @@ public class ShopScreen extends QShopScreen {
                     && mouseY >= Math.max(ty, ty0) && mouseY <= Math.min(ty + TAB_H, endY);
             ShopTextures.tabButton(g, x + 3, ty, sel, hover, !t.requirementsMet);
             if (!t.icon.isEmpty()) {
-                g.renderItem(t.icon, x + 3 + (TAB_W - 16) / 2, ty + 1);
+                g.item(t.icon, x + 3 + (TAB_W - 16) / 2, ty + 1);
             }
             // 名称限制在按钮内部,避免压到下一项(支持 § 颜色代码)
             String name = t.name == null || t.name.isEmpty() ? data.shopName : t.name;
@@ -721,11 +726,11 @@ public class ShopScreen extends QShopScreen {
             Component n = QText.clip(name, this.font, (int) ((TAB_W - 4) / textScale));
             float nx = x + 3 + (TAB_W - this.font.width(n) * textScale) / 2f;
             float ny = ty + 17;
-            g.pose().pushPose();
-            g.pose().translate(nx, ny, 0);
-            g.pose().scale(textScale, textScale, 1.0f);
-            g.drawString(this.font, n, 0, 0, 0xFFFFFF);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(nx, ny);
+            g.pose().scale(textScale, textScale);
+            g.text(this.font, n, 0, 0, 0xFFFFFFFF);
+            g.pose().popMatrix();
         }
 
         // 编辑模式的添加按钮参与同一滚动内容，不再与最后一个 tab 重叠。
@@ -735,7 +740,7 @@ public class ShopScreen extends QShopScreen {
                 boolean ah = tabInteractive && mouseX >= x + 3 && mouseX <= x + 3 + TAB_W
                         && mouseY >= Math.max(ay, ty0) && mouseY <= Math.min(ay + 14, endY);
                 ShopTextures.button(g, x + 3, ay, TAB_W, 14, ah, true);
-                g.drawCenteredString(this.font, "+", x + 3 + TAB_W / 2, ay + 2, 0xFFFFFF);
+                g.centeredText(this.font, "+", x + 3 + TAB_W / 2, ay + 2, 0xFFFFFFFF);
             }
         }
         ShopTextures.disableScissor(g);
@@ -765,11 +770,11 @@ public class ShopScreen extends QShopScreen {
             float by = y + GUI_H - 10;
             int balanceHitTop = Math.round(by) - 1;
             int balanceHitBottom = balanceHitTop + 8;
-            g.pose().pushPose();
-            g.pose().translate(bx, by, 0);
-            g.pose().scale(0.6f, 0.6f, 1.0f);
-            g.drawString(this.font, clipped, 0, 0, 0xFFFFFF);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(bx, by);
+            g.pose().scale(0.6f, 0.6f);
+            g.text(this.font, clipped, 0, 0, 0xFFFFFFFF);
+            g.pose().popMatrix();
             if (menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0
                     && mouseX >= bx - 2 && mouseX <= bx + bw + 2
                     && mouseY >= balanceHitTop && mouseY <= balanceHitBottom) {
@@ -797,22 +802,21 @@ public class ShopScreen extends QShopScreen {
      * 此时主界面所有基础层内容(含物品图标/文字)已落屏,遮罩必然绘制在最上层。
      * 遮罩左右各缩进 2px(总宽减少 4px);仅在确有内容被遮挡时显示。
      */
-    private void renderTabMasks(GuiGraphics g) {
+    private void renderTabMasks(GuiGraphicsExtractor g) {
         int x = tabBarX();
         int ty0 = tabBarY() + 38;
         int endY = ty0 + TAB_LIST_H;
         int mx = x + 2;
         int mw = TAB_BAR_W - 4;
-        g.pose().pushPose();
-        g.pose().translate(0, 0, TAB_MASK_LAYER_Z);
+        g.pose().pushMatrix();
+        g.pose().translate(0, 0);
         if (tabScrollAnim > 0.05f) {
             ShopTextures.tabFadeTop(g, mx, ty0, mw);
         }
         if (tabScrollAnim < maxTabScroll() - 0.05f) {
             ShopTextures.tabFadeBottom(g, mx, endY - 9, mw);
         }
-        g.flush();
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     private int tabIndexAt(double mouseX, double mouseY) {
@@ -933,7 +937,7 @@ public class ShopScreen extends QShopScreen {
         if (token.startsWith("#")) {
             String wantedTag = token.substring(1);
             return !wantedTag.isEmpty() && searchStacks(entry).stream()
-                    .anyMatch(stack -> stack.getTags()
+                    .anyMatch(stack -> stack.tags()
                             .anyMatch(tag -> tag.location().toString().toLowerCase(Locale.ROOT).contains(wantedTag)));
         }
         if (token.startsWith("@")) {
@@ -993,7 +997,7 @@ public class ShopScreen extends QShopScreen {
 
     private void addTab() {
         rememberEditModeForTransition(editMode);
-        QShopNetwork.sendToServer(new AddTabPacket(data.shopId,
+        QShopClientNetwork.sendToServer(new AddTabPacket(data.shopId,
                 Component.translatable("qshop.tab.default_name", data.tabs.size() + 1).getString()));
     }
 
@@ -1009,7 +1013,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     /** 右键菜单：所有内容继承当前 PoseStack 的显式浮层深度。 */
-    private void renderMenu(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderMenu(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         ShopTextures.menuPanel(g, menuX, menuY, MENU_W, MENU_H);
         Component[] labels = {
                 Component.translatable("qshop.gui.remove"),
@@ -1022,14 +1026,13 @@ public class ShopScreen extends QShopScreen {
             int by = menuY + 4 + i * 18;
             boolean hover = ShopTextures.buttonHit(bx, by, MENU_W - 8, 14, mouseX, mouseY);
             ShopTextures.button(g, bx, by, MENU_W - 8, 14, hover, true);
-            g.drawCenteredString(this.font, labels[i], bx + (MENU_W - 8) / 2, by + 3, 0xFFFFFFFF);
+            g.centeredText(this.font, labels[i], bx + (MENU_W - 8) / 2, by + 3, 0xFFFFFFFF);
         }
         // 在弹出层的 PoseStack 恢复前提交文字和贴图。
-        g.flush();
     }
 
     /** tab 右键菜单:编辑 / 删除 / 上移 / 下移(与条目菜单同款布局) */
-    private void renderTabMenu(GuiGraphics g, int mouseX, int mouseY) {
+    private void renderTabMenu(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         ShopTextures.menuPanel(g, tabMenuX, tabMenuY, MENU_W, MENU_H);
         Component[] labels = {
                 Component.translatable("qshop.gui.edit_short"),
@@ -1042,9 +1045,8 @@ public class ShopScreen extends QShopScreen {
             int by = tabMenuY + 4 + i * 18;
             boolean hover = ShopTextures.buttonHit(bx, by, MENU_W - 8, 14, mouseX, mouseY);
             ShopTextures.button(g, bx, by, MENU_W - 8, 14, hover, true);
-            g.drawCenteredString(this.font, labels[i], bx + (MENU_W - 8) / 2, by + 3, 0xFFFFFFFF);
+            g.centeredText(this.font, labels[i], bx + (MENU_W - 8) / 2, by + 3, 0xFFFFFFFF);
         }
-        g.flush();
     }
 
     /** 允许滚动到最后一行完整对齐:最大滚动 = ceil(size/cols)*cols - 可见数 */
@@ -1052,7 +1054,7 @@ public class ShopScreen extends QShopScreen {
         return Math.max(0, (int) Math.ceil(data.entries.size() / (float) cols) * cols - visible);
     }
 
-    private void drawCell(GuiGraphics g, int index, int x, int y, boolean hover, int mouseX, int mouseY, boolean noCount) {
+    private void drawCell(GuiGraphicsExtractor g, int index, int x, int y, boolean hover, int mouseX, int mouseY, boolean noCount) {
         ClientShopEntry e = data.entries.get(index);
         // 方形槽 1:1(不含下方价格),价格文字在槽下方
         int slot = cellH;
@@ -1062,9 +1064,9 @@ public class ShopScreen extends QShopScreen {
             // 图标在槽内居中
             int ix = x + (slot - 16) / 2;
             int iy = y + (slot - 16) / 2;
-            g.renderItem(icon, ix, iy);
+            g.item(icon, ix, iy);
             if (!noCount) {
-                g.renderItemDecorations(this.font, icon, ix, iy);
+                g.itemDecorations(this.font, icon, ix, iy);
             }
         }
         // 购买/出售角标(左上角)
@@ -1089,26 +1091,26 @@ public class ShopScreen extends QShopScreen {
                 int textW = (int) (this.font.width(count) * 0.6f);
                 int content = textW + 1 + 8;
                 int contentX = barX + (barW - content) / 2;
-                g.pose().pushPose();
-                g.pose().translate(contentX, drawY, 0);
-                g.pose().scale(0.6f, 0.6f, 1.0f);
-                g.drawString(this.font, count, 0, 0, 0xFFFFFF);
-                g.pose().popPose();
-                g.pose().pushPose();
-                g.pose().translate(contentX + textW + 1, drawY - 1, 0);
-                g.pose().scale(0.5f, 0.5f, 1.0f);
-                g.renderItem(gs, 0, 0);
-                g.pose().popPose();
+                g.pose().pushMatrix();
+                g.pose().translate(contentX, drawY);
+                g.pose().scale(0.6f, 0.6f);
+                g.text(this.font, count, 0, 0, 0xFFFFFFFF);
+                g.pose().popMatrix();
+                g.pose().pushMatrix();
+                g.pose().translate(contentX + textW + 1, drawY - 1);
+                g.pose().scale(0.5f, 0.5f);
+                g.item(gs, 0, 0);
+                g.pose().popMatrix();
             }
         } else {
             Component text = QText.clip(cellText(e, currencyName(e.currencyId)), this.font, cellW - 2);
             int textW = (int) (this.font.width(text) * 0.6f);
             int textX = barX + (barW - textW) / 2;
-            g.pose().pushPose();
-            g.pose().translate(textX, drawY, 0);
-            g.pose().scale(0.6f, 0.6f, 1.0f);
-            g.drawString(this.font, text, 0, 0, 0xFFFFFF);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(textX, drawY);
+            g.pose().scale(0.6f, 0.6f);
+            g.text(this.font, text, 0, 0, 0xFFFFFFFF);
+            g.pose().popMatrix();
         }
         if (editMode) {
             // 删除按钮 8x8(触发面积与按钮一致,比槽右缘缩进 1px)
@@ -1213,11 +1215,11 @@ public class ShopScreen extends QShopScreen {
                     && mouseX >= tradeUnitsBox.getX() && mouseX <= tradeUnitsBox.getX() + tradeUnitsBox.getWidth()
                     && mouseY >= tradeUnitsBox.getY() && mouseY <= tradeUnitsBox.getY() + tradeUnitsBox.getHeight()) {
                 tradeUnitsBox.setFocused(true);
-                tradeUnitsBox.mouseClicked(mouseX, mouseY, button);
+                tradeUnitsBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false);
                 return true;
             }
             for (var w : tradeWidgets) {
-                if (w != tradeUnitsBox && w.mouseClicked(mouseX, mouseY, button)) {
+                if (w != tradeUnitsBox && w.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
                     return true;
                 }
             }
@@ -1230,7 +1232,7 @@ public class ShopScreen extends QShopScreen {
         // 搜索框使用自定义事件分发:先明确切换焦点,避免点击被主界面网格消费。
         if (searchBox != null) {
             searchBox.setFocused(false);
-            if (searchBox.mouseClicked(mouseX, mouseY, button)) {
+            if (searchBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
                 searchBox.setFocused(true);
                 return true;
             }
@@ -1282,7 +1284,7 @@ public class ShopScreen extends QShopScreen {
         }
         // 按钮优先(避免与滚动中条目/删除按钮重叠时误触)
         for (var w : this.children()) {
-            if (w.mouseClicked(mouseX, mouseY, button)) {
+            if (w.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
                 return true;
             }
         }
@@ -1335,7 +1337,7 @@ public class ShopScreen extends QShopScreen {
                 if (w == tradeUnitsBox) {
                     continue;
                 }
-                if (w.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+                if (w.mouseDragged(mouseEvent(mouseX, mouseY, button), dragX, dragY)) {
                     return true;
                 }
             }
@@ -1356,7 +1358,7 @@ public class ShopScreen extends QShopScreen {
             dragActive = false;
             if (tradeIndex >= 0) {
                 for (var w : tradeWidgets) {
-                    w.mouseReleased(mouseX, mouseY, button);
+                    w.mouseReleased(mouseEvent(mouseX, mouseY, button));
                 }
             }
             return true;
@@ -1371,7 +1373,7 @@ public class ShopScreen extends QShopScreen {
             pressedIndex = -1;
             dragActive = false;
             for (var w : tradeWidgets) {
-                if (w.mouseReleased(mouseX, mouseY, button)) {
+                if (w.mouseReleased(mouseEvent(mouseX, mouseY, button))) {
                     return true;
                 }
             }
@@ -1412,7 +1414,7 @@ public class ShopScreen extends QShopScreen {
         entries.set(a, entries.get(b));
         entries.set(b, tmp);
         reindexEditedEntries();
-        QShopNetwork.sendToServer(new SwapEntryPacket(data.shopId, serverTabIndex(activeTab), serverA, serverB));
+        QShopClientNetwork.sendToServer(new SwapEntryPacket(data.shopId, serverTabIndex(activeTab), serverA, serverB));
     }
 
     /**
@@ -1432,7 +1434,7 @@ public class ShopScreen extends QShopScreen {
         ClientShopEntry entry = entries.remove(from);
         entries.add(to, entry);
         reindexEditedEntries();
-        QShopNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), serverFrom, serverTo));
+        QShopClientNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), serverFrom, serverTo));
     }
 
     private void reindexEditedEntries() {
@@ -1445,7 +1447,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
             ShopLayoutDebug.toggle();
             layout();
@@ -1482,7 +1484,7 @@ public class ShopScreen extends QShopScreen {
             return true;
         }
         if (searchBox != null && searchBox.isFocused()
-                && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+                && searchBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
         if (tradeIndex >= 0) {
@@ -1491,14 +1493,14 @@ public class ShopScreen extends QShopScreen {
                 return true;
             }
             if (tradeUnitsBox != null && tradeUnitsBox.isFocused()
-                    && tradeUnitsBox.keyPressed(keyCode, scanCode, modifiers)) {
+                    && tradeUnitsBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
                 return true;
             }
         }
         if (QShopScreenInput.handleInventoryKey(this, keyCode, scanCode, hasFocusedInput())) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     private boolean hasFocusedInput() {
@@ -1507,16 +1509,16 @@ public class ShopScreen extends QShopScreen {
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
         if (searchBox != null && searchBox.isFocused()
-                && searchBox.charTyped(codePoint, modifiers)) {
+                && searchBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
         if (tradeIndex >= 0 && tradeUnitsBox != null && tradeUnitsBox.isFocused()
-                && tradeUnitsBox.charTyped(codePoint, modifiers)) {
+                && tradeUnitsBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
@@ -1568,20 +1570,26 @@ public class ShopScreen extends QShopScreen {
         dragActive = false;
         tradeIndex = entryIndex;
         tradeMaxUnits = computeTradeMaxUnits(e);
+        tradeStep = 1;
         int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
 
         tradeUnitsBox = new EditBox(this.font, px + 47, py + 63, 56, 14, Component.literal(""));
-        tradeUnitsBox.setMaxLength(7);
-        tradeUnitsBox.setFilter(s -> s.matches("\\d{0,7}"));
+        tradeUnitsBox.setMaxLength(10);
+        tradeUnitsBox.setFilter(s -> s.matches("\\d{0,10}"));
         tradeUnitsBox.setBordered(false);
         tradeUnitsBox.setValue("");
         tradeUnitsBox.setResponder(s -> onTradeBoxChanged());
         addTradeWidget(tradeUnitsBox);
 
-        tradeSlider = new QSlider(px + 8, py + 77, TRADE_W - 16, 12, this::onTradeSliderChanged);
-        tradeSlider.setValueInt(1, Math.max(1, tradeMaxUnits));
+        tradeSlider = new QSlider(tradeSliderX(px), py + 77, tradeSliderWidth(), 12, this::onTradeSliderChanged);
+        tradeSlider.setValueInt(tradeSliderValueForUnits(1), tradeSliderMax());
         addTradeWidget(tradeSlider);
+        if (tradeMaxUnits >= 100) {
+            tradeStepButton = new QButton(tradeStepButtonX(px), py + 76, TRADE_STEP_BUTTON_W, 14,
+                    Component.literal(tradeStepLabel()), b -> cycleTradeStep());
+            addTradeWidget(tradeStepButton);
+        }
 
         addTradeWidget(new QButton(px + 8, py + TRADE_H - 21, 66, 16,
                 Component.translatable("qshop.gui.trade"), b -> confirmTrade()));
@@ -1602,6 +1610,8 @@ public class ShopScreen extends QShopScreen {
         tradeWidgets.clear();
         tradeUnitsBox = null;
         tradeSlider = null;
+        tradeStepButton = null;
+        tradeStep = 1;
     }
 
     /** 服务端刷新交易数据时调用，确保旧交易窗口不能继续提交旧索引。 */
@@ -1621,7 +1631,7 @@ public class ShopScreen extends QShopScreen {
         int input = parseTradeInput(tradeUnitsBox.getValue());
         int effective = tradeMaxUnits > 0 ? Math.min(input, tradeMaxUnits) : input;
         tradeSyncing = true;
-        tradeSlider.setValueInt(effective, Math.max(1, tradeMaxUnits));
+        tradeSlider.setValueInt(tradeSliderValueForUnits(effective), tradeSliderMax());
         tradeSyncing = false;
     }
 
@@ -1629,21 +1639,81 @@ public class ShopScreen extends QShopScreen {
         if (tradeSyncing || tradeSlider == null) {
             return;
         }
-        int v = Math.max(1, tradeSlider.getValueInt(Math.max(1, tradeMaxUnits)));
+        int sliderValue = Math.max(1, tradeSlider.getValueInt(tradeSliderMax()));
+        int v = (int) Math.min(Integer.MAX_VALUE, (long) sliderValue * tradeStep);
+        if (tradeMaxUnits > 0) {
+            v = Math.min(v, tradeMaxUnits);
+        }
         tradeSyncing = true;
         tradeUnitsBox.setValue(String.valueOf(v));
         tradeSyncing = false;
     }
 
+    private int tradeSliderX(int px) {
+        if (tradeMaxUnits < 100) {
+            return px + (TRADE_W - (TRADE_W - 16)) / 2;
+        }
+        return px + (TRADE_W - tradeSliderWidth() - TRADE_STEP_BUTTON_GAP - TRADE_STEP_BUTTON_W) / 2;
+    }
+
+    private int tradeSliderWidth() {
+        return tradeMaxUnits >= 100 ? TRADE_SLIDER_W : TRADE_W - 16;
+    }
+
+    private int tradeStepButtonX(int px) {
+        return tradeSliderX(px) + tradeSliderWidth() + TRADE_STEP_BUTTON_GAP;
+    }
+
+    private int tradeSliderMax() {
+        if (tradeMaxUnits <= 0) {
+            return 1;
+        }
+        return Math.max(1, (int) Math.min(Integer.MAX_VALUE,
+                ((long) tradeMaxUnits + tradeStep - 1L) / tradeStep));
+    }
+
+    private int tradeSliderValueForUnits(int units) {
+        int effective = tradeMaxUnits > 0 ? Math.min(Math.max(1, units), tradeMaxUnits) : Math.max(1, units);
+        return Math.max(1, Math.min(tradeSliderMax(),
+                (int) Math.min(Integer.MAX_VALUE, ((long) effective + tradeStep - 1L) / tradeStep)));
+    }
+
+    private String tradeStepLabel() {
+        return tradeStep + "x";
+    }
+
+    private void cycleTradeStep() {
+        if (tradeMaxUnits < 100) {
+            return;
+        }
+        int currentUnits = parseTradeInput(tradeUnitsBox == null ? "1" : tradeUnitsBox.getValue());
+        int[] steps = tradeMaxUnits >= 1000 ? new int[]{1, 10, 100, 1000} : new int[]{1, 10, 100};
+        int next = steps[0];
+        for (int i = 0; i < steps.length; i++) {
+            if (steps[i] == tradeStep) {
+                next = steps[(i + 1) % steps.length];
+                break;
+            }
+        }
+        tradeStep = next;
+        tradeSyncing = true;
+        tradeSlider.setValueInt(tradeSliderValueForUnits(currentUnits), tradeSliderMax());
+        tradeSyncing = false;
+        onTradeSliderChanged();
+        if (tradeStepButton != null) {
+            tradeStepButton.setMessage(Component.literal(tradeStepLabel()));
+        }
+    }
+
     private void confirmTrade() {
         int units = parseTradeInput(tradeUnitsBox.getValue());
-        QShopNetwork.sendToServer(new TradePacket(data.shopId, serverTabIndex(activeTab), serverIndex(tradeIndex), units));
+        QShopClientNetwork.sendToServer(new TradePacket(data.shopId, serverTabIndex(activeTab), serverIndex(tradeIndex), units));
         closeTrade();
     }
 
     private static int parseTradeInput(String s) {
         try {
-            return Math.max(1, Integer.parseInt(s.trim()));
+            return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, Long.parseLong(s.trim())));
         } catch (Exception e) {
             return 1;
         }
@@ -1760,7 +1830,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     /** 交易悬浮窗内容(面板 + 居中信息 + 数量/合计) */
-    private void drawTradePanel(GuiGraphics g) {
+    private void drawTradePanel(GuiGraphicsExtractor g) {
         ClientShopEntry e = data.entries.get(tradeIndex);
         int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
@@ -1772,13 +1842,13 @@ public class ShopScreen extends QShopScreen {
         // 物品 + 名称(按类型标签的实际宽度动态避让;支持 § 颜色代码)
         ItemStack icon = cellIcon(e);
         if (!icon.isEmpty()) {
-            g.renderItem(icon, px + 6, py + 4);
+            g.item(icon, px + 6, py + 4);
             int nameWidth = Math.max(0, typeX - (px + 24) - 4);
             Component nameC = QText.parse(e.displayName.isEmpty() ? icon.getHoverName().getString() : e.displayName);
-            g.drawString(this.font, QText.clip(nameC, this.font, nameWidth), px + 24, py + 6, 0xFFFFFF);
+            g.text(this.font, QText.clip(nameC, this.font, nameWidth), px + 24, py + 6, 0xFFFFFFFF);
         }
         // 类型标签(出售/购买/交换/指令)
-        g.drawString(this.font, typeLabel, typeX, py + 6, 0xFFAA00);
+        g.text(this.font, typeLabel, typeX, py + 6, 0xFFFFAA00);
         int cx = px + TRADE_W / 2;
 
         // 价格行(以物换物不显示价格,也不显示"免费")
@@ -1796,13 +1866,13 @@ public class ShopScreen extends QShopScreen {
             }
             String priceLine = priceText.length() == 0
                     ? Component.translatable("qshop.gui.free").getString() : priceText.toString();
-            drawCenteredClipped(g, QText.parse(priceLine), cx, py + 25, TRADE_W - 12, 0xFFFFFF);
+            drawCenteredClipped(g, QText.parse(priceLine), cx, py + 25, TRADE_W - 12, 0xFFFFFFFF);
         } else {
             // 以物换物:显示需要的物品(数量× 玩家付出物)
             ItemStack gs = !e.give.isEmpty() ? e.give.get(0) : ItemStack.EMPTY;
             String need = Component.translatable("qshop.gui.need").getString() + ": "
                     + (gs.isEmpty() ? "?" : gs.getCount() + "× " + gs.getHoverName().getString());
-            drawCenteredClipped(g, QText.parse(need), cx, py + 25, TRADE_W - 12, 0xFFFFFF);
+            drawCenteredClipped(g, QText.parse(need), cx, py + 25, TRADE_W - 12, 0xFFFFFFFF);
         }
 
         // 是否限购
@@ -1820,15 +1890,15 @@ public class ShopScreen extends QShopScreen {
         } else {
             limit.append(Component.translatable("qshop.gui.not_limited").getString());
         }
-        drawCenteredClipped(g, QText.parse(limit.toString()), cx, py + 37, TRADE_W - 16, 0xFFFFFF);
+        drawCenteredClipped(g, QText.parse(limit.toString()), cx, py + 37, TRADE_W - 16, 0xFFFFFFFF);
 
         // 最大交易次数(无法交易时区分具体原因:限购/货币不足/物品不足)
         if (tradeMaxUnits <= 0) {
-            drawCenteredClipped(g, tradeBlockReason(e), cx, py + 49, TRADE_W - 12, 0xFFFFFF);
+            drawCenteredClipped(g, tradeBlockReason(e), cx, py + 49, TRADE_W - 12, 0xFFFFFFFF);
         } else {
             drawCenteredClipped(g,
                     Component.translatable("qshop.gui.max_trade_times").append(": " + tradeMaxUnits),
-                    cx, py + 49, TRADE_W - 12, 0xFFFFFF);
+                    cx, py + 49, TRADE_W - 12, 0xFFFFFFFF);
         }
 
         // 数量输入框(居中;空值时显示"数量"占位提示)
@@ -1836,7 +1906,7 @@ public class ShopScreen extends QShopScreen {
         String boxVal = tradeUnitsBox.getValue();
         if (boxVal == null || boxVal.isEmpty()) {
             drawCenteredClipped(g, Component.translatable("qshop.gui.units_hint"),
-                    cx, py + 63, 60, 0x808080);
+                    cx, py + 63, 60, 0xFF808080);
         }
 
         // 合计(以物换物显示"N× 获得物";物品+指令显示"总需求物品量× 付出物";其余显示完整总价,不缩写 K/M/B)
@@ -1845,21 +1915,21 @@ public class ShopScreen extends QShopScreen {
         if (e.type == ShopEntryType.BARTER) {
             ItemStack r = !e.receive.isEmpty() ? e.receive.get(0) : ItemStack.EMPTY;
             Component t = QText.parse(units + "× " + (r.isEmpty() ? "?" : r.getHoverName().getString()));
-            drawCenteredClipped(g, t, cx, py + 93, TRADE_W - 12, 0xFFFFFF);
+            drawCenteredClipped(g, t, cx, py + 93, TRADE_W - 12, 0xFFFFFFFF);
         } else if (e.type == ShopEntryType.COMMAND && !e.item.isEmpty()) {
             // 物品+指令:每次交易消耗一件物品(数量 e.item.getCount()),合计显示总需求物品量
             ItemStack cost = e.item;
             Component t = QText.parse((units * cost.getCount()) + "× " + cost.getHoverName().getString());
-            drawCenteredClipped(g, t, cx, py + 93, TRADE_W - 12, 0xFFFFFF);
+            drawCenteredClipped(g, t, cx, py + 93, TRADE_W - 12, 0xFFFFFFFF);
         } else {
             drawCenteredClipped(g, Component.translatable("qshop.gui.total_price",
                             CurrencyRegistry.format(e.price * units), currencyName(e.currencyId)),
-                    cx, py + 93, TRADE_W - 12, 0xFFFFFF);
+                    cx, py + 93, TRADE_W - 12, 0xFFFFFFFF);
         }
     }
 
-    private void drawCenteredClipped(GuiGraphics g, Component text, int centerX, int y, int maxWidth, int color) {
-        g.drawCenteredString(this.font, QText.clip(text, this.font, maxWidth), centerX, y, color);
+    private void drawCenteredClipped(GuiGraphicsExtractor g, Component text, int centerX, int y, int maxWidth, int color) {
+        g.centeredText(this.font, QText.clip(text, this.font, maxWidth), centerX, y, color);
     }
 
     void openEdit(int entryIndex) {
@@ -1899,9 +1969,9 @@ public class ShopScreen extends QShopScreen {
         int serverTab = serverTabIndex(tabMenuIndex);
         switch (i) {
             case 0 -> openTabEdit(tabMenuIndex);
-            case 1 -> QShopNetwork.sendToServer(new RemoveTabPacket(data.shopId, serverTab));
-            case 2 -> QShopNetwork.sendToServer(new MoveTabPacket(data.shopId, serverTab, -1));
-            case 3 -> QShopNetwork.sendToServer(new MoveTabPacket(data.shopId, serverTab, 1));
+            case 1 -> QShopClientNetwork.sendToServer(new RemoveTabPacket(data.shopId, serverTab));
+            case 2 -> QShopClientNetwork.sendToServer(new MoveTabPacket(data.shopId, serverTab, -1));
+            case 3 -> QShopClientNetwork.sendToServer(new MoveTabPacket(data.shopId, serverTab, 1));
             default -> {
             }
         }
@@ -1920,17 +1990,17 @@ public class ShopScreen extends QShopScreen {
         rememberEditModeForTransition(editMode);
         switch (i) {
             case 0 -> removeEntry(menuIndex);
-            case 1 -> QShopNetwork.sendToServer(new CopyEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(menuIndex)));
+            case 1 -> QShopClientNetwork.sendToServer(new CopyEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(menuIndex)));
             case 2 -> {
                 int source = serverIndex(menuIndex);
                 if (source > 0) {
-                    QShopNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), source, source - 1));
+                    QShopClientNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), source, source - 1));
                 }
             }
             case 3 -> {
                 int source = serverIndex(menuIndex);
                 if (source < visibleTabs.get(activeTab).entries.size() - 1) {
-                    QShopNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), source, source + 1));
+                    QShopClientNetwork.sendToServer(new ReorderEntryPacket(data.shopId, serverTabIndex(activeTab), source, source + 1));
                 }
             }
             default -> {
@@ -1940,7 +2010,7 @@ public class ShopScreen extends QShopScreen {
 
     void removeEntry(int entryIndex) {
         rememberEditModeForTransition(editMode);
-        QShopNetwork.sendToServer(new RemoveEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(entryIndex)));
+        QShopClientNetwork.sendToServer(new RemoveEntryPacket(data.shopId, serverTabIndex(activeTab), serverIndex(entryIndex)));
     }
 
     void onWalletSync(java.util.Map<String, Double> balances) {
@@ -1950,7 +2020,7 @@ public class ShopScreen extends QShopScreen {
 
     // ---------------- 渲染辅助 ----------------
 
-    private void renderCellTooltip(GuiGraphics g, int index, int mouseX, int mouseY) {
+    private void renderCellTooltip(GuiGraphicsExtractor g, int index, int mouseX, int mouseY) {
         ClientShopEntry e = data.entries.get(index);
         ItemStack icon = cellIcon(e);
         boolean custom = (e.displayName != null && !e.displayName.isEmpty())
@@ -2050,7 +2120,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     /** 悬停价格条:出售/购买/指令显示完整价格(非 K/M 缩写);交换与"物品+指令"显示"需要: 数量×物品名" */
-    private void renderPriceTooltip(GuiGraphics g, int index, int mouseX, int mouseY) {
+    private void renderPriceTooltip(GuiGraphicsExtractor g, int index, int mouseX, int mouseY) {
         ClientShopEntry e = data.entries.get(index);
         String text;
         String need = Component.translatable("qshop.gui.need").getString() + ": ";

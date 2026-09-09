@@ -3,7 +3,9 @@ package com.qshop.wallet;
 import com.qshop.data.PurchaseCounts;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,7 +13,7 @@ import java.util.Map;
 /**
  * 钱包实现,可序列化为 NBT。
  */
-public class WalletImpl implements IWallet, INBTSerializable<CompoundTag> {
+public class WalletImpl implements IWallet, ValueIOSerializable {
 
     private final Map<String, Double> currencies = new LinkedHashMap<>();
     private final PurchaseCounts limits = new PurchaseCounts();
@@ -95,23 +97,27 @@ public class WalletImpl implements IWallet, INBTSerializable<CompoundTag> {
     public void deserializeNBT(CompoundTag tag) {
         currencies.clear();
         if (tag.contains("currencies")) {
-            CompoundTag cur = tag.getCompound("currencies");
-            for (String key : cur.getAllKeys()) {
-                currencies.put(key, cur.getDouble(key));
+            CompoundTag cur = tag.getCompoundOrEmpty("currencies");
+            for (String key : cur.keySet()) {
+                currencies.put(key, cur.getDoubleOr(key, 0D));
             }
         }
         if (tag.contains("limits")) {
-            limits.deserialize(tag.getCompound("limits"));
+            limits.deserialize(tag.getCompoundOrEmpty("limits"));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        return serializeNBT();
+    public void serialize(ValueOutput output) {
+        output.store("currencies", CompoundTag.CODEC, serializeNBT().getCompoundOrEmpty("currencies"));
+        output.store("limits", CompoundTag.CODEC, serializeNBT().getCompoundOrEmpty("limits"));
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+    public void deserialize(ValueInput input) {
+        CompoundTag tag = new CompoundTag();
+        input.read("currencies", CompoundTag.CODEC).ifPresent(value -> tag.put("currencies", value));
+        input.read("limits", CompoundTag.CODEC).ifPresent(value -> tag.put("limits", value));
         deserializeNBT(tag);
     }
 }

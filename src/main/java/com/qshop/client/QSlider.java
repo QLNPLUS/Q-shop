@@ -1,6 +1,6 @@
 package com.qshop.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.network.chat.Component;
 
@@ -36,7 +36,7 @@ public class QSlider extends AbstractSliderButton {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.track(g, getX(), getY() + (height - 8) / 2, width);
         int knobX = getX() + (int) (this.value * (width - 8));
         ShopTextures.knob(g, knobX, getY() + (height - 14) / 2, isHovered());

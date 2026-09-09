@@ -8,9 +8,9 @@ import com.google.gson.JsonParser;
 import com.qshop.config.QShopCommonConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.util.Locale;
 public final class ShopLayoutDebug {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "qshop_layout.json";
-    private static final ResourceLocation STYLE_FILE = ResourceLocation.fromNamespaceAndPath("qshop", "style.json");
+    private static final Identifier STYLE_FILE = Identifier.fromNamespaceAndPath("qshop", "style.json");
     private static final int MAX_OFFSET = 512;
     private static final EnumMap<Layout, EnumMap<Widget, Position>> DEFAULT_POSITIONS = defaultPositions();
     private static final EnumMap<Layout, EnumMap<Widget, Position>> POSITIONS = emptyPositions();
@@ -333,7 +333,7 @@ public final class ShopLayoutDebug {
         save();
     }
 
-    public static void renderOverlay(GuiGraphics graphics, Font font,
+    public static void renderOverlay(GuiGraphicsExtractor graphics, Font font,
                                      int x, int y, int width, int height) {
         if (!isEnabled()) {
             return;
@@ -355,8 +355,8 @@ public final class ShopLayoutDebug {
         int panelY = 4;
         graphics.fill(panelX - 2, panelY - 2, panelX + textWidth + 4,
                 panelY + font.lineHeight * 2 + 3, 0xCC111111);
-        graphics.drawString(font, Component.literal(label), panelX, panelY, 0xFFFFD54F, false);
-        graphics.drawString(font, Component.literal(offset), panelX,
+        graphics.text(font, Component.literal(label), panelX, panelY, 0xFFFFD54F, false);
+        graphics.text(font, Component.literal(offset), panelX,
                 panelY + font.lineHeight, 0xFFFFFFFF, false);
     }
 

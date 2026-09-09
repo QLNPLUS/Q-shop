@@ -54,7 +54,4 @@ public final class QShopNetwork {
         PacketDistributor.sendToPlayer(player, message);
     }
 
-    public static void sendToServer(CustomPacketPayload message) {
-        PacketDistributor.sendToServer(message);
-    }
 }

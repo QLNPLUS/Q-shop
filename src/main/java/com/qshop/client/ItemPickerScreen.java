@@ -3,7 +3,7 @@ package com.qshop.client;
 import com.qshop.util.ItemStackData;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.language.I18n;
@@ -12,7 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
@@ -97,7 +97,7 @@ public class ItemPickerScreen extends QShopScreen {
     /** 为"同名不同 NBT"的物品补充常用变体(药水/喷溅/滞留/药箭/附魔书) */
     private static void addNbtVariants(List<ItemStack> list, Item item) {
         if (item == Items.POTION || item == Items.SPLASH_POTION || item == Items.LINGERING_POTION || item == Items.TIPPED_ARROW) {
-            for (var potion : BuiltInRegistries.POTION.holders().toList()) {
+            for (var potion : BuiltInRegistries.POTION.listElements().toList()) {
                 ItemStack stack = new ItemStack(item);
                 stack.set(DataComponents.POTION_CONTENTS,
                         new net.minecraft.world.item.alchemy.PotionContents(potion));
@@ -110,7 +110,7 @@ public class ItemPickerScreen extends QShopScreen {
                         lookup.listElements().forEach(enchantment -> {
                             int max = enchantment.value().getMaxLevel();
                             for (int level = 1; level <= max; level++) {
-                                list.add(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                                list.add(net.minecraft.world.item.enchantment.EnchantmentHelper.createBook(
                                         new net.minecraft.world.item.enchantment.EnchantmentInstance(enchantment, level)));
                             }
                         }));
@@ -159,7 +159,7 @@ public class ItemPickerScreen extends QShopScreen {
             return;
         }
         for (Object value : iterable) {
-            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof ResourceLocation id)) {
+            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof Identifier id)) {
                 continue;
             }
             try {
@@ -191,7 +191,7 @@ public class ItemPickerScreen extends QShopScreen {
             return;
         }
         for (Object value : iterable) {
-            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof ResourceLocation id)) {
+            if (!(value instanceof Map.Entry<?, ?> entry) || !(entry.getKey() instanceof Identifier id)) {
                 continue;
             }
             try {
@@ -261,9 +261,9 @@ public class ItemPickerScreen extends QShopScreen {
             if (gunItem == null || gunItem == Items.AIR) {
                 return; // 未安装 TACZ
             }
-            Map<ResourceLocation, Resource> found = rm.listResources("custom",
+            Map<Identifier, Resource> found = rm.listResources("custom",
                     rl -> rl.getPath().endsWith(".json") && rl.getPath().contains("/data/tacz/index/"));
-            for (Map.Entry<ResourceLocation, Resource> entry : found.entrySet()) {
+            for (Map.Entry<Identifier, Resource> entry : found.entrySet()) {
                 String path = entry.getKey().getPath();
                 String[] seg = path.split("/");
                 // custom/<pack>/data/<ns>/index/<kind>/<file>.json
@@ -317,7 +317,7 @@ public class ItemPickerScreen extends QShopScreen {
 
     private static Item firstItem(String... ids) {
         for (String id : ids) {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));
+            Item item = BuiltInRegistries.ITEM.get(Identifier.parse(id)).map(holder -> holder.value()).orElse(Items.AIR);
             if (item != null && item != Items.AIR) {
                 return item;
             }
@@ -402,7 +402,7 @@ public class ItemPickerScreen extends QShopScreen {
             if (!tagId.contains(":")) {
                 tagId = "minecraft:" + tagId;
             }
-            ResourceLocation tagRl = ResourceLocation.tryParse(tagId);
+            Identifier tagRl = Identifier.tryParse(tagId);
             if (tagRl != null) {
                 TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagRl);
                 for (ItemStack s : source) {
@@ -415,7 +415,7 @@ public class ItemPickerScreen extends QShopScreen {
             // 命名空间搜索:如 @tacz
             String ns = query.substring(1);
             for (ItemStack s : source) {
-                ResourceLocation id = BuiltInRegistries.ITEM.getKey(s.getItem());
+                Identifier id = BuiltInRegistries.ITEM.getKey(s.getItem());
                 if (id.getNamespace().startsWith(ns)) {
                     visible.add(s);
                 }
@@ -454,7 +454,7 @@ public class ItemPickerScreen extends QShopScreen {
         // 先全部取消聚焦,再聚焦被点击的输入框
         if (searchBox != null) {
             searchBox.setFocused(false);
-            if (searchBox.mouseClicked(mouseX, mouseY, button)) {
+            if (searchBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
                 searchBox.setFocused(true);
                 return true;
             }
@@ -471,7 +471,7 @@ public class ItemPickerScreen extends QShopScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
         if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_F8 && ShopLayoutDebug.isConfiguredEnabled()) {
             ShopLayoutDebug.toggle();
             rebuild();
@@ -495,18 +495,18 @@ public class ItemPickerScreen extends QShopScreen {
                 return true;
             }
         }
-        if (searchBox != null && searchBox.isFocused() && searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (searchBox != null && searchBox.isFocused() && searchBox.keyPressed(keyEvent(keyCode, scanCode, modifiers))) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (searchBox != null && searchBox.isFocused() && searchBox.charTyped(codePoint, modifiers)) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
+        if (searchBox != null && searchBox.isFocused() && searchBox.charTyped(characterEvent(codePoint))) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
@@ -521,14 +521,14 @@ public class ItemPickerScreen extends QShopScreen {
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelPicker(g,
                 px(ShopLayoutDebug.PickerWidget.PANEL, left),
                 py(ShopLayoutDebug.PickerWidget.PANEL, top));
 
         // 滚动动画(以"行"为单位插值,时间基准,帧率无关)
         float target = scroll / (float) COLS;
-        float delta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float delta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
         rowAnim += (target - rowAnim) * Math.min(1.0f, delta * 15f);
         if (Math.abs(target - rowAnim) < 0.005f) {
             rowAnim = target;
@@ -556,13 +556,13 @@ public class ItemPickerScreen extends QShopScreen {
                 ItemStack s = visible.get(index);
                 boolean hover = index == hovered;
                 ShopTextures.slot(g, gx + c * CELL, y, CELL - 2, CELL - 2, hover, false);
-                g.renderItem(s, gx + c * CELL + 5, y + 5);
-                g.renderItemDecorations(this.font, s, gx + c * CELL + 5, y + 5);
+                g.item(s, gx + c * CELL + 5, y + 5);
+                g.itemDecorations(this.font, s, gx + c * CELL + 5, y + 5);
             }
         }
         ShopTextures.disableScissor(g);
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        ShopTextures.extractWidgetRenderStates(this, g, mouseX, mouseY, partialTick);
 
         // 悬浮物品 tooltip
         if (hovered >= 0) {
@@ -574,7 +574,7 @@ public class ItemPickerScreen extends QShopScreen {
         renderDebugOverlay(g);
     }
 
-    private void renderDebugOverlay(GuiGraphics g) {
+    private void renderDebugOverlay(GuiGraphicsExtractor g) {
         if (!ShopLayoutDebug.isEnabled()) {
             return;
         }
@@ -624,12 +624,10 @@ public class ItemPickerScreen extends QShopScreen {
                 return;
             }
         }
-        g.flush();
-        g.pose().pushPose();
-        g.pose().translate(0, 0, 500.0f);
+        g.pose().pushMatrix();
+        g.pose().translate(0, 0);
         ShopLayoutDebug.renderOverlay(g, this.font, x, y, w, h);
-        g.flush();
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override

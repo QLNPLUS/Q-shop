@@ -2,9 +2,10 @@ package com.qshop.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -37,21 +38,22 @@ public class QEditBox extends EditBox {
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (allowSectionSign && codePoint == '\u00A7') {
+    public boolean charTyped(CharacterEvent event) {
+        if (allowSectionSign && event.codepoint() == '\u00A7') {
             if (canConsumeInput()) {
                 insertSectionSign();
                 return true;
             }
             return false;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTyped(event);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
         // 粘贴(Ctrl+V):逐字符插入,保留 §(原版 insertText 会剥离)
-        if (allowSectionSign && keyCode == 86 && Screen.hasControlDown()) {
+        if (allowSectionSign && keyCode == 86 && event.hasControlDown()) {
             String clip = Minecraft.getInstance().keyboardHandler.getClipboard();
             if (clip != null && !clip.isEmpty()) {
                 for (int i = 0; i < clip.length(); i++) {
@@ -65,7 +67,7 @@ public class QEditBox extends EditBox {
                 return true;
             }
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     /** 在当前光标处插入一个 §(绕过 filterText 过滤) */
@@ -80,7 +82,7 @@ public class QEditBox extends EditBox {
     // ---------------- 渲染:字面显示 § ----------------
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         if (!isVisible()) {
             return;
         }
@@ -106,7 +108,7 @@ public class QEditBox extends EditBox {
 
         // 文字基线 = getY()+1(相比上一版下移 1px,与行标签对齐)
         int textTop = getY() + 1;
-        g.drawString(font, seq, getX() + 4, textTop, 0xFFFFFF);
+        g.text(font, seq, getX() + 4, textTop, 0xFFFFFFFF);
 
         // 光标(聚焦时闪烁;相比上一版上移 3px)
         if (isFocused() && cursor >= displayPos) {

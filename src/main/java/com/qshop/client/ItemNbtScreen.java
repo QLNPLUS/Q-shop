@@ -4,8 +4,11 @@ import com.qshop.util.ItemStackData;
 
 import com.qshop.util.QText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.SnbtPrinterTagVisitor;
 import net.minecraft.nbt.TagParser;
@@ -96,7 +99,7 @@ public class ItemNbtScreen extends QShopScreen {
             ItemStackData.setCustomTag(out, null);
         } else {
             try {
-                ItemStackData.setCustomTag(out, TagParser.parseTag(nbt));
+                ItemStackData.setCustomTag(out, TagParser.parseCompoundFully(nbt));
             } catch (Exception ignored) {
                 // 非法 SNBT 保留原 NBT
             }
@@ -109,11 +112,11 @@ public class ItemNbtScreen extends QShopScreen {
     protected boolean mouseClickedContent(double mouseX, double mouseY, int button) {
         countBox.setFocused(false);
         nbtBox.setFocused(false);
-        if (countBox.mouseClicked(mouseX, mouseY, button)) {
+        if (countBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             countBox.setFocused(true);
             return true;
         }
-        if (nbtBox.mouseClicked(mouseX, mouseY, button)) {
+        if (nbtBox.mouseClicked(mouseEvent(mouseX, mouseY, button), false)) {
             nbtBox.setFocused(true);
             return true;
         }
@@ -121,46 +124,48 @@ public class ItemNbtScreen extends QShopScreen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (countBox.isFocused() && countBox.keyPressed(keyCode, scanCode, modifiers)) {
+    protected boolean keyPressedContent(int keyCode, int scanCode, int modifiers) {
+        KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        if (countBox.isFocused() && countBox.keyPressed(event)) {
             return true;
         }
-        if (nbtBox.isFocused() && nbtBox.keyPressed(keyCode, scanCode, modifiers)) {
+        if (nbtBox.isFocused() && nbtBox.keyPressed(event)) {
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressedContent(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(char codePoint, int modifiers) {
-        if (countBox.isFocused() && countBox.charTyped(codePoint, modifiers)) {
+    protected boolean charTypedContent(int codePoint, int modifiers) {
+        CharacterEvent event = new CharacterEvent(codePoint);
+        if (countBox.isFocused() && countBox.charTyped(event)) {
             return true;
         }
-        if (nbtBox.isFocused() && nbtBox.charTyped(codePoint, modifiers)) {
+        if (nbtBox.isFocused() && nbtBox.charTyped(event)) {
             return true;
         }
-        return super.charTyped(codePoint, modifiers);
+        return super.charTypedContent(codePoint, modifiers);
     }
 
     @Override
-    protected void renderContent(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderContent(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.panelEdit(g, left, top);
 
         if (!stack.isEmpty()) {
             // 顶部图标/名称与交易条目编辑界面保持一致
-            g.renderItem(stack, left + LABEL_X, top + 2);
-            g.drawString(this.font, QText.clip(stack.getHoverName().getString(), this.font, 180),
-                    left + 32, top + 5, 0xFFFFFF);
+            g.item(stack, left + LABEL_X, top + 2);
+            g.text(this.font, QText.clip(stack.getHoverName().getString(), this.font, 180),
+                    left + 32, top + 5, 0xFFFFFFFF);
         }
 
-        g.drawString(this.font, Component.translatable("qshop.gui.count_field"), left + LABEL_X, top + 29, 0xFFFFFF);
-        g.drawString(this.font, Component.translatable("qshop.gui.nbt"), left + LABEL_X, top + 47, 0xFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.count_field"), left + LABEL_X, top + 29, 0xFFFFFFFF);
+        g.text(this.font, Component.translatable("qshop.gui.nbt"), left + LABEL_X, top + 47, 0xFFFFFFFF);
 
         // 输入框背景(无边框 EditBox 文字画在左上角,材质向上/左扩展 2px 使其视觉居中)
         ShopTextures.input(g, left + CONTROL_X, top + 27, 70, 12, countBox.isFocused());
         ShopTextures.input(g, left + LABEL_X, top + 57, 226, 182, nbtBox.isFocused());
 
-        ShopTextures.renderWidgets(this, g, mouseX, mouseY, partialTick);
+        ShopTextures.extractWidgetRenderStates(this, g, mouseX, mouseY, partialTick);
     }
 
     @Override
