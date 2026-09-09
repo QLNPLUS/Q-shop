@@ -3,7 +3,7 @@
 一个灵活的多功能商店模组:交易 GUI、多种非物品货币、购买/出售/以物换物、游戏内编辑、
 多商店(id / uuid)、KubeJS 集成、全服/个人限购、购买后执行指令。
 
-当前版本：**1.4.0**（NeoForge 1.21.1）
+当前版本：**1.5.0**（NeoForge 1.21.1）
 
 ## 功能清单
 
@@ -31,8 +31,8 @@
 curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.8/gradle/wrapper/gradle-wrapper.jar
 
 gradlew.bat build          # Windows
-# NeoForge 产物: build/libs/qshop-neoforge-1.21.1-1.4.0.jar
-# Forge 1.20.1 分支产物: build/libs/qshop-forge-1.20.1-1.4.0.jar
+# NeoForge 产物: build/libs/qshop-neoforge-1.21.1-1.5.0.jar
+# Forge 1.20.1 分支产物: build/libs/qshop-forge-1.20.1-1.5.0.jar
 ```
 
 也可以直接用 IntelliJ IDEA 打开 `build.gradle` 导入,运行 `runClient` / `runServer` 调试。
@@ -105,6 +105,13 @@ currencyRetention = ["coins=0.2", "points=0.5"]
 
 上例表示死亡后保留 20% 的 `coins`、50% 的 `points`，其他货币全部清空。比例范围为 `0.0` 到 `1.0`；也接受 `coins:0.2` 写法。
 
+服务端购买设置保存在 `config/qshop-server.toml`。开启后，购买结果超过当前背包容量的部分会掉落到玩家附近：
+
+```toml
+[inventory]
+allowOverflowPurchases = false
+```
+
 客户端界面设置也统一保存在同一个 `config/qshop-common.toml` 文件中：
 
 ```toml
@@ -125,6 +132,44 @@ searchActive = false
 `lastLayout` 会记录最近选择的布局；`standard` 为 7x3，`wide` 为 8x4，重启游戏后仍会保留。
 `searchActive` 会记录搜索按钮是否启用；启用后重启游戏会恢复搜索框，搜索文本本身不会保存。
 搜索范围是当前 tab 的交易项目；普通文本会优先匹配交易项自定义名称，再匹配交易格内最终显示物品的名称/ID（包括自定义展示物品）。同时支持 `#tag` 标签和 `@namespace` 命名空间，空格分隔的多个条件会同时生效。
+
+### 资源包样式与布局
+
+资源包可以通过 `assets/qshop/style.json` 自定义 QShop 界面中的组件偏移和 Tab 列表渐变遮罩颜色。该文件的布局字段使用与 `config/qshop_layout.json` 相同的格式；可以先在布局调试模式中调整坐标，再将生成的 JSON 复制到资源包的对应路径。
+
+```json
+{
+  "colors": {
+    "fade_mask": "#636363"
+  },
+  "layouts": {
+    "standard": {
+      "widgets": {
+        "grid": { "x": 0, "y": 4 },
+        "close_button": { "x": 3, "y": -3 }
+      }
+    },
+    "wide": {
+      "widgets": {
+        "grid": { "x": 6, "y": -14 }
+      }
+    }
+  },
+  "screens": {
+    "trade_settings": {
+      "widgets": {
+        "panel": { "x": 0, "y": 2 }
+      }
+    }
+  }
+}
+```
+
+`colors.fade_mask` 使用 `RRGGBB` 十六进制颜色，也接受不带 `#` 的写法；它只控制颜色，渐变透明度仍由程序自动计算。未填写时使用 `config/qshop-common.toml` 中的 `fadeColor`，再回退到默认值 `636363`。
+
+`layouts.standard.widgets` 和 `layouts.wide.widgets` 支持 `panel`、`tab_bar`、`grid`、`add_button`、`edit_button`、`search_box`、`search_button`、`layout_button`、`close_button`。`screens.trade_settings`、`screens.item_picker` 和 `screens.tab_settings` 分别支持交易设置、物品浏览器和 Tab 编辑界面的组件偏移。未填写的组件继续使用默认位置，坐标会限制在 `-512` 到 `512` 之间。
+
+资源包遵循 Minecraft 的资源包优先级，最上层资源包中的 `assets/qshop/style.json` 会覆盖下层资源包。资源包样式加载后，本地 `config/qshop_layout.json` 中的布局偏移仍可作为客户端调试覆盖。
 
 ### currencies.json
 

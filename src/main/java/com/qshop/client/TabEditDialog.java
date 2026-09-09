@@ -380,7 +380,7 @@ public class TabEditDialog extends QShopScreen {
 
         if (!icon.isEmpty() && mouseX >= iconX - 2 && mouseX < iconX + 18
                 && mouseY >= iconY && mouseY < iconY + 20) {
-            g.renderTooltip(this.font, icon, mouseX, mouseY);
+            renderQShopTooltip(g, icon);
         }
         renderDebugOverlay(g);
     }

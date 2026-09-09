@@ -10,7 +10,7 @@ import java.util.List;
 public final class QShopCommonConfig {
 
     /** Preferred starting value; the usable range follows the current Minecraft GUI Scale. */
-    public static final double DEFAULT_GUI_SCALE = 5.0D;
+    public static final double DEFAULT_GUI_SCALE = 1.0D;
     public static final double GUI_SCALE_STEP = 0.2D;
 
     public static final ModConfigSpec SPEC;
@@ -90,7 +90,7 @@ public final class QShopCommonConfig {
         GUI_SCALE = b.comment(
                         "QShop 界面使用自身缩放值，并随 Minecraft GUI Scale 根据当前窗口动态调整可用范围。",
                         "QShop uses its own local scale value and dynamically adjusts its usable range for the current window and Minecraft GUI Scale.",
-                        "默认偏好值 5.0 / Default preference: 5.0")
+                        "默认偏好值 1.0 / Default preference: 1.0")
                 .define("guiScale", DEFAULT_GUI_SCALE, QShopCommonConfig::validGuiScale);
         b.pop();
         SPEC = b.build();

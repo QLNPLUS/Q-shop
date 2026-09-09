@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.0 - 2026-09-09
+
+### Added
+
+- Added resource-pack style and layout overrides through `assets/qshop/style.json`, including the tab fade-mask color.
+- Added the server option `inventory.allowOverflowPurchases` for purchases that exceed inventory capacity.
+
+### Changed
+
+- Changed the default QShop GUI scale preference to `1.0` for newly created configurations.
+- Moved the lower tab fade mask down by 1 pixel and reduced the balance tooltip activation area.
+
+### Fixed
+
+- Fixed QShop tooltips inheriting the local GUI scale and being positioned outside the screen.
+- Removed the separator line below the shop name.
+
 ## 1.4.0 - 2026-09-04
 
 ### Added

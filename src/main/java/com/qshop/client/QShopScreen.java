@@ -3,9 +3,16 @@ package com.qshop.client;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.List;
+import java.util.Optional;
 
 /** Base screen that scales only QShop content around the screen center. */
 public abstract class QShopScreen extends Screen {
+
+    private int tooltipMouseX;
+    private int tooltipMouseY;
 
     protected QShopScreen(Component title) {
         super(title);
@@ -26,6 +33,9 @@ public abstract class QShopScreen extends Screen {
         // Keep the QShop background at its normal size; only QShop content uses the local matrix.
         ShopTextures.background(graphics, this.width, this.height);
 
+        tooltipMouseX = mouseX;
+        tooltipMouseY = mouseY;
+
         double scale = QShopScreenInput.renderScale();
         int logicalMouseX = QShopScreenInput.toLogicalCoordinate(mouseX, width);
         int logicalMouseY = QShopScreenInput.toLogicalCoordinate(mouseY, height);
@@ -35,6 +45,39 @@ public abstract class QShopScreen extends Screen {
         graphics.pose().translate(-width / 2.0D, -height / 2.0D, 0.0D);
         try {
             renderContent(graphics, logicalMouseX, logicalMouseY, partialTick);
+        } finally {
+            graphics.pose().popPose();
+        }
+    }
+
+    /**
+     * Renders a QShop tooltip in Minecraft's normal GUI coordinate system.
+     * QShop content is rendered under a centered local scale, but tooltips must
+     * keep their native size and use the physical mouse position so Minecraft's
+     * edge-clamping logic can place them inside the window.
+     */
+    protected final void renderQShopTooltip(GuiGraphics graphics, ItemStack stack) {
+        renderUnscaled(() -> graphics.renderTooltip(this.font, stack, tooltipMouseX, tooltipMouseY), graphics);
+    }
+
+    /** Renders a text tooltip without inheriting QShop's local content scale. */
+    protected final void renderQShopTooltip(GuiGraphics graphics, List<Component> lines) {
+        renderUnscaled(() -> graphics.renderTooltip(this.font, lines, Optional.empty(),
+                tooltipMouseX, tooltipMouseY), graphics);
+    }
+
+    private void renderUnscaled(Runnable renderer, GuiGraphics graphics) {
+        double scale = QShopScreenInput.renderScale();
+        graphics.pose().pushPose();
+        try {
+            if (Double.isFinite(scale) && scale > 0.0D && Math.abs(scale - 1.0D) > 0.0001D) {
+                double centerX = width / 2.0D;
+                double centerY = height / 2.0D;
+                graphics.pose().translate(centerX, centerY, 0.0D);
+                graphics.pose().scale((float) (1.0D / scale), (float) (1.0D / scale), 1.0F);
+                graphics.pose().translate(-centerX, -centerY, 0.0D);
+            }
+            renderer.run();
         } finally {
             graphics.pose().popPose();
         }
