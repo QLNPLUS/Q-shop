@@ -14,6 +14,11 @@ on:
         required: false
         default: neoforge-1.21.1
         type: string
+      neoforge_126_ref:
+        description: NeoForge 26.1.2 branch or tag to build
+        required: false
+        default: neoforge-1.26.1.2
+        type: string
       loader:
         description: Loader to publish when running manually
         required: false
@@ -34,6 +39,7 @@ concurrency:
 env:
   RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   NEOFORGE_REF: ${{ inputs.neoforge_ref || 'neoforge-1.21.1' }}
+  NEOFORGE_126_REF: ${{ inputs.neoforge_126_ref || 'neoforge-1.26.1.2' }}
 
 jobs:
   publish-forge:
@@ -220,3 +226,98 @@ jobs:
           loaders: neoforge
           game-versions: 1.21.1
           java: 21
+
+  publish-neoforge-126:
+    if: github.event_name == 'release' || inputs.loader == 'all' || inputs.loader == 'neoforge'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out NeoForge 26.1.2 source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.NEOFORGE_126_REF }}
+          path: neoforge-126
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Remove local proxy settings
+        working-directory: neoforge-126
+        run: sed -i -E '/^systemProp\.(http|https)\.proxy(Host|Port)=|^org\.gradle\.java\.home=/d' gradle.properties
+
+      - name: Prepare CurseForge version
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+
+      - name: Validate CurseForge configuration
+        env:
+          CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          test -n "$CURSEFORGE_PROJECT_ID" || {
+            echo "Missing repository variable CURSEFORGE_PROJECT_ID"
+            exit 1
+          }
+          test -n "$CURSEFORGE_TOKEN" || {
+            echo "Missing repository secret CURSEFORGE_TOKEN"
+            exit 1
+          }
+
+      - name: Build NeoForge 26.1.2 mod
+        working-directory: neoforge-126
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - name: Verify NeoForge 26.1.2 artifact
+        env:
+          CURSEFORGE_VERSION: ${{ env.CURSEFORGE_VERSION }}
+        working-directory: neoforge-126
+        run: |
+          find build/libs -maxdepth 1 -type f -name '*.jar' -print
+          expected="qshop-neoforge-26.1.2-${CURSEFORGE_VERSION}.jar"
+          test -f "build/libs/$expected"
+          echo "CURSEFORGE_FILE=neoforge-126/build/libs/$expected" >> "$GITHUB_ENV"
+
+      - name: Prepare current NeoForge 26.1.2 changelog
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        working-directory: neoforge-126
+        run: |
+          version="${RELEASE_VERSION#v}"
+          awk -v version="$version" '
+            /^##[[:space:]]+/ {
+              heading = $2
+              gsub(/^\[/, "", heading)
+              gsub(/\].*$/, "", heading)
+              if (found && heading != version) exit
+              if (heading == version) found = 1
+            }
+            found { print }
+          ' CHANGELOG.md > build/curseforge-changelog.md
+          test -s build/curseforge-changelog.md || {
+            echo "Missing CHANGELOG.md section for version $version"
+            exit 1
+          }
+
+      - name: Publish NeoForge 26.1.2 mod file
+        uses: Kira-NT/mc-publish@v3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ env.CURSEFORGE_FILE }}
+          version: ${{ env.CURSEFORGE_VERSION }}
+          name: qshop-neoforge-26.1.2-${{ env.CURSEFORGE_VERSION }}
+          version-type: release
+          changelog-file: neoforge-126/build/curseforge-changelog.md
+          loaders: neoforge
+          game-versions: 26.1.2
+          java: 25

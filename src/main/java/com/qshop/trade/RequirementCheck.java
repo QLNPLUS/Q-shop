@@ -18,7 +18,7 @@ import java.util.Set;
  * 交易前提检查(全部基于反射,兼容"未安装对应模组"的情况):
  * <ul>
  *   <li>FTB Quests:玩家所在队伍需已完成指定任务(id 以字符串形式配置)。</li>
- *   <li>GameStages / KubeJS stage:玩家需拥有指定 stage。</li>
+ *   <li>GameStages / KubeJS / AStages:玩家需拥有指定 stage。</li>
  * </ul>
  * 配置了要求却无法找到对应 provider 时按未满足处理，避免受限内容意外显示。
  */
@@ -183,19 +183,28 @@ public final class RequirementCheck {
         return null;
     }
 
-    // ---------------- GameStages / KubeJS stages ----------------
+    // ---------------- GameStages / KubeJS / AStages ----------------
 
     /**
      * 检查玩家是否拥有阶段。
      * <p>服务端的 GameStages / KubeJS PlayerStages 两份数据可能不同步(原 sdmshop 就存在此问题,
-     * last_one_core 通过服务端改动后推送镜像包修复)。这里在两个 provider 上做"并集"判断:
+     * last_one_core 通过服务端改动后推送镜像包修复)。这里在所有 provider 上做"并集"判断:
      * 任一 provider 报告拥有即视为满足,避免因某一侧数据滞后把已获得阶段的玩家误判为未满足。
+     * AStages 还会先检查服务器 stage,再检查当前玩家 stage。
      * 两个阶段模组都没安装时返回 false，配置过的阶段要求必须能被明确验证。
      */
     private static boolean hasStage(ServerPlayer player, String stage) {
         boolean providerPresent = false;
         boolean found = false;
-        // 1) GameStages 模组
+        // 1) AStages:服务器 stage 对所有玩家生效,玩家 stage 只对当前玩家生效。
+        try {
+            providerPresent = true;
+            found |= hasAStagesStage(player, stage);
+        } catch (ClassNotFoundException ignored) {
+        } catch (Throwable t) {
+            LOGGER.debug("QShop: AStages 检查失败: {}", t.toString());
+        }
+        // 2) GameStages 模组
         try {
             Class<?> helper = Class.forName("net.darkhax.gamestages.GameStageHelper");
             providerPresent = true;
@@ -210,7 +219,7 @@ public final class RequirementCheck {
         } catch (Throwable t) {
             LOGGER.debug("QShop: GameStages 检查失败: {}", t.toString());
         }
-        // 2) KubeJS PlayerStages
+        // 3) KubeJS PlayerStages
         try {
             Class<?> playerKjs = Class.forName("dev.latvian.mods.kubejs.core.PlayerKJS");
             providerPresent = true;
@@ -243,5 +252,56 @@ public final class RequirementCheck {
         }
         // 无 provider 或所有 provider 均未确认拥有该阶段时，都按未满足处理。
         return providerPresent && found;
+    }
+
+    /**
+     * 通过 AStages 公开 API 检查 stage。使用反射保持 AStages 为可选依赖,
+     * 并显式按 SERVER -> PLAYER 顺序检查。
+     */
+    private static boolean hasAStagesStage(ServerPlayer player, String stage) throws Exception {
+        Class<?> holderClass = Class.forName("com.alessandro.astages.api.holder.AHolder");
+        Class<?> stageTypeClass = Class.forName("com.alessandro.astages.api.constant.AStageType");
+        Class<?> utilsClass = Class.forName("com.alessandro.astages.api.util.AStagesUtils");
+
+        Object holder = null;
+        for (Method method : holderClass.getMethods()) {
+            if (!method.getName().equals("serverAndPlayer") || method.getParameterCount() != 1
+                    || !method.getParameterTypes()[0].isAssignableFrom(player.getClass())) {
+                continue;
+            }
+            holder = method.invoke(null, player);
+            break;
+        }
+        if (holder == null) {
+            return false;
+        }
+
+        Method hasStage = null;
+        for (Method method : utilsClass.getMethods()) {
+            Class<?>[] parameters = method.getParameterTypes();
+            if (method.getName().equals("hasStage") && parameters.length == 3
+                    && parameters[0] == holderClass
+                    && parameters[1] == stageTypeClass && parameters[2] == String.class) {
+                hasStage = method;
+                break;
+            }
+        }
+        if (hasStage == null) {
+            return false;
+        }
+
+        Object serverType = enumConstant(stageTypeClass, "SERVER");
+        Object playerType = enumConstant(stageTypeClass, "PLAYER");
+        return Boolean.TRUE.equals(hasStage.invoke(null, holder, serverType, stage))
+                || Boolean.TRUE.equals(hasStage.invoke(null, holder, playerType, stage));
+    }
+
+    private static Object enumConstant(Class<?> enumClass, String name) {
+        for (Object value : enumClass.getEnumConstants()) {
+            if (name.equals(value.toString())) {
+                return value;
+            }
+        }
+        return null;
     }
 }
