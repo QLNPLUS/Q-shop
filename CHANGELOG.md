@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0 - 2026-09-09
+
+### Added
+
+- Added x1, x10, x100 and x1000 quantity-step controls to the trade screen for large purchases.
+- Added AStages compatibility for server and player stage requirements.
+
+### Fixed
+
+- Fixed trade-screen slider layout and tooltip positioning after GUI scaling changes.
+
 ## 1.5.0 - 2026-09-09
 
 ### Added

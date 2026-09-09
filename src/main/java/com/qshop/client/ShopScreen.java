@@ -119,12 +119,17 @@ public class ShopScreen extends QShopScreen {
     // ---- 交易悬浮窗(小窗口悬浮在主商店之上,不关闭主界面) ----
     private static final int TRADE_W = 150;
     private static final int TRADE_H = 133;
+    private static final int TRADE_STEP_BUTTON_W = 32;
+    private static final int TRADE_SLIDER_W = 88;
+    private static final int TRADE_STEP_BUTTON_GAP = 4;
     private int tradeIndex = -1;
     private int tradeMaxUnits = 0;
+    private int tradeStep = 1;
     private boolean tradeSyncing = false;
     private boolean overlayPointerCapture = false;
     private EditBox tradeUnitsBox;
     private QSlider tradeSlider;
+    private QButton tradeStepButton;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
 
     // ---- 商店搜索 ----
@@ -1568,20 +1573,26 @@ public class ShopScreen extends QShopScreen {
         dragActive = false;
         tradeIndex = entryIndex;
         tradeMaxUnits = computeTradeMaxUnits(e);
+        tradeStep = 1;
         int px = left + (panelWidth() - TRADE_W) / 2;
         int py = top + 24 + (GUI_H - 24 - TRADE_H) / 2;
 
         tradeUnitsBox = new EditBox(this.font, px + 47, py + 63, 56, 14, Component.literal(""));
-        tradeUnitsBox.setMaxLength(7);
-        tradeUnitsBox.setFilter(s -> s.matches("\\d{0,7}"));
+        tradeUnitsBox.setMaxLength(10);
+        tradeUnitsBox.setFilter(s -> s.matches("\\d{0,10}"));
         tradeUnitsBox.setBordered(false);
         tradeUnitsBox.setValue("");
         tradeUnitsBox.setResponder(s -> onTradeBoxChanged());
         addTradeWidget(tradeUnitsBox);
 
-        tradeSlider = new QSlider(px + 8, py + 77, TRADE_W - 16, 12, this::onTradeSliderChanged);
-        tradeSlider.setValueInt(1, Math.max(1, tradeMaxUnits));
+        tradeSlider = new QSlider(tradeSliderX(px), py + 77, tradeSliderWidth(), 12, this::onTradeSliderChanged);
+        tradeSlider.setValueInt(tradeSliderValueForUnits(1), tradeSliderMax());
         addTradeWidget(tradeSlider);
+        if (tradeMaxUnits >= 100) {
+            tradeStepButton = new QButton(tradeStepButtonX(px), py + 76, TRADE_STEP_BUTTON_W, 14,
+                    Component.literal(tradeStepLabel()), b -> cycleTradeStep());
+            addTradeWidget(tradeStepButton);
+        }
 
         addTradeWidget(new QButton(px + 8, py + TRADE_H - 21, 66, 16,
                 Component.translatable("qshop.gui.trade"), b -> confirmTrade()));
@@ -1602,6 +1613,8 @@ public class ShopScreen extends QShopScreen {
         tradeWidgets.clear();
         tradeUnitsBox = null;
         tradeSlider = null;
+        tradeStepButton = null;
+        tradeStep = 1;
     }
 
     /** 服务端刷新交易数据时调用，确保旧交易窗口不能继续提交旧索引。 */
@@ -1621,7 +1634,7 @@ public class ShopScreen extends QShopScreen {
         int input = parseTradeInput(tradeUnitsBox.getValue());
         int effective = tradeMaxUnits > 0 ? Math.min(input, tradeMaxUnits) : input;
         tradeSyncing = true;
-        tradeSlider.setValueInt(effective, Math.max(1, tradeMaxUnits));
+        tradeSlider.setValueInt(tradeSliderValueForUnits(effective), tradeSliderMax());
         tradeSyncing = false;
     }
 
@@ -1629,10 +1642,70 @@ public class ShopScreen extends QShopScreen {
         if (tradeSyncing || tradeSlider == null) {
             return;
         }
-        int v = Math.max(1, tradeSlider.getValueInt(Math.max(1, tradeMaxUnits)));
+        int sliderValue = Math.max(1, tradeSlider.getValueInt(tradeSliderMax()));
+        int v = (int) Math.min(Integer.MAX_VALUE, (long) sliderValue * tradeStep);
+        if (tradeMaxUnits > 0) {
+            v = Math.min(v, tradeMaxUnits);
+        }
         tradeSyncing = true;
         tradeUnitsBox.setValue(String.valueOf(v));
         tradeSyncing = false;
+    }
+
+    private int tradeSliderX(int px) {
+        if (tradeMaxUnits < 100) {
+            return px + (TRADE_W - (TRADE_W - 16)) / 2;
+        }
+        return px + (TRADE_W - tradeSliderWidth() - TRADE_STEP_BUTTON_GAP - TRADE_STEP_BUTTON_W) / 2;
+    }
+
+    private int tradeSliderWidth() {
+        return tradeMaxUnits >= 100 ? TRADE_SLIDER_W : TRADE_W - 16;
+    }
+
+    private int tradeStepButtonX(int px) {
+        return tradeSliderX(px) + tradeSliderWidth() + TRADE_STEP_BUTTON_GAP;
+    }
+
+    private int tradeSliderMax() {
+        if (tradeMaxUnits <= 0) {
+            return 1;
+        }
+        return Math.max(1, (int) Math.min(Integer.MAX_VALUE,
+                ((long) tradeMaxUnits + tradeStep - 1L) / tradeStep));
+    }
+
+    private int tradeSliderValueForUnits(int units) {
+        int effective = tradeMaxUnits > 0 ? Math.min(Math.max(1, units), tradeMaxUnits) : Math.max(1, units);
+        return Math.max(1, Math.min(tradeSliderMax(),
+                (int) Math.min(Integer.MAX_VALUE, ((long) effective + tradeStep - 1L) / tradeStep)));
+    }
+
+    private String tradeStepLabel() {
+        return tradeStep + "x";
+    }
+
+    private void cycleTradeStep() {
+        if (tradeMaxUnits < 100) {
+            return;
+        }
+        int currentUnits = parseTradeInput(tradeUnitsBox == null ? "1" : tradeUnitsBox.getValue());
+        int[] steps = tradeMaxUnits >= 1000 ? new int[]{1, 10, 100, 1000} : new int[]{1, 10, 100};
+        int next = steps[0];
+        for (int i = 0; i < steps.length; i++) {
+            if (steps[i] == tradeStep) {
+                next = steps[(i + 1) % steps.length];
+                break;
+            }
+        }
+        tradeStep = next;
+        tradeSyncing = true;
+        tradeSlider.setValueInt(tradeSliderValueForUnits(currentUnits), tradeSliderMax());
+        tradeSyncing = false;
+        onTradeSliderChanged();
+        if (tradeStepButton != null) {
+            tradeStepButton.setMessage(Component.literal(tradeStepLabel()));
+        }
     }
 
     private void confirmTrade() {
@@ -1643,7 +1716,7 @@ public class ShopScreen extends QShopScreen {
 
     private static int parseTradeInput(String s) {
         try {
-            return Math.max(1, Integer.parseInt(s.trim()));
+            return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, Long.parseLong(s.trim())));
         } catch (Exception e) {
             return 1;
         }

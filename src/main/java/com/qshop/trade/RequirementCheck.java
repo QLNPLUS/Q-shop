@@ -18,7 +18,7 @@ import java.util.Set;
  * 交易前提检查(全部基于反射,兼容"未安装对应模组"的情况):
  * <ul>
  *   <li>FTB Quests:玩家所在队伍需已完成指定任务(id 以字符串形式配置)。</li>
- *   <li>KubeJS stage:玩家需拥有指定 stage。</li>
+ *   <li>KubeJS / AStages:玩家需拥有指定 stage。</li>
  * </ul>
  * 配置了要求却无法找到对应 provider 时按未满足处理，避免受限内容意外显示。
  */
@@ -183,23 +183,87 @@ public final class RequirementCheck {
         return null;
     }
 
-    // ---------------- KubeJS stages ----------------
+    // ---------------- KubeJS / AStages stages ----------------
 
     /**
      * 检查玩家是否拥有 KubeJS stage。
-     * <p>NeoForge 1.21.1 使用 KubeJS 自带的 stage provider。没有安装 KubeJS，
-     * 或 KubeJS 无法返回玩家阶段时，配置过的阶段要求按未满足处理。
+     * <p>NeoForge 1.21.1 使用 KubeJS 与 AStages 的 stage provider。没有安装对应模组，
+     * 或 provider 无法返回阶段时，配置过的阶段要求按未满足处理。
      */
     private static boolean hasStage(ServerPlayer player, String stage) {
+        boolean providerPresent = false;
+        boolean found = false;
+        // 1) AStages:服务器 stage 对所有玩家生效,玩家 stage 只对当前玩家生效。
         try {
+            providerPresent = true;
+            found |= hasAStagesStage(player, stage);
+        } catch (ClassNotFoundException ignored) {
+        } catch (Throwable t) {
+            LOGGER.debug("QShop: AStages 检查失败: {}", t.toString());
+        }
+        // 2) KubeJS PlayerStages
+        try {
+            providerPresent = true;
             Class<?> playerKjs = Class.forName("dev.latvian.mods.kubejs.core.PlayerKJS");
             Object stages = playerKjs.getMethod("kjs$getStages").invoke(player);
-            return stages != null && (Boolean) stages.getClass().getMethod("has", String.class)
-                    .invoke(stages, stage);
+            if (stages != null) {
+                found |= (Boolean) stages.getClass().getMethod("has", String.class).invoke(stages, stage);
+            }
         } catch (ClassNotFoundException ignored) {
         } catch (Throwable t) {
             LOGGER.debug("QShop: stage 检查不可用: {}", t.toString());
         }
-        return false;
+        return providerPresent && found;
+    }
+
+    /**
+     * 通过 AStages 公开 API 检查 stage。使用反射保持 AStages 为可选依赖,
+     * 并显式按 SERVER -> PLAYER 顺序检查。
+     */
+    private static boolean hasAStagesStage(ServerPlayer player, String stage) throws Exception {
+        Class<?> holderClass = Class.forName("com.alessandro.astages.api.holder.AHolder");
+        Class<?> stageTypeClass = Class.forName("com.alessandro.astages.api.constant.AStageType");
+        Class<?> utilsClass = Class.forName("com.alessandro.astages.api.util.AStagesUtils");
+
+        Object holder = null;
+        for (Method method : holderClass.getMethods()) {
+            if (!method.getName().equals("serverAndPlayer") || method.getParameterCount() != 1
+                    || !method.getParameterTypes()[0].isAssignableFrom(player.getClass())) {
+                continue;
+            }
+            holder = method.invoke(null, player);
+            break;
+        }
+        if (holder == null) {
+            return false;
+        }
+
+        Method hasStage = null;
+        for (Method method : utilsClass.getMethods()) {
+            Class<?>[] parameters = method.getParameterTypes();
+            if (method.getName().equals("hasStage") && parameters.length == 3
+                    && parameters[0] == holderClass
+                    && parameters[1] == stageTypeClass && parameters[2] == String.class) {
+                hasStage = method;
+                break;
+            }
+        }
+        if (hasStage == null) {
+            return false;
+        }
+
+        Object serverType = enumConstant(stageTypeClass, "SERVER");
+        Object playerType = enumConstant(stageTypeClass, "PLAYER");
+        return Boolean.TRUE.equals(hasStage.invoke(null, holder, serverType, stage))
+                || Boolean.TRUE.equals(hasStage.invoke(null, holder, playerType, stage));
+    }
+
+    private static Object enumConstant(Class<?> enumClass, String name) {
+        for (Object value : enumClass.getEnumConstants()) {
+            if (name.equals(value.toString())) {
+                return value;
+            }
+        }
+        return null;
     }
 }
