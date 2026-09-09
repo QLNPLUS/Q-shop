@@ -150,7 +150,7 @@ public final class TradeService {
                 }
                 ItemStack result = e.item.copy();
                 result.setCount(e.item.getCount() * units);
-                if (!ItemHelper.canFit(player, result)) {
+                if (!QShopServerConfig.allowOverflowPurchases() && !ItemHelper.canFit(player, result)) {
                     tell(player, Component.translatable("qshop.msg.no_space"));
                     return;
                 }

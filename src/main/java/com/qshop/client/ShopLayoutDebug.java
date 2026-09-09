@@ -10,10 +10,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.Resource;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
@@ -26,6 +30,7 @@ import java.util.Locale;
 public final class ShopLayoutDebug {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "qshop_layout.json";
+    private static final ResourceLocation STYLE_FILE = new ResourceLocation("qshop", "style.json");
     private static final int MAX_OFFSET = 512;
     private static final EnumMap<Layout, EnumMap<Widget, Position>> DEFAULT_POSITIONS = defaultPositions();
     private static final EnumMap<Layout, EnumMap<Widget, Position>> POSITIONS = emptyPositions();
@@ -41,6 +46,7 @@ public final class ShopLayoutDebug {
     private static TabWidget selectedTab = TabWidget.PANEL;
     private static Layout activeLayout = Layout.STANDARD;
     private static DebugScreen activeScreen = DebugScreen.SHOP;
+    private static int styleFadeColor = -1;
     private static boolean enabled;
     private static boolean loaded;
 
@@ -292,6 +298,12 @@ public final class ShopLayoutDebug {
         return normalY + position(widget).y();
     }
 
+    /** Resource-pack theme color for the tab fade masks, with the client config as fallback. */
+    public static int fadeColor() {
+        load();
+        return styleFadeColor >= 0 ? styleFadeColor : QShopCommonConfig.fadeColor();
+    }
+
     public static void moveSelected(int dx, int dy) {
         if (!isEnabled()) {
             return;
@@ -471,54 +483,80 @@ public final class ShopLayoutDebug {
         TRADE_POSITIONS.clear();
         PICKER_POSITIONS.clear();
         TAB_POSITIONS.clear();
+        styleFadeColor = -1;
+        loadResourcePackStyle();
+        loadLocalLayout();
+    }
+
+    private static void loadResourcePackStyle() {
+        try {
+            Minecraft minecraft = Minecraft.getInstance();
+            Resource resource = minecraft.getResourceManager().getResource(STYLE_FILE).orElse(null);
+            if (resource == null) {
+                return;
+            }
+            try (Reader reader = new InputStreamReader(resource.open(), StandardCharsets.UTF_8)) {
+                readStyleJson(reader);
+            }
+        } catch (Exception exception) {
+            System.err.println("[qshop] Could not read resource-pack style JSON: " + exception.getMessage());
+        }
+    }
+
+    private static void loadLocalLayout() {
         Path file = file();
         if (!Files.isRegularFile(file)) {
             return;
         }
         try (Reader reader = Files.newBufferedReader(file)) {
-            JsonElement root = JsonParser.parseReader(reader);
-            if (!root.isJsonObject()) {
-                return;
-            }
-            JsonObject rootObject = root.getAsJsonObject();
-            JsonObject layouts = rootObject.getAsJsonObject("layouts");
-            if (layouts != null) {
-                for (Layout layout : Layout.values()) {
-                    JsonElement rawLayout = layouts.get(layout.name().toLowerCase(Locale.ROOT));
-                    if (rawLayout != null && rawLayout.isJsonObject()) {
-                        JsonObject layoutObject = rawLayout.getAsJsonObject();
-                        JsonObject widgets = layoutObject.getAsJsonObject("widgets");
-                        if (widgets != null) {
-                            readWidgets(widgets, layout);
-                        }
-                    }
-                }
-            } else {
-                // Version 1 stored one shared widget map. Keep it as the 7x3 offsets;
-                // the 8x4 layout starts with independent default offsets.
-                JsonObject widgets = rootObject.getAsJsonObject("widgets");
-                if (widgets != null) {
-                    readWidgets(widgets, Layout.STANDARD);
-                }
-            }
-
-            JsonObject screens = rootObject.getAsJsonObject("screens");
-            if (screens != null) {
-                JsonElement trade = screens.get("trade_settings");
-                if (trade != null && trade.isJsonObject()) {
-                    readTradeWidgets(trade.getAsJsonObject().getAsJsonObject("widgets"));
-                }
-                JsonElement picker = screens.get("item_picker");
-                if (picker != null && picker.isJsonObject()) {
-                    readPickerWidgets(picker.getAsJsonObject().getAsJsonObject("widgets"));
-                }
-                JsonElement tab = screens.get("tab_settings");
-                if (tab != null && tab.isJsonObject()) {
-                    readTabWidgets(tab.getAsJsonObject().getAsJsonObject("widgets"));
-                }
-            }
+            readStyleJson(reader);
         } catch (Exception exception) {
             System.err.println("[qshop] Could not read layout debug JSON: " + exception.getMessage());
+        }
+    }
+
+    private static void readStyleJson(Reader reader) throws IOException {
+        JsonElement root = JsonParser.parseReader(reader);
+        if (!root.isJsonObject()) {
+            return;
+        }
+        JsonObject rootObject = root.getAsJsonObject();
+        readStyle(rootObject);
+        JsonObject layouts = rootObject.getAsJsonObject("layouts");
+        if (layouts != null) {
+            for (Layout layout : Layout.values()) {
+                JsonElement rawLayout = layouts.get(layout.name().toLowerCase(Locale.ROOT));
+                if (rawLayout != null && rawLayout.isJsonObject()) {
+                    JsonObject layoutObject = rawLayout.getAsJsonObject();
+                    JsonObject widgets = layoutObject.getAsJsonObject("widgets");
+                    if (widgets != null) {
+                        readWidgets(widgets, layout);
+                    }
+                }
+            }
+        } else {
+            // Version 1 stored one shared widget map. Keep it as the 7x3 offsets;
+            // the 8x4 layout starts with independent default offsets.
+            JsonObject widgets = rootObject.getAsJsonObject("widgets");
+            if (widgets != null) {
+                readWidgets(widgets, Layout.STANDARD);
+            }
+        }
+
+        JsonObject screens = rootObject.getAsJsonObject("screens");
+        if (screens != null) {
+            JsonElement trade = screens.get("trade_settings");
+            if (trade != null && trade.isJsonObject()) {
+                readTradeWidgets(trade.getAsJsonObject().getAsJsonObject("widgets"));
+            }
+            JsonElement picker = screens.get("item_picker");
+            if (picker != null && picker.isJsonObject()) {
+                readPickerWidgets(picker.getAsJsonObject().getAsJsonObject("widgets"));
+            }
+            JsonElement tab = screens.get("tab_settings");
+            if (tab != null && tab.isJsonObject()) {
+                readTabWidgets(tab.getAsJsonObject().getAsJsonObject("widgets"));
+            }
         }
     }
 
@@ -538,8 +576,14 @@ public final class ShopLayoutDebug {
         if (legacy != null && legacy.isJsonObject()) {
             Position legacyPosition = new Position(clamp(readInt(legacy.getAsJsonObject(), "x")),
                     clamp(readInt(legacy.getAsJsonObject(), "y")));
-            positions.putIfAbsent(Widget.ADD_BUTTON, legacyPosition);
-            positions.putIfAbsent(Widget.EDIT_BUTTON, legacyPosition);
+            JsonElement addButton = widgets.get("add_button");
+            JsonElement editButton = widgets.get("edit_button");
+            if (addButton == null || !addButton.isJsonObject()) {
+                positions.put(Widget.ADD_BUTTON, legacyPosition);
+            }
+            if (editButton == null || !editButton.isJsonObject()) {
+                positions.put(Widget.EDIT_BUTTON, legacyPosition);
+            }
         }
     }
 
@@ -574,6 +618,43 @@ public final class ShopLayoutDebug {
                 PICKER_POSITIONS.put(widget,
                         new Position(clamp(readInt(value, "x")), clamp(readInt(value, "y"))));
             }
+        }
+    }
+
+    private static void readStyle(JsonObject rootObject) {
+        JsonObject colors = rootObject.getAsJsonObject("colors");
+        if (colors == null) {
+            return;
+        }
+        Integer parsed = readColor(colors.get("fade_mask"));
+        if (parsed != null) {
+            styleFadeColor = parsed;
+        }
+    }
+
+    private static Integer readColor(JsonElement value) {
+        if (value == null || !value.isJsonPrimitive()) {
+            return null;
+        }
+        try {
+            if (value.getAsJsonPrimitive().isNumber()) {
+                return value.getAsInt() & 0xFFFFFF;
+            }
+            if (!value.getAsJsonPrimitive().isString()) {
+                return null;
+            }
+            String text = value.getAsString().trim();
+            if (text.startsWith("#")) {
+                text = text.substring(1);
+            } else if (text.startsWith("0x") || text.startsWith("0X")) {
+                text = text.substring(2);
+            }
+            if (text.length() != 6) {
+                return null;
+            }
+            return Integer.parseInt(text, 16) & 0xFFFFFF;
+        } catch (Exception ignored) {
+            return null;
         }
     }
 

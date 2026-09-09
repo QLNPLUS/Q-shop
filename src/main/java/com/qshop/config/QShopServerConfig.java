@@ -7,6 +7,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
  * <ul>
  *   <li>showTradeMessages:是否显示交易提示消息(购买成功/失败/限购等聊天消息)</li>
  *   <li>tradeMessagesInActionBar:是否改为在物品栏上方(statsMessage/actionbar)区域显示,避免刷屏聊天栏</li>
+ *   <li>allowOverflowPurchases:是否允许购买后超出玩家背包容量,多出的物品会掉落在玩家脚下</li>
  * </ul>
  */
 public final class QShopServerConfig {
@@ -16,6 +17,8 @@ public final class QShopServerConfig {
     public static final ForgeConfigSpec.BooleanValue SHOW_TRADE_MESSAGES;
     /** 是否在物品栏上方(statsMessage/actionbar)区域显示交易提示 */
     public static final ForgeConfigSpec.BooleanValue TRADE_MESSAGES_IN_ACTION_BAR;
+    /** 是否允许购买结果超出玩家背包容量,超出的物品会掉落。 */
+    public static final ForgeConfigSpec.BooleanValue ALLOW_OVERFLOW_PURCHASES;
 
     static {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -39,6 +42,19 @@ public final class QShopServerConfig {
                         "默认 false / Default: false")
                 .define("tradeMessagesInActionBar", false);
         b.pop();
+
+        b.comment(
+                "背包与购买设置 / Inventory and purchase settings",
+                "允许超出背包容量时,无法放入背包的物品会掉落在玩家脚下。",
+                "When overflow purchases are allowed, items that do not fit are dropped at the player's feet.")
+                .push("inventory");
+        ALLOW_OVERFLOW_PURCHASES = b
+                .comment(
+                        "是否允许玩家购买超过当前背包容量的物品。关闭时只要完整结果无法放入背包就拒绝交易。",
+                        "Whether players may buy more items than their current inventory can hold. When false, the trade is rejected if the complete result does not fit.",
+                        "默认 false / Default: false")
+                .define("allowOverflowPurchases", false);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -48,6 +64,10 @@ public final class QShopServerConfig {
 
     public static boolean tradeMessagesInActionBar() {
         return TRADE_MESSAGES_IN_ACTION_BAR.get();
+    }
+
+    public static boolean allowOverflowPurchases() {
+        return ALLOW_OVERFLOW_PURCHASES.get();
     }
 
     private QShopServerConfig() {

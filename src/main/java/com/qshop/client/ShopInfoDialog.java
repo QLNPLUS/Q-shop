@@ -175,7 +175,7 @@ public class ShopInfoDialog extends QShopScreen {
 
         if (!icon.isEmpty() && mouseX >= left + CONTROL_X && mouseX < left + CONTROL_X + 20
                 && mouseY >= top + 48 && mouseY < top + 68) {
-            g.renderTooltip(this.font, icon, mouseX, mouseY);
+            renderQShopTooltip(g, icon);
         }
     }
 

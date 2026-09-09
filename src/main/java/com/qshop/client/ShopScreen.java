@@ -472,9 +472,9 @@ public class ShopScreen extends QShopScreen {
             if (ct != null) {
                 List<Component> lines = tabTooltipLines(ct);
                 if (lines.size() > 1) {
-                    g.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
+                    renderQShopTooltip(g, lines);
                 } else if (!ct.icon.isEmpty()) {
-                    g.renderTooltip(this.font, ct.icon, mouseX, mouseY);
+                    renderQShopTooltip(g, ct.icon);
                 }
             }
         }
@@ -682,7 +682,6 @@ public class ShopScreen extends QShopScreen {
         }
         g.drawCenteredString(this.font, QText.clip(this.title, this.font, TAB_BAR_W - 4),
                 x + TAB_BAR_W / 2, y + 21, 0xFFFFFF);
-        g.fill(x + 4, y + 32, x + TAB_BAR_W - 4, y + 33, 0xFF444444);
 
         // 子商店列表使用独立裁剪区和平滑像素滚动。
         int ty0 = y + 38;
@@ -756,6 +755,8 @@ public class ShopScreen extends QShopScreen {
             float bw = this.font.width(clipped) * 0.6f;
             float bx = x + (TAB_BAR_W - bw) / 2f;
             float by = y + GUI_H - 10;
+            int balanceHitTop = Math.round(by) - 1;
+            int balanceHitBottom = balanceHitTop + 8;
             g.pose().pushPose();
             g.pose().translate(bx, by, 0);
             g.pose().scale(0.6f, 0.6f, 1.0f);
@@ -763,8 +764,8 @@ public class ShopScreen extends QShopScreen {
             g.pose().popPose();
             if (menuIndex < 0 && tabMenuIndex < 0 && tradeIndex < 0
                     && mouseX >= bx - 2 && mouseX <= bx + bw + 2
-                    && mouseY >= by - 8 && mouseY <= by + 5) {
-                g.renderTooltip(this.font, List.of(QText.parse(full)), Optional.empty(), mouseX, mouseY);
+                    && mouseY >= balanceHitTop && mouseY <= balanceHitBottom) {
+                renderQShopTooltip(g, List.of(QText.parse(full)));
             }
         }
     }
@@ -800,7 +801,7 @@ public class ShopScreen extends QShopScreen {
             ShopTextures.tabFadeTop(g, mx, ty0, mw);
         }
         if (tabScrollAnim < maxTabScroll() - 0.05f) {
-            ShopTextures.tabFadeBottom(g, mx, endY - 10, mw);
+            ShopTextures.tabFadeBottom(g, mx, endY - 9, mw);
         }
         g.flush();
         g.pose().popPose();
@@ -1938,7 +1939,7 @@ public class ShopScreen extends QShopScreen {
                 || (e.description != null && !e.description.isEmpty());
         if (!custom) {
             if (!icon.isEmpty()) {
-                g.renderTooltip(this.font, icon, mouseX, mouseY);
+                renderQShopTooltip(g, icon);
             }
             return;
         }
@@ -2015,7 +2016,7 @@ public class ShopScreen extends QShopScreen {
                     .append(Component.translatable("qshop.gui.tip_cmd_count", e.commands.size()))
                     .withStyle(s -> s.withColor(0xAAAAAA)));
         }
-        g.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
+        renderQShopTooltip(g, lines);
     }
 
     /** 阶段描述按 requiredStages 的索引对应;缺失或为空时显示阶段原文。 */
@@ -2046,7 +2047,7 @@ public class ShopScreen extends QShopScreen {
                     : Component.translatable("qshop.gui.buy_price").getString();
             text = label + ": " + CurrencyRegistry.format(e.price) + " " + currencyName(e.currencyId);
         }
-        g.renderTooltip(this.font, List.of(QText.parse(text)), Optional.empty(), mouseX, mouseY);
+        renderQShopTooltip(g, List.of(QText.parse(text)));
     }
 
     private Currency displayCurrency() {

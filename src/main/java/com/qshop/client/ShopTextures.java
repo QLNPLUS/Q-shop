@@ -172,7 +172,7 @@ public final class ShopTextures {
         if (!QShopCommonConfig.showFadeMasks()) {
             return;
         }
-        int c = QShopCommonConfig.fadeColor();
+        int c = ShopLayoutDebug.fadeColor();
         int r = (c >> 16) & 0xFF;
         int gn = (c >> 8) & 0xFF;
         int b = c & 0xFF;
@@ -187,7 +187,7 @@ public final class ShopTextures {
         if (!QShopCommonConfig.showFadeMasks()) {
             return;
         }
-        int c = QShopCommonConfig.fadeColor();
+        int c = ShopLayoutDebug.fadeColor();
         int r = (c >> 16) & 0xFF;
         int gn = (c >> 8) & 0xFF;
         int b = c & 0xFF;

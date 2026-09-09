@@ -560,7 +560,7 @@ public class ItemPickerScreen extends QShopScreen {
         if (hovered >= 0) {
             ItemStack s = visible.get(hovered);
             if (!s.isEmpty()) {
-                g.renderTooltip(this.font, s, mouseX, mouseY);
+                renderQShopTooltip(g, s);
             }
         }
         renderDebugOverlay(g);

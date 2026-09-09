@@ -1,0 +1,88 @@
+{
+  "version": 3,
+  "description": "Component offsets relative to each QShop layout.",
+  "colors": {
+    "fade_mask": "#636363"
+  },
+  "layouts": {
+    "standard": {
+      "label": "7x3",
+      "widgets": {
+        "panel": { "x": 0, "y": 0 },
+        "tab_bar": { "x": 0, "y": 0 },
+        "grid": { "x": 0, "y": 0 },
+        "add_button": { "x": 27, "y": -3 },
+        "edit_button": { "x": 21, "y": -3 },
+        "search_box": { "x": -3, "y": -19 },
+        "search_button": { "x": 15, "y": -3 },
+        "layout_button": { "x": 9, "y": -3 },
+        "close_button": { "x": 3, "y": -3 }
+      }
+    },
+    "wide": {
+      "label": "8x4",
+      "widgets": {
+        "panel": { "x": 0, "y": 0 },
+        "tab_bar": { "x": 0, "y": 0 },
+        "grid": { "x": 6, "y": -14 },
+        "add_button": { "x": 27, "y": -4 },
+        "edit_button": { "x": 21, "y": -4 },
+        "search_box": { "x": -3, "y": -20 },
+        "search_button": { "x": 15, "y": -4 },
+        "layout_button": { "x": 9, "y": -4 },
+        "close_button": { "x": 3, "y": -4 }
+      }
+    }
+  },
+  "screens": {
+    "trade_settings": {
+      "widgets": {
+        "panel": { "x": 0, "y": 0 },
+        "header": { "x": 0, "y": 0 },
+        "title_row": { "x": 0, "y": 0 },
+        "description_row": { "x": 0, "y": 0 },
+        "display_row": { "x": 0, "y": 0 },
+        "player_give_row": { "x": 0, "y": 0 },
+        "player_item_row": { "x": 0, "y": 0 },
+        "shop_give_row": { "x": 0, "y": 0 },
+        "shop_item_row": { "x": 0, "y": 0 },
+        "price_row": { "x": 0, "y": 0 },
+        "limits_row": { "x": 0, "y": 0 },
+        "reset_row": { "x": 0, "y": 0 },
+        "requirements_row": { "x": 0, "y": 0 },
+        "stage_description_row": { "x": 0, "y": 0 },
+        "visibility_row": { "x": 0, "y": 0 },
+        "type_row": { "x": 0, "y": 0 },
+        "command_header": { "x": 0, "y": 0 },
+        "command_rows": { "x": 0, "y": 0 },
+        "bottom_actions": { "x": 0, "y": 0 }
+      }
+    },
+    "item_picker": {
+      "widgets": {
+        "panel": { "x": 0, "y": 0 },
+        "mode_button": { "x": 0, "y": 0 },
+        "close_button": { "x": 0, "y": 0 },
+        "back_button": { "x": 0, "y": 0 },
+        "search_box": { "x": 0, "y": 0 },
+        "grid": { "x": 0, "y": 0 }
+      }
+    },
+    "tab_settings": {
+      "widgets": {
+        "panel": { "x": 0, "y": 0 },
+        "title": { "x": 0, "y": 0 },
+        "name_row": { "x": 0, "y": -5 },
+        "icon_row": { "x": 0, "y": -10 },
+        "quests_row": { "x": 0, "y": -11 },
+        "stages_row": { "x": 0, "y": 9 },
+        "stage_descriptions_row": { "x": 0, "y": 9 },
+        "description_row": { "x": 0, "y": -46 },
+        "visibility_row": { "x": 0, "y": -10 },
+        "delete_button": { "x": 0, "y": 0 },
+        "save_button": { "x": 0, "y": 0 },
+        "cancel_button": { "x": 0, "y": 0 }
+      }
+    }
+  }
+}
