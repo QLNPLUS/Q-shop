@@ -20,7 +20,7 @@ on:
         default: neoforge-1.26.1.2
         type: string
       loader:
-        description: Loader to publish when running manually
+        description: 'Loader to publish when running manually (neoforge-126 targets only the 26.1.2 job)'
         required: false
         default: all
         type: choice
@@ -28,6 +28,7 @@ on:
           - all
           - forge
           - neoforge
+          - neoforge-126
 
 permissions:
   contents: write
@@ -228,7 +229,7 @@ jobs:
           java: 21
 
   publish-neoforge-126:
-    if: github.event_name == 'release' || inputs.loader == 'all' || inputs.loader == 'neoforge'
+    if: github.event_name == 'release' || inputs.loader == 'all' || inputs.loader == 'neoforge' || inputs.loader == 'neoforge-126'
     runs-on: ubuntu-latest
 
     steps:
