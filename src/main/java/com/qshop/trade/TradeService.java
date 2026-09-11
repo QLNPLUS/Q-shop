@@ -2,7 +2,7 @@ package com.qshop.trade;
 
 import com.qshop.api.CurrencyService;
 import com.qshop.api.TradeResult;
-import com.qshop.config.QShopServerConfig;
+import com.qshop.config.QShopCommonConfig;
 import com.qshop.currency.CurrencyRegistry;
 import com.qshop.data.QShopSavedData;
 import com.qshop.kubejs.QShopTradeEvents;
@@ -49,10 +49,10 @@ public final class TradeService {
      * </ul>
      */
     private static void tell(ServerPlayer player, Component msg) {
-        if (!QShopServerConfig.showTradeMessages()) {
+        if (!QShopCommonConfig.showTradeMessages()) {
             return;
         }
-        if (QShopServerConfig.tradeMessagesInActionBar()) {
+        if (QShopCommonConfig.tradeMessagesInActionBar()) {
             player.displayClientMessage(msg, true);
         } else {
             player.sendSystemMessage(msg);
@@ -150,7 +150,7 @@ public final class TradeService {
                 }
                 ItemStack result = e.item.copy();
                 result.setCount(e.item.getCount() * units);
-                if (!QShopServerConfig.allowOverflowPurchases() && !ItemHelper.canFit(player, result)) {
+                if (!QShopCommonConfig.allowOverflowPurchases() && !ItemHelper.canFit(player, result)) {
                     tell(player, Component.translatable("qshop.msg.no_space"));
                     return;
                 }

@@ -65,6 +65,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests 
 /qshop list
 /qshop balance
 /qshop reload
+/qshop overwrite
 /qshop currency list
 /qshop currency create <id> <name> [color]
 /qshop currency give|take|set <player> <currency> <amount> [true|false]
@@ -87,15 +88,25 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, or the Base64 format written by QShop.
 
-Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration. If the directory contains any shop JSON other than the example `starter.json`, QShop skips `starter.json` so the pack's own shops are imported without the example shop. If `starter.json` is the only shop, it is imported normally.
+The server-wide template is stored under `config/qshop/`:
 
-The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
+```text
+config/qshop/
+├── currencies.json
+└── shops/
+    ├── starter.json
+    └── my_shop.json
+```
 
-The server config `config/qshop-server.toml` controls whether a player may complete a purchase when the result exceeds the current inventory capacity. When enabled, the excess items drop near the player:
+QShop creates missing template files from its bundled defaults. A new world, or a world whose `serverconfig/qshop/` has no QShop configuration, imports the template automatically without overwriting existing world files. Use `/qshop overwrite` with permission level 2 to force-replace matching world files from the template; extra world files are preserved.
+
+The common config `config/qshop-common.toml` is split into `[server]` and `[client]` sections. It can optionally reduce currencies on death. Set `server.death.loseCurrencyOnDeath=true`, then use entries such as `server.death.currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
+
+Server-side trade settings are also in `config/qshop-common.toml`. To allow a player to complete a purchase when the result exceeds the current inventory capacity, enable:
 
 ```toml
-[inventory]
-allowOverflowPurchases = false
+[server.inventory]
+allowOverflowPurchases = true
 ```
 
 Resource packs can customize QShop component positions and the tab-list fade-mask color with `assets/qshop/style.json`. The resource-pack style is applied before local layout-debug offsets, so pack authors can provide a complete default layout while players can still tune it locally.

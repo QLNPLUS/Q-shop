@@ -52,9 +52,9 @@ gradlew.bat build          # Windows
 > `src/main/java/com/qshop/kubejs` 目录和
 > `src/main/resources/META-INF/services/dev.latvian.mods.kubejs.KubeJSPlugin` 文件即可(仅失去 KubeJS 功能)。
 
-## 配置文件(serverconfig)
+## 配置文件
 
-所有配置在**世界存档**的 `serverconfig/qshop/` 目录下(专用服务器:
+商店和货币数据保存在**世界存档**的 `serverconfig/qshop/` 目录下(专用服务器:
 `<server>/world/serverconfig/qshop/`;单人存档:`saves/<存档>/serverconfig/qshop/`)。
 
 ```
@@ -65,21 +65,23 @@ serverconfig/qshop/
     └── my_shop.json
 ```
 
-首次启动在没有导入或已有商店配置时，会自动生成默认 `currencies.json` 和示例商店 `starter.json`。
-修改后执行 `/qshop reload` 热加载。
+首次启动时，QShop 会在服务器根目录的 `config/qshop/` 创建全局模板；如果当前存档没有 QShop 配置，模板会自动导入到该存档。
+修改世界配置后执行 `/qshop reload` 热加载。
 
-### 新存档默认导入
+### 全局模板与存档配置
 
-如果服务器根目录存在 `defaultconfigs/qshop/`，QShop 会在新存档首次加载时将其中的货币和商店 JSON 自动复制到该世界的 `serverconfig/qshop/`。已有世界配置不会被覆盖。
+服务器根目录的 `config/qshop/` 是全局模板，结构如下。首次运行会从模组内置资源创建默认文件；整合包或服务器管理员可以直接编辑这些文件。
 
-如果 `defaultconfigs/qshop/shops/` 中存在除 `starter.json` 之外的其他商店文件，导入时会跳过示例商店 `starter.json`；这样整合包可以只导入自己的商店。只有 `starter.json` 时才会正常导入示例商店。
+如果当前存档的 `serverconfig/qshop/` 不存在有效的货币文件或商店 JSON，QShop 会在首次加载时自动复制模板。已有存档配置不会被自动覆盖。
+
+需要强制把全局模板中的同名文件覆盖到当前存档时，使用权限等级 2 的 `/qshop overwrite`。该命令只替换模板中存在的同名文件，会保留存档目录中模板没有的额外文件。
 
 ```text
-defaultconfigs/qshop/
+config/qshop/
 ├── currencies.json
 └── shops/
-    ├── sdm.json
-    └── vip.json
+    ├── starter.json
+    └── my_shop.json
 ```
 
 ## 死亡货币配置
@@ -87,7 +89,7 @@ defaultconfigs/qshop/
 通用配置文件为 `config/qshop-common.toml`，首次启动后自动生成。默认情况下玩家死亡不会减少货币：
 
 ```toml
-[death]
+[server.death]
 loseCurrencyOnDeath = false
 defaultCurrencyRetention = 0.0
 currencyRetention = []
@@ -96,7 +98,7 @@ currencyRetention = []
 开启后，`defaultCurrencyRetention` 是未单独配置货币的保留比例；`0.2` 表示死亡后保留 20%。可使用 `currencyRetention` 为不同货币设置覆盖值：
 
 ```toml
-[death]
+[server.death]
 loseCurrencyOnDeath = true
 defaultCurrencyRetention = 0.0
 currencyRetention = ["coins=0.2", "points=0.5"]
@@ -245,6 +247,7 @@ searchActive = false
 | `/qshop currency list` | 无 | 列出货币 |
 | `/qshop currency give/take/set <玩家> <货币> <数量> [true\|false]` | op2 | 货币管理；最后参数控制是否触发货币变动事件，省略时为 `true` |
 | `/qshop reload` | op2 | 重新加载商店/货币配置 |
+| `/qshop overwrite` | op2 | 使用服务器根目录 `config/qshop/` 覆盖当前存档中的同名配置文件 |
 | `/qshop edit <商店> add <buy\|sell\|barter\|command> [价格] [货币]` | op2 | 用手持物品添加条目(BARTER:主手=获得物,副手=付出物;COMMAND:无需物品) |
 | `/qshop edit <商店> remove <序号>` | op2 | 删除条目 |
 | `/qshop edit <商店> setitem <序号>` | op2 | 用主手物品替换条目物品(BARTER 同时用副手替换付出物) |

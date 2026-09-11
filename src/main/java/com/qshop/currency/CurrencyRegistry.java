@@ -16,7 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 货币注册表。定义文件:serverconfig/qshop/currencies.json。
+ * 货币注册表。活动定义文件位于世界的 serverconfig/qshop/currencies.json;
+ * 服务器根目录的 config/qshop/currencies.json 作为默认模板。
  */
 public final class CurrencyRegistry {
 
@@ -35,11 +36,7 @@ public final class CurrencyRegistry {
         FILE = file;
         CURRENCIES.clear();
         try {
-            if (Files.notExists(file)) {
-                Files.createDirectories(file.getParent());
-                Files.writeString(file, defaultJson());
-                LOGGER.info("QShop: 已生成默认货币配置 {}", file);
-            }
+            ensureDefaultFile(file);
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
             if (root.has("currencies")) {
                 for (var el : root.getAsJsonArray("currencies")) {
@@ -59,6 +56,19 @@ public final class CurrencyRegistry {
         }
         if (CURRENCIES.isEmpty()) {
             CURRENCIES.put("coins", new Currency("coins", "金币", 0xFFD700));
+        }
+    }
+
+    /** Creates the default file without replacing an existing configuration. */
+    public static void ensureDefaultFile(Path file) {
+        try {
+            if (Files.notExists(file)) {
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, defaultJson());
+                LOGGER.info("QShop: 已生成默认货币配置 {}", file);
+            }
+        } catch (Exception e) {
+            LOGGER.error("QShop: 默认货币配置生成失败 {}", file, e);
         }
     }
 

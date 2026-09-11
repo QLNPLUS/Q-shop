@@ -54,6 +54,18 @@ public final class QShopCommands {
                             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.reloaded", ShopManager.all().size()), true);
                             return 1;
                         }))
+                .then(Commands.literal("overwrite")
+                        .requires(s -> s.hasPermission(2))
+                        .executes(ctx -> {
+                            int copied = ShopManager.overwriteConfig();
+                            if (copied < 0) {
+                                ctx.getSource().sendFailure(Component.translatable("qshop.cmd.overwrite_failed"));
+                                return 0;
+                            }
+                            ctx.getSource().sendSuccess(() -> Component.translatable(
+                                    "qshop.cmd.overwritten", copied, ShopManager.all().size()), true);
+                            return 1;
+                        }))
                 // ---------------- 货币管理 ----------------
                 .then(Commands.literal("currency")
                         .then(Commands.literal("list").executes(QShopCommands::currencyList))

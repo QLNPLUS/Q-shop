@@ -688,24 +688,26 @@ Shop data is stored per world:
 config/qshop-common.toml
 ```
 
-When the server root contains `defaultconfigs/qshop/`, QShop copies that directory into a new world's `serverconfig/qshop/` directory on first load. Existing world files are never overwritten. Use this layout for pack-provided default shops:
+The server-wide template is stored under `config/qshop/`. QShop creates missing template files from its bundled defaults. A new world, or a world whose `serverconfig/qshop/` has no QShop configuration, imports the template on first load. Existing world files are never overwritten.
 
-If `defaultconfigs/qshop/shops/` contains any shop JSON other than `starter.json`, the built-in `starter.json` is skipped during import. This lets a modpack provide its own shops without also receiving the example shop. If `starter.json` is the only shop, it is imported normally.
+Use this layout for pack-provided default shops:
 
 ```text
-defaultconfigs/qshop/
+config/qshop/
 ├── currencies.json
 └── shops/
-    ├── sdm.json
-    └── vip.json
+    ├── starter.json
+    └── my_shop.json
 ```
+
+Use `/qshop overwrite` with permission level 2 to force-replace matching world files from the global template. Extra files in the world directory are preserved.
 
 ### Currency loss on death
 
-The common config is `config/qshop-common.toml`. By default, `loseCurrencyOnDeath = false`, so a death keeps the complete wallet. When enabled, `defaultCurrencyRetention` applies to currencies without an override and `currencyRetention` can define per-currency ratios:
+The common config is `config/qshop-common.toml`. By default, `server.death.loseCurrencyOnDeath = false`, so a death keeps the complete wallet. When enabled, `server.death.defaultCurrencyRetention` applies to currencies without an override and `server.death.currencyRetention` can define per-currency ratios:
 
 ```toml
-[death]
+[server.death]
 loseCurrencyOnDeath = true
 defaultCurrencyRetention = 0.0
 currencyRetention = ["coins=0.2", "points=0.5"]
@@ -723,6 +725,7 @@ or run:
 
 ```text
 /qshop reload
+/qshop overwrite
 ```
 
 The first tab is kept as the legacy `entries` list for compatibility with older configuration files.

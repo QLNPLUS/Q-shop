@@ -22,9 +22,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -45,6 +46,12 @@ public final class ShopManager {
     private static final Map<String, Shop> SHOPS = new LinkedHashMap<>();
     private static final Map<UUID, Shop> BY_UUID = new HashMap<>();
 
+    private static final String CONFIG_DIRECTORY = "qshop";
+    private static final String CURRENCIES_FILE = "currencies.json";
+    private static final String SHOPS_DIRECTORY = "shops";
+    private static final String DEFAULT_CURRENCIES_RESOURCE = "/config/qshop/currencies.json";
+    private static final String DEFAULT_STARTER_RESOURCE = "/config/qshop/shops/starter.json";
+
     private static MinecraftServer server;
 
     private ShopManager() {
@@ -53,44 +60,87 @@ public final class ShopManager {
     /** 服务器启动时调用 */
     public static void load(MinecraftServer srv) {
         server = srv;
-        Path qshop = server.getWorldPath(LevelResource.ROOT).resolve("serverconfig").resolve("qshop");
-        importDefaultConfig(qshop);
-        CurrencyRegistry.load(qshop.resolve("currencies.json"));
-        ensureDefaults(qshop);
+        Path template = templateDir();
+        ensureTemplateConfig(template);
+        importDefaultConfig(template, worldConfigDir());
         reload();
     }
 
     /**
-     * Imports the bundled server shop JSON files for a new world.
-     * Existing world configuration is never overwritten.
+     * Creates the server-wide QShop template under config/qshop.
+     * The template is initialized from resources only when its files do not exist.
      */
-    private static void importDefaultConfig(Path target) {
-        if (Files.exists(target) || server == null || server.getServerDirectory() == null) {
+    private static void ensureTemplateConfig(Path template) {
+        if (server == null || server.getServerDirectory() == null) {
             return;
         }
-        Path source = server.getServerDirectory().toPath().resolve("defaultconfigs").resolve("qshop");
-        if (!Files.isDirectory(source)) {
+        try {
+            Files.createDirectories(template);
+            ensureTemplateFile(template.resolve(CURRENCIES_FILE), DEFAULT_CURRENCIES_RESOURCE,
+                    defaultCurrenciesJson());
+
+            Path shops = template.resolve(SHOPS_DIRECTORY);
+            Files.createDirectories(shops);
+            if (!containsShopJson(shops)) {
+                ensureTemplateFile(shops.resolve("starter.json"), DEFAULT_STARTER_RESOURCE,
+                        defaultStarterShopJson());
+            }
+        } catch (IOException e) {
+            LOGGER.error("QShop: failed to initialize global QShop template at {}", template, e);
+        }
+    }
+
+    private static void ensureTemplateFile(Path file, String resourcePath, String fallback) throws IOException {
+        if (Files.exists(file)) {
+            return;
+        }
+        Files.createDirectories(file.getParent());
+        try (InputStream input = ShopManager.class.getResourceAsStream(resourcePath)) {
+            if (input != null) {
+                Files.copy(input, file);
+            } else {
+                Files.writeString(file, fallback);
+            }
+        }
+        LOGGER.info("QShop: initialized template file {}", file);
+    }
+
+    /** Imports the global template into a new or empty world configuration. */
+    private static void importDefaultConfig(Path source, Path target) {
+        if (hasQShopConfig(target) || !Files.isDirectory(source)) {
             return;
         }
         boolean skipStarter = hasNonStarterShop(source);
-        try (Stream<Path> paths = Files.walk(source)) {
-            for (Path path : paths.sorted().toList()) {
-                Path relative = source.relativize(path);
-                if (skipStarter && isStarterShop(relative)) {
-                    LOGGER.info("QShop: skipped default starter shop because another default shop is present");
-                    continue;
-                }
-                Path destination = target.resolve(relative);
-                if (Files.isDirectory(path)) {
-                    Files.createDirectories(destination);
-                } else if (Files.isRegularFile(path)) {
-                    Files.createDirectories(destination.getParent());
-                    Files.copy(path, destination);
-                }
+        try {
+            int copied = copyConfigTree(source, target, false, skipStarter);
+            if (copied > 0) {
+                LOGGER.info("QShop: imported {} template files from {} to {}", copied, source, target);
             }
-            LOGGER.info("QShop: imported default configuration from {} to {}", source, target);
-        } catch (IOException | UncheckedIOException e) {
-            LOGGER.error("QShop: failed to import default configuration from {}", source, e);
+        } catch (IOException e) {
+            LOGGER.error("QShop: failed to import global QShop template from {}", source, e);
+        }
+    }
+
+    private static boolean hasQShopConfig(Path directory) {
+        if (!Files.isDirectory(directory)) {
+            return false;
+        }
+        if (Files.isRegularFile(directory.resolve(CURRENCIES_FILE))) {
+            return true;
+        }
+        return containsShopJson(directory.resolve(SHOPS_DIRECTORY));
+    }
+
+    private static boolean containsShopJson(Path directory) {
+        if (!Files.isDirectory(directory)) {
+            return false;
+        }
+        try (Stream<Path> files = Files.list(directory)) {
+            return files.anyMatch(path -> Files.isRegularFile(path)
+                    && path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".json"));
+        } catch (IOException e) {
+            LOGGER.warn("QShop: failed to inspect shop files in {}", directory, e);
+            return false;
         }
     }
 
@@ -115,21 +165,53 @@ public final class ShopManager {
                 && relative.getName(1).toString().equalsIgnoreCase("starter.json");
     }
 
-    private static void ensureDefaults(Path qshop) {
-        try {
-            Path shops = qshop.resolve("shops");
-            if (Files.isDirectory(shops)) {
-                try (Stream<Path> list = Files.list(shops)) {
-                    if (list.findAny().isPresent()) {
-                        return;
+    private static int copyConfigTree(Path source, Path target, boolean overwrite, boolean skipStarter) throws IOException {
+        if (!Files.isDirectory(source)) {
+            return 0;
+        }
+        int copied = 0;
+        try (Stream<Path> paths = Files.walk(source)) {
+            for (Path path : paths.sorted().toList()) {
+                Path relative = source.relativize(path);
+                if (skipStarter && isStarterShop(relative)) {
+                    LOGGER.info("QShop: skipped starter template because another shop is present");
+                    continue;
+                }
+                Path destination = target.resolve(relative);
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else if (Files.isRegularFile(path)) {
+                    Files.createDirectories(destination.getParent());
+                    if (overwrite) {
+                        Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING);
+                        copied++;
+                    } else if (Files.notExists(destination)) {
+                        Files.copy(path, destination);
+                        copied++;
                     }
                 }
             }
-            Files.createDirectories(shops);
-            Files.writeString(shops.resolve("starter.json"), defaultStarterShopJson());
-            LOGGER.info("QShop: 已生成示例商店配置文件 {}", shops.resolve("starter.json"));
+        }
+        return copied;
+    }
+
+    /** Replaces matching world configuration files with the global template. */
+    public static int overwriteConfig() {
+        if (server == null) {
+            server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        }
+        if (server == null || server.getServerDirectory() == null) {
+            return -1;
+        }
+        Path template = templateDir();
+        ensureTemplateConfig(template);
+        try {
+            int copied = copyConfigTree(template, worldConfigDir(), true, false);
+            reload();
+            return copied;
         } catch (IOException e) {
-            LOGGER.error("QShop: 生成默认商店配置失败", e);
+            LOGGER.error("QShop: failed to overwrite world configuration from {}", template, e);
+            return -1;
         }
     }
 
@@ -140,6 +222,7 @@ public final class ShopManager {
         if (server == null) {
             return;
         }
+        CurrencyRegistry.load(worldConfigDir().resolve(CURRENCIES_FILE));
         Path dir = shopsDir();
         try {
             Files.createDirectories(dir);
@@ -247,8 +330,16 @@ public final class ShopManager {
         return new ArrayList<>(SHOPS.values());
     }
 
+    public static Path templateDir() {
+        return server.getServerDirectory().toPath().resolve("config").resolve(CONFIG_DIRECTORY);
+    }
+
+    public static Path worldConfigDir() {
+        return server.getWorldPath(LevelResource.ROOT).resolve("serverconfig").resolve(CONFIG_DIRECTORY);
+    }
+
     public static Path shopsDir() {
-        return server.getWorldPath(LevelResource.ROOT).resolve("serverconfig").resolve("qshop").resolve("shops");
+        return worldConfigDir().resolve(SHOPS_DIRECTORY);
     }
 
     // ---------------- 打开商店 ----------------
@@ -493,6 +584,17 @@ public final class ShopManager {
                       "give": [ { "item": "minecraft:emerald", "count": 3 } ],
                       "receive": [ { "item": "minecraft:diamond", "count": 1 } ]
                     }
+                  ]
+                }
+                """;
+    }
+
+    private static String defaultCurrenciesJson() {
+        return """
+                {
+                  "currencies": [
+                    { "id": "coins", "name": "金币", "color": "#FFD700" },
+                    { "id": "points", "name": "点数", "color": "#55FFFF" }
                   ]
                 }
                 """;

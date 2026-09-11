@@ -1,7 +1,6 @@
 package com.qshop;
 
 import com.qshop.config.QShopCommonConfig;
-import com.qshop.config.QShopServerConfig;
 import com.qshop.ftb.QShopFtb;
 import com.qshop.net.QShopNetwork;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -22,7 +21,6 @@ public class QShopMod {
     public QShopMod() {
         QShopNetwork.register();
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, QShopCommonConfig.SPEC, "qshop-common.toml");
-        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, QShopServerConfig.SPEC, "qshop-server.toml");
         // FTB Quests 可选集成:未安装时静默跳过(内部有 NoClassDefFoundError 保护)
         QShopFtb.register();
     }
