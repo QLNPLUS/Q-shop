@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 - 2026-09-11
+
+### Fixed
+
+- Fixed the trade quantity slider responding to drag gestures that started outside the slider handle.
+
 ## 1.6.0 - 2026-09-09
 
 ### Added

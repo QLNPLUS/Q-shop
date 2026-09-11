@@ -5,15 +5,17 @@
 
 ## Short Description
 
-> A flexible Forge 1.20.1 and NeoForge 1.21.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
+> A flexible server shop for Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2, with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
 
 ## Full Description
 
-# QShop 1.4.0
+# QShop 1.6.1
 
-**QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Choose the loader-specific QShop file for your instance, then create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
+**QShop** is a configurable shop mod for Minecraft Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2. Choose the loader-specific QShop file for your instance, then create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
-QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests are optional and only needed for their respective features. Stage requirements use KubeJS stages when KubeJS is installed.
+For a matching visual style, we recommend the [Q Shop Create style Resourcepack](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack), a Create-inspired resource pack with files for the supported QShop versions.
+
+QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests are optional and only needed for their respective features. Stage requirements use KubeJS PlayerStages on NeoForge 26.1.2. AStages currently has no 26.1.2 build and is not included as a supported dependency for this release.
 
 ## Features
 
@@ -24,7 +26,9 @@ QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests 
 - Command entries execute configured server commands after a successful purchase.
 - Custom display names, descriptions, display items and item NBT are supported.
 - Quantity controls use a slider and input box with live limit, inventory and balance checks.
+- When the available quantity is large, x1, x10, x100 and x1000 buttons change the slider step and range for faster bulk purchases.
 - Smooth scrolling for entry grids and sub-shop tabs.
+- GUI scaling keeps item tooltips and button tooltips independent of the local QShop scale.
 - Optional F8 component-coordinate debugging for the shop, trade settings, and item browser GUIs, with offsets persisted in `config/qshop_layout.json`.
 - Individual entries can optionally remain visible when their quest or stage requirements are not met.
 - A visible locked FTB Quests entry opens its matching quest screen when clicked, and QShop closes first.
@@ -91,11 +95,13 @@ Shop editing requires permission level 2 and Creative mode. The final sub-shop c
 
 - Minecraft Forge 1.20.1 (Forge 47.x)
 - Minecraft NeoForge 1.21.1 (NeoForge 21.1.x)
+- Minecraft NeoForge 26.1.2 (NeoForge 26.1.2.x)
 
 Release files use the format `modid-modloader-modloaderVersion-modVersion.jar`:
 
-- `qshop-forge-1.20.1-1.4.0.jar`
-- `qshop-neoforge-1.21.1-1.4.0.jar`
+- `qshop-forge-1.20.1-1.6.1.jar`
+- `qshop-neoforge-1.21.1-1.6.1.jar`
+- `qshop-neoforge-26.1.2-1.6.1.jar`
 
 ```text
 <world>/serverconfig/qshop/currencies.json
@@ -107,6 +113,15 @@ Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, o
 Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration. If the directory contains any shop JSON other than the example `starter.json`, QShop skips `starter.json` so the pack's own shops are imported without the example shop. If `starter.json` is the only shop, it is imported normally.
 
 The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
+
+The server config `config/qshop-server.toml` controls whether a player may complete a purchase when the result exceeds the current inventory capacity. When enabled, the excess items drop near the player:
+
+```toml
+[inventory]
+allowOverflowPurchases = false
+```
+
+Resource packs can customize QShop component positions and the tab-list fade-mask color with `assets/qshop/style.json`. The resource-pack style is applied before local layout-debug offsets, so pack authors can provide a complete default layout while players can still tune it locally.
 
 ## KubeJS integration
 
