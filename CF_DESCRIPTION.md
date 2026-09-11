@@ -5,17 +5,19 @@
 
 ## Short Description
 
-> A flexible Forge 1.20.1 and NeoForge 1.21.1 server shop with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
+> A flexible server shop for Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2, with buy, sell, barter and command trades, custom currencies, limits, in-game editing and a Builder-first KubeJS API.
 
 ## Full Description
 
-# QShop 1.4.0
+# QShop 1.6.1
 
-**QShop** is a configurable shop mod for Minecraft Forge 1.20.1 and NeoForge 1.21.1. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
+**QShop** is a configurable shop mod for Minecraft Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2. Create multiple shops and sub-shops, edit them in game, use custom non-item currencies, and let players buy, sell, barter or trigger server commands.
 
-The Forge 1.20.1 and NeoForge 1.21.1 builds provide the same core shop features. The optional F8 layout debugger can also adjust the trade settings and item browser screens, with offsets stored in `config/qshop_layout.json`.
+For a matching visual style, we recommend the [Q Shop Create style Resourcepack](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack), a Create-inspired resource pack with files for the supported QShop versions.
 
-QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and GameStages are optional and only needed for their respective features.
+All supported builds provide the same core shop features. The trade screen includes quick quantity-step buttons for x1, x10, x100 and x1000 purchases, while the optional F8 layout debugger can adjust the shop, trade settings and item browser screens. Layout offsets are stored in `config/qshop_layout.json`, and resource packs can override them through `assets/qshop/style.json`.
+
+QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests are optional and only needed for their respective features. GameStages and AStages are available on the loader/version branches that support them; NeoForge 26.1.2 uses KubeJS PlayerStages because AStages does not currently provide a 26.1.2 build.
 
 ## Features
 
@@ -26,7 +28,9 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 - Command entries execute configured server commands after a successful purchase.
 - Custom display names, descriptions, display items and item NBT are supported.
 - Quantity controls use a slider and input box with live limit, inventory and balance checks.
+- When the available quantity is large, x1, x10, x100 and x1000 buttons change the slider step and range for faster bulk purchases.
 - Smooth scrolling for entry grids and sub-shop tabs.
+- GUI scaling keeps item tooltips and button tooltips independent of the local QShop scale.
 
 ### Shops and sub-shops
 
@@ -51,8 +55,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS, FTB Quests and
 ### Requirements
 
 - Gate complete sub-shops or individual entries behind FTB Quests tasks.
-- Stage requirements use **GameStages** (`gamestages`) through `GameStageHelper`.
-- KubeJS PlayerStages is also supported when available.
+- Stage requirements use the available stage provider for the selected loader/version: GameStages, KubeJS PlayerStages or AStages where supported.
 - If a configured requirement has no matching provider installed, it is treated as unmet and the content stays hidden from normal players.
 
 ## Commands
@@ -87,6 +90,15 @@ Items accept an ID, an item object with `count` and `nbt`, a KubeJS ItemStack, o
 Pack authors can place `currencies.json` and a `shops/` directory under the server root at `defaultconfigs/qshop/`. QShop imports this directory into a new world's `serverconfig/qshop/` on first load and never overwrites existing world configuration. If the directory contains any shop JSON other than the example `starter.json`, QShop skips `starter.json` so the pack's own shops are imported without the example shop. If `starter.json` is the only shop, it is imported normally.
 
 The common config `config/qshop-common.toml` can optionally reduce currencies on death. Set `death.loseCurrencyOnDeath=true`, then use entries such as `currencyRetention=["coins=0.2"]` to keep 20% of coins after death.
+
+The server config `config/qshop-server.toml` controls whether a player may complete a purchase when the result exceeds the current inventory capacity. When enabled, the excess items drop near the player:
+
+```toml
+[inventory]
+allowOverflowPurchases = false
+```
+
+Resource packs can customize QShop component positions and the tab-list fade-mask color with `assets/qshop/style.json`. The resource-pack style is applied before local layout-debug offsets, so pack authors can provide a complete default layout while players can still tune it locally.
 
 ## KubeJS integration
 
