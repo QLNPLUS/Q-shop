@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.2 - 2026-09-11
+
+### Changed
+
+- Merged server and client settings into `config/qshop-common.toml` under the `server` and `client` sections.
+- Moved the global QShop template to `config/qshop/`; new or unconfigured worlds import it into `serverconfig/qshop/` automatically.
+- Added `/qshop overwrite` to replace matching world configuration files with the global template.
+- `/qshop reload` now reloads both currency and shop JSON files.
+
 ## 1.6.1 - 2026-09-11
 
 ### Fixed

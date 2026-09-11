@@ -536,14 +536,26 @@ Java `CurrencyChangedEvent` 始终提供 `getPlayerUuid()`。离线修改时 `ge
 config/qshop-common.toml
 ```
 
-如果服务器根目录存在 `defaultconfigs/qshop/`，新存档首次加载时会导入其中的货币和商店。如果 `defaultconfigs/qshop/shops/` 中存在除 `starter.json` 之外的其他商店文件，会跳过示例商店 `starter.json`；这样整合包可以只导入自己的商店。只有 `starter.json` 时才会正常导入示例商店。
+服务器根目录的全局模板位于 `config/qshop/`。首次运行时，QShop 会从模组内置资源创建缺失的模板文件。新存档，或 `serverconfig/qshop/` 中没有有效 QShop 配置的存档，会在首次加载时自动导入模板，已有存档文件不会被自动覆盖。
+
+整合包或服务器可以直接编辑全局模板：
+
+```text
+config/qshop/
+├── currencies.json
+└── shops/
+    ├── starter.json
+    └── my_shop.json
+```
+
+需要强制用全局模板覆盖当前存档的同名文件时，使用权限等级 2 的 `/qshop overwrite`；存档目录中模板没有的额外文件会保留。
 
 ### 死亡货币
 
 通用配置位于 `config/qshop-common.toml`。默认 `loseCurrencyOnDeath = false`，玩家死亡时完整保留货币。开启后使用 `defaultCurrencyRetention` 设置未列出货币的保留比例，并可用 `currencyRetention` 按货币覆盖：
 
 ```toml
-[death]
+[server.death]
 loseCurrencyOnDeath = true
 defaultCurrencyRetention = 0.0
 currencyRetention = ["coins=0.2", "points=0.5"]
@@ -561,6 +573,7 @@ QShop.reload()
 
 ```text
 /qshop reload
+/qshop overwrite
 ```
 
 ## 完整示例
