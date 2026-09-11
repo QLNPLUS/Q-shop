@@ -5,7 +5,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 import java.util.List;
 
 /**
- * QShop common and client-shared configuration (config/qshop-common.toml).
+ * QShop common configuration (config/qshop-common.toml), split into server and client sections.
  */
 public final class QShopCommonConfig {
 
@@ -32,12 +32,53 @@ public final class QShopCommonConfig {
     public static final ModConfigSpec.DoubleValue DEFAULT_CURRENCY_RETENTION;
     /** Per-currency rules in the form currencyId=retention (0..1). */
     public static final ModConfigSpec.ConfigValue<List<? extends String>> CURRENCY_RETENTION;
+    /** Whether to show trade feedback messages on the server. */
+    public static final ModConfigSpec.BooleanValue SHOW_TRADE_MESSAGES;
+    /** Whether trade feedback should use the action bar instead of chat. */
+    public static final ModConfigSpec.BooleanValue TRADE_MESSAGES_IN_ACTION_BAR;
+    /** Whether purchases may overflow the player's inventory. */
+    public static final ModConfigSpec.BooleanValue ALLOW_OVERFLOW_PURCHASES;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.comment(
                 "QShop 通用设置 / QShop common settings",
                 "这些设置在单人和服务端环境中都生效 / These settings apply to client and server environments.")
+                .push("server");
+        b.comment(
+                "交易提示消息 / Trade feedback messages",
+                "这些选项只影响服务端行为 / These options affect server-side behavior.")
+                .push("messages");
+        SHOW_TRADE_MESSAGES = b
+                .comment(
+                        "是否显示交易提示消息(购买成功或失败时在聊天里弹出的消息)。",
+                        "Whether to show trade notification messages (messages popped in chat on purchase success or failure).",
+                        "默认 true / Default: true")
+                .define("showTradeMessages", true);
+        TRADE_MESSAGES_IN_ACTION_BAR = b
+                .comment(
+                        "是否改为在物品栏上方(statsMessage/actionbar)区域显示交易提示,而不是聊天栏。",
+                        "Whether to show trade messages in the statsMessage area (above the hotbar) instead of the chat.",
+                        "开启后可防止聊天记录刷屏 / Enabling this prevents chat log spam.",
+                        "默认 false / Default: false")
+                .define("tradeMessagesInActionBar", false);
+        b.pop();
+
+        b.comment(
+                "背包与购买设置 / Inventory and purchase settings",
+                "允许超出背包容量时,无法放入背包的物品会掉落在玩家脚下。",
+                "When overflow purchases are allowed, items that do not fit are dropped at the player's feet.")
+                .push("inventory");
+        ALLOW_OVERFLOW_PURCHASES = b
+                .comment(
+                        "是否允许玩家购买超过当前背包容量的物品。关闭时只要完整结果无法放入背包就拒绝交易。",
+                        "Whether players may buy more items than their current inventory can hold. When false, the trade is rejected if the complete result does not fit.",
+                        "默认 false / Default: false")
+                .define("allowOverflowPurchases", false);
+        b.pop();
+
+        b.comment(
+                "死亡货币设置 / Currency-on-death settings")
                 .push("death");
         LOSE_CURRENCY_ON_DEATH = b
                 .comment(
@@ -57,6 +98,7 @@ public final class QShopCommonConfig {
                         "Per-currency retention overrides, one entry per line: currencyId=ratio, e.g. coins=0.2.",
                         "也接受 currencyId:比例 / currencyId:ratio。未列出的货币使用 defaultCurrencyRetention。")
                 .defineList("currencyRetention", List.of(), QShopCommonConfig::validRule);
+        b.pop();
         b.pop();
 
         b.comment(
@@ -111,6 +153,18 @@ public final class QShopCommonConfig {
 
     public static boolean loseCurrencyOnDeath() {
         return LOSE_CURRENCY_ON_DEATH.get();
+    }
+
+    public static boolean showTradeMessages() {
+        return SHOW_TRADE_MESSAGES.get();
+    }
+
+    public static boolean tradeMessagesInActionBar() {
+        return TRADE_MESSAGES_IN_ACTION_BAR.get();
+    }
+
+    public static boolean allowOverflowPurchases() {
+        return ALLOW_OVERFLOW_PURCHASES.get();
     }
 
     /** Parses the client fade color, falling back to 0x636363 for invalid input. */

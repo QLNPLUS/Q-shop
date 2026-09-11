@@ -93,6 +93,8 @@
   "qshop.msg.no_space": "Not enough inventory space",
   "qshop.msg.shop_missing": "Shop not found: %s",
   "qshop.cmd.reloaded": "Reloaded %s shops",
+  "qshop.cmd.overwritten": "Overwrote the world QShop config with the global template, copied %s files and loaded %s shops",
+  "qshop.cmd.overwrite_failed": "Failed to overwrite the QShop config",
   "qshop.cmd.player_required": "This command must be run by a player",
   "qshop.cmd.need_item": "Hold an item in your hand",
   "qshop.cmd.bad_type": "Type must be buy / sell / barter",

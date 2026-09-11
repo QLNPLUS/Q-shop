@@ -93,6 +93,8 @@
   "qshop.msg.no_space": "背包空间不足",
   "qshop.msg.shop_missing": "商店不存在: %s",
   "qshop.cmd.reloaded": "已重新加载 %s 个商店",
+  "qshop.cmd.overwritten": "已使用全局 QShop 配置覆盖当前存档，复制 %s 个文件并加载 %s 个商店",
+  "qshop.cmd.overwrite_failed": "覆盖 QShop 配置失败",
   "qshop.cmd.player_required": "该指令必须由玩家执行",
   "qshop.cmd.need_item": "请手持物品",
   "qshop.cmd.bad_type": "类型必须是 buy / sell / barter",

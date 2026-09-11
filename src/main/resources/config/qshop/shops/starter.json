@@ -1,0 +1,23 @@
+{
+  "id": "starter",
+  "displayName": "新手商店",
+  "entries": [
+    {
+      "type": "SELL",
+      "item": { "item": "minecraft:diamond", "count": 1 },
+      "currency": "coins",
+      "price": 50.0
+    },
+    {
+      "type": "BUY",
+      "item": { "item": "minecraft:oak_log", "count": 8 },
+      "currency": "coins",
+      "price": 1.0
+    },
+    {
+      "type": "BARTER",
+      "give": [ { "item": "minecraft:emerald", "count": 3 } ],
+      "receive": [ { "item": "minecraft:diamond", "count": 1 } ]
+    }
+  ]
+}
