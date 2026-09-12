@@ -68,7 +68,14 @@ jobs:
       - name: Prepare CurseForge version
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+        run: |
+          version="${RELEASE_VERSION#v}"
+          if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(forge|neoforge)-.*)?$ ]]; then
+            echo "CURSEFORGE_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          else
+            echo "Unsupported release tag: $RELEASE_VERSION"
+            exit 1
+          fi
 
       - name: Validate CurseForge configuration
         env:
@@ -160,7 +167,14 @@ jobs:
       - name: Prepare CurseForge version
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+        run: |
+          version="${RELEASE_VERSION#v}"
+          if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(forge|neoforge)-.*)?$ ]]; then
+            echo "CURSEFORGE_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          else
+            echo "Unsupported release tag: $RELEASE_VERSION"
+            exit 1
+          fi
 
       - name: Validate CurseForge configuration
         env:
@@ -255,7 +269,14 @@ jobs:
       - name: Prepare CurseForge version
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        run: echo "CURSEFORGE_VERSION=${RELEASE_VERSION#v}" >> "$GITHUB_ENV"
+        run: |
+          version="${RELEASE_VERSION#v}"
+          if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(forge|neoforge)-.*)?$ ]]; then
+            echo "CURSEFORGE_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          else
+            echo "Unsupported release tag: $RELEASE_VERSION"
+            exit 1
+          fi
 
       - name: Validate CurseForge configuration
         env:
