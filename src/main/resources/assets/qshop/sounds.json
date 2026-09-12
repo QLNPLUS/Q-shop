@@ -1,0 +1,7 @@
+{
+  "trade_success": {
+    "sounds": [
+      "qshop:trade_success"
+    ]
+  }
+}

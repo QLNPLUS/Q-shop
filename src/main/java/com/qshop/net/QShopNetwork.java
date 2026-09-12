@@ -41,6 +41,9 @@ public final class QShopNetwork {
         CHANNEL.registerMessage(nextId++, SyncWalletPacket.class,
                 SyncWalletPacket::encode, SyncWalletPacket::decode, SyncWalletPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(nextId++, TradeSuccessPacket.class,
+                TradeSuccessPacket::encode, TradeSuccessPacket::decode, TradeSuccessPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(nextId++, AddEntryPacket.class,
                 AddEntryPacket::encode, AddEntryPacket::decode, AddEntryPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));

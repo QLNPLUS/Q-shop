@@ -14,7 +14,6 @@ import java.util.function.Supplier;
 public class SyncWalletPacket {
 
     public final Map<String, Double> balances = new HashMap<>();
-
     public SyncWalletPacket() {
     }
 
