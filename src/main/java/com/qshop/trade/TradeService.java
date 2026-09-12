@@ -8,6 +8,7 @@ import com.qshop.data.QShopSavedData;
 import com.qshop.kubejs.QShopTradeEvents;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.SyncWalletPacket;
+import com.qshop.net.TradeSuccessPacket;
 import com.qshop.shop.Shop;
 import com.qshop.shop.ShopCommand;
 import com.qshop.shop.ShopEntry;
@@ -311,6 +312,7 @@ public final class TradeService {
 
         // ---- 刷新界面与钱包 ----
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
+        QShopNetwork.sendToPlayer(player, new TradeSuccessPacket());
         ShopManager.openShop(player, shop);
     }
 

@@ -841,6 +841,7 @@ public class ShopScreen extends QShopScreen {
         if (i < 0 || i >= visibleTabs.size() || i == activeTab) {
             return;
         }
+        QShopSoundEffects.playButtonClick();
         activeTab = i;
         data.activeTab = activeServerTabIndex();
         applyActiveTabEntries();
@@ -998,6 +999,7 @@ public class ShopScreen extends QShopScreen {
 
     private void addTab() {
         rememberEditModeForTransition(editMode);
+        QShopSoundEffects.playButtonClick();
         QShopNetwork.sendToServer(new AddTabPacket(data.shopId,
                 Component.translatable("qshop.tab.default_name", data.tabs.size() + 1).getString()));
     }
@@ -1168,6 +1170,7 @@ public class ShopScreen extends QShopScreen {
                 int bxx = bx;
                 int byy = by + i * 18;
                 if (ShopTextures.buttonHit(bxx, byy, MENU_W - 8, 14, mouseX, mouseY)) {
+                    QShopSoundEffects.playButtonClick();
                     menuAction(i);
                     closeMenu();
                     return true;
@@ -1192,6 +1195,7 @@ public class ShopScreen extends QShopScreen {
                 int bxx = bx;
                 int byy = by + i * 18;
                 if (ShopTextures.buttonHit(bxx, byy, MENU_W - 8, 14, mouseX, mouseY)) {
+                    QShopSoundEffects.playButtonClick();
                     tabMenuAction(i);
                     closeTabMenu();
                     return true;
@@ -1310,6 +1314,7 @@ public class ShopScreen extends QShopScreen {
             int trashX = cellX + cellW - 11;
             int trashY = cellY + 2;
             if (editMode && mouseX >= trashX && mouseX <= trashX + 8 && mouseY >= trashY && mouseY <= trashY + 8) {
+                QShopSoundEffects.playButtonClick();
                 removeEntry(index);
                 return true;
             }
@@ -1319,6 +1324,7 @@ public class ShopScreen extends QShopScreen {
                 dragActive = false;
                 return true;
             }
+            QShopSoundEffects.playButtonClick();
             openTrade(index);
             return true;
         }
@@ -1390,9 +1396,11 @@ public class ShopScreen extends QShopScreen {
                 int target = indexAt(mouseX, mouseY);
                 if (target >= 0 && target != index) {
                     // 拖到某个格子上 = 交换位置
+                    QShopSoundEffects.playButtonClick();
                     swapEntries(index, target);
                 } else if (target < 0 && belowGrid(mouseX, mouseY)) {
                     // 拖到网格下方空白 = 移到末尾
+                    QShopSoundEffects.playButtonClick();
                     reorderInsert(index, data.entries.size() - 1);
                 }
                 return true;
