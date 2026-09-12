@@ -23,7 +23,6 @@ public class SyncWalletPacket implements CustomPacketPayload {
             CustomPacketPayload.codec(SyncWalletPacket::encode, SyncWalletPacket::decode);
 
     public final Map<String, Double> balances = new HashMap<>();
-
     public SyncWalletPacket() {
     }
 

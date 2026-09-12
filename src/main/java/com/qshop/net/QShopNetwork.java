@@ -28,6 +28,8 @@ public final class QShopNetwork {
                 (packet, context) -> packet.handle(context));
         registrar.playToClient(SyncWalletPacket.TYPE, SyncWalletPacket.STREAM_CODEC,
                 (packet, context) -> packet.handle(context));
+        registrar.playToClient(TradeSuccessPacket.TYPE, TradeSuccessPacket.STREAM_CODEC,
+                (packet, context) -> packet.handle(context));
         registrar.playToServer(AddEntryPacket.TYPE, AddEntryPacket.STREAM_CODEC,
                 (packet, context) -> packet.handle(context));
         registrar.playToServer(RemoveEntryPacket.TYPE, RemoveEntryPacket.STREAM_CODEC,

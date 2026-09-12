@@ -36,4 +36,8 @@ public final class ClientPacketHandler {
             screen.onWalletSync(pkt.balances);
         }
     }
+
+    public static void tradeSuccess() {
+        QShopSoundEffects.playTradeSuccess();
+    }
 }
