@@ -72,14 +72,17 @@ dependencies {
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}", '*ftb-quests-neoforge-*.jar')
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}", 'ftb-library-neoforge-*.jar')
     addOptionalMod('compileOnly', "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}", '*ftb-teams-neoforge-*.jar')
-    // Architectury has no published 26.1.2 artifact at this time; keep local jars optional.
+    // Architectury 是 KubeJS 的传递依赖,QShop 代码里零引用,因此不需要显式声明。
+    // 26.1.2 没有已发布的 Architectury 版本:21.1.8 是给 26.2 构建的,它声明
+    // "requires neoforge 26.2.0.82 or above / minecraft 26.2 or above",装进
+    // runtime 会让 FML 直接拒绝加载 runServer。compileOnly 保留,便于需要时按
+    // local_mods_dir 放本地 jar。
     addOptionalMod('compileOnly', 'dev.architectury:architectury-neoforge:21.1.8', 'architectury-*-neoforge.jar')
     addOptionalMod('runtimeOnly', "dev.latvian.mods:kubejs-neoforge:${kubejs_version}", 'kubejs-neoforge-*.jar')
     addOptionalMod('runtimeOnly', 'dev.latvian.mods:rhino:2101.2.7-build.85', 'rhino-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}", '*ftb-quests-neoforge-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}", 'ftb-library-neoforge-*.jar')
     addOptionalMod('runtimeOnly', "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}", '*ftb-teams-neoforge-*.jar')
-    addOptionalMod('runtimeOnly', 'dev.architectury:architectury-neoforge:21.1.8', 'architectury-*-neoforge.jar')
 }
 
 tasks.named('processResources').configure {
