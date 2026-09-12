@@ -107,9 +107,9 @@ jobs:
 
       - name: Prepare current Forge changelog
         env:
-          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          CURSEFORGE_VERSION: ${{ env.CURSEFORGE_VERSION }}
         run: |
-          version="${RELEASE_VERSION#v}"
+          version="$CURSEFORGE_VERSION"
           awk -v version="$version" '
             /^##[[:space:]]+/ {
               heading = $2
@@ -208,10 +208,10 @@ jobs:
 
       - name: Prepare current NeoForge changelog
         env:
-          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          CURSEFORGE_VERSION: ${{ env.CURSEFORGE_VERSION }}
         working-directory: neoforge
         run: |
-          version="${RELEASE_VERSION#v}"
+          version="$CURSEFORGE_VERSION"
           awk -v version="$version" '
             /^##[[:space:]]+/ {
               heading = $2
@@ -310,10 +310,10 @@ jobs:
 
       - name: Prepare current NeoForge 26.1.2 changelog
         env:
-          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          CURSEFORGE_VERSION: ${{ env.CURSEFORGE_VERSION }}
         working-directory: neoforge-126
         run: |
-          version="${RELEASE_VERSION#v}"
+          version="$CURSEFORGE_VERSION"
           awk -v version="$version" '
             /^##[[:space:]]+/ {
               heading = $2
