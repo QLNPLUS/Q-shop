@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 - 2026-09-12
+
+### Added
+
+- Added vanilla-style GUI button interaction sounds.
+- Added a custom sound effect after a successful trade.
+
 ## 1.6.2 - 2026-09-11
 
 ### Changed
