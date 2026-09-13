@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1 - 2026-09-13
+
+### Fixed
+
+- Fixed the left-side sub-shop list resetting to the top after each trade.
+
 ## 1.7.0 - 2026-09-12
 
 ### Added
