@@ -182,6 +182,11 @@ public class ShopScreen extends QShopScreen {
         this.requestedServerTab = Math.max(0, activeServerTab);
     }
 
+    public ShopScreen(OpenShopPacket data, int scroll, boolean editMode, int activeServerTab, int tabScroll) {
+        this(data, scroll, editMode, activeServerTab);
+        this.tabScroll = Math.max(0, tabScroll);
+    }
+
     @Override
     protected int qshopContentWidth() {
         return TAB_BAR_W + 6 + panelWidth();
@@ -874,6 +879,10 @@ public class ShopScreen extends QShopScreen {
             return -1;
         }
         return serverTabIndex(activeTab);
+    }
+
+    int tabScroll() {
+        return tabScroll;
     }
 
     private void scrollActiveTabIntoView() {
