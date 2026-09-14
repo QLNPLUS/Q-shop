@@ -81,6 +81,12 @@ git tag 是仓库级唯一的，而本仓库是锁步发布 —— 只打一个 
 
 **已存在的无版本维度 tag（`v1.6.2`、`1.2.4`、`v1.2.4` 等）不追溯改名**，保持现状，只对后续新 tag 应用本格式。
 
+## 界面命名
+
+改 GUI 前先看 **`SCREENS.md`**（本分支根目录，三条分支内容相同）：里面登记了每个界面的**中文名 + 稳定 ID**
+（如「交易悬浮窗 / `TRADE_POPUP`」）以及对应的 Java 类与文件。和用户对话时用那套名字点界面，别用"那个界面"。
+新增或重命名界面时，`SCREENS.md` 与 `client/ShopLayoutDebug.java` 的 `DebugScreen` 枚举要一起改。
+
 ## 构建
 
 - **JDK 必须对上目标版本**（17 / 21 / 25），否则出现 `Unsupported class file major version`。本机路径：`C:\Program Files\Java\jdk-17`、`jdk-21`、`jdk-25.0.4.1`。
