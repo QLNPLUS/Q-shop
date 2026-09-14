@@ -113,6 +113,12 @@ public class ShopScreen extends QShopScreen {
     private static final int TRADE_STEP_BUTTON_W = 32;
     private static final int TRADE_SLIDER_W = 88;
     private static final int TRADE_STEP_BUTTON_GAP = 4;
+    /** 数量输入框默认值(打开交易窗即显示,不再是空 + 占位提示)。 */
+    private static final String TRADE_UNITS_DEFAULT = "1";
+    /** 超过这个上限才显示 x1/x10/x100/x1000 步长按钮(与原逻辑一致)。 */
+    private static final int TRADE_STEP_BUTTON_MIN_UNITS = 100;
+    /** 滚轮判定时滑块纵向放宽量:覆盖 8px 轨道与比轨道高 6px 的滑块本体。 */
+    private static final int TRADE_SLIDER_WHEEL_SLOP = 6;
     private int tradeIndex = -1;
     private int tradeMaxUnits = 0;
     private int tradeStep = 1;
@@ -121,6 +127,7 @@ public class ShopScreen extends QShopScreen {
     private EditBox tradeUnitsBox;
     private QSlider tradeSlider;
     private QButton tradeStepButton;
+    private QButton tradeConfirmButton;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
 
     // ---- 商店搜索 ----
@@ -1531,7 +1538,11 @@ public class ShopScreen extends QShopScreen {
     @Override
     protected boolean mouseScrolledContent(double mouseX, double mouseY, double delta) {
         if (menuIndex >= 0 || tabMenuIndex >= 0 || tradeIndex >= 0) {
-            return true; // 菜单/交易窗打开时锁定商店滚动
+            // 交易窗打开时,滚轮在数量输入框/滑块上用于调节数量;其余浮层区域仍然吃掉滚轮(商店不滚动)
+            if (tradeIndex >= 0) {
+                handleTradeWheel(mouseX, mouseY, delta);
+            }
+            return true;
         }
         // 鼠标在左侧 tab 栏上时:滚动子商店列表
         int tabX = tabBarX();
@@ -1585,21 +1596,30 @@ public class ShopScreen extends QShopScreen {
         tradeUnitsBox.setMaxLength(10);
         tradeUnitsBox.setFilter(s -> s.matches("\\d{0,10}"));
         tradeUnitsBox.setBordered(false);
-        tradeUnitsBox.setValue("");
+        // 默认显示 1(而不是空):清空时仍有 qshop.gui.units_hint 灰色占位提示兜底
+        tradeUnitsBox.setValue(TRADE_UNITS_DEFAULT);
         tradeUnitsBox.setResponder(s -> onTradeBoxChanged());
         addTradeWidget(tradeUnitsBox);
 
         tradeSlider = new QSlider(tradeSliderX(px), py + 77, tradeSliderWidth(), 12, this::onTradeSliderChanged);
         tradeSlider.setValueInt(tradeSliderValueForUnits(1), tradeSliderMax());
         addTradeWidget(tradeSlider);
-        if (tradeMaxUnits >= 100) {
+        if (tradeMaxUnits >= TRADE_STEP_BUTTON_MIN_UNITS) {
             tradeStepButton = new QButton(tradeStepButtonX(px), py + 76, TRADE_STEP_BUTTON_W, 14,
                     Component.literal(tradeStepLabel()), b -> cycleTradeStep());
             addTradeWidget(tradeStepButton);
         }
 
-        addTradeWidget(new QButton(px + 8, py + TRADE_H - 21, 66, 16,
-                Component.translatable("qshop.gui.trade"), b -> confirmTrade()));
+        // 上限为 0(余额/物品/限额不足)时:禁用数量控件与确认按钮,避免提交必然失败的交易
+        if (tradeMaxUnits <= 0) {
+            tradeUnitsBox.setEditable(false);
+            tradeSlider.active = false;
+        }
+
+        tradeConfirmButton = new QButton(px + 8, py + TRADE_H - 21, 66, 16,
+                Component.translatable("qshop.gui.trade"), b -> confirmTrade());
+        tradeConfirmButton.active = tradeMaxUnits > 0;
+        addTradeWidget(tradeConfirmButton);
         addTradeWidget(new QButton(px + TRADE_W - 74, py + TRADE_H - 21, 66, 16,
                 Component.translatable("qshop.gui.cancel"), b -> closeTrade()));
     }
@@ -1618,6 +1638,7 @@ public class ShopScreen extends QShopScreen {
         tradeUnitsBox = null;
         tradeSlider = null;
         tradeStepButton = null;
+        tradeConfirmButton = null;
         tradeStep = 1;
     }
 
@@ -1635,10 +1656,10 @@ public class ShopScreen extends QShopScreen {
         if (tradeSyncing || tradeUnitsBox == null) {
             return;
         }
-        int input = parseTradeInput(tradeUnitsBox.getValue());
-        int effective = tradeMaxUnits > 0 ? Math.min(input, tradeMaxUnits) : input;
+        // 输入框是主输入:按它算单位数后只同步滑块(保持输入框文本原样,不反向覆写)
         tradeSyncing = true;
-        tradeSlider.setValueInt(tradeSliderValueForUnits(effective), tradeSliderMax());
+        tradeSlider.setValueInt(tradeSliderValueForUnits(tradeUnitsFromInput(tradeUnitsBox.getValue())),
+                tradeSliderMax());
         tradeSyncing = false;
     }
 
@@ -1647,13 +1668,12 @@ public class ShopScreen extends QShopScreen {
             return;
         }
         int sliderValue = Math.max(1, tradeSlider.getValueInt(tradeSliderMax()));
-        int v = (int) Math.min(Integer.MAX_VALUE, (long) sliderValue * tradeStep);
+        long v = (long) sliderValue * tradeStep;
         if (tradeMaxUnits > 0) {
             v = Math.min(v, tradeMaxUnits);
         }
-        tradeSyncing = true;
-        tradeUnitsBox.setValue(String.valueOf(v));
-        tradeSyncing = false;
+        v = Math.max(1L, Math.min(v, Integer.MAX_VALUE));
+        applyTradeUnits((int) v);
     }
 
     private int tradeSliderX(int px) {
@@ -1690,10 +1710,10 @@ public class ShopScreen extends QShopScreen {
     }
 
     private void cycleTradeStep() {
-        if (tradeMaxUnits < 100) {
+        if (tradeMaxUnits < TRADE_STEP_BUTTON_MIN_UNITS) {
             return;
         }
-        int currentUnits = parseTradeInput(tradeUnitsBox == null ? "1" : tradeUnitsBox.getValue());
+        int currentUnits = currentTradeUnits();
         int[] steps = tradeMaxUnits >= 1000 ? new int[]{1, 10, 100, 1000} : new int[]{1, 10, 100};
         int next = steps[0];
         for (int i = 0; i < steps.length; i++) {
@@ -1713,7 +1733,10 @@ public class ShopScreen extends QShopScreen {
     }
 
     private void confirmTrade() {
-        int units = parseTradeInput(tradeUnitsBox.getValue());
+        if (tradeMaxUnits <= 0) {
+            return;
+        }
+        int units = parseTradeInput(tradeUnitsBox == null ? TRADE_UNITS_DEFAULT : tradeUnitsBox.getValue());
         QShopNetwork.sendToServer(new TradePacket(data.shopId, serverTabIndex(activeTab), serverIndex(tradeIndex), units));
         closeTrade();
     }
@@ -1724,6 +1747,66 @@ public class ShopScreen extends QShopScreen {
         } catch (Exception e) {
             return 1;
         }
+    }
+
+    /** 输入框文本 → 实际交易单位数(空/非法按 1,并钳到上限)。 */
+    private int tradeUnitsFromInput(String raw) {
+        int input = parseTradeInput(raw);
+        return tradeMaxUnits > 0 ? Math.min(input, tradeMaxUnits) : input;
+    }
+
+    /** 当前生效的交易单位数(输入框为空时按 1)。 */
+    private int currentTradeUnits() {
+        return tradeUnitsFromInput(tradeUnitsBox == null ? TRADE_UNITS_DEFAULT : tradeUnitsBox.getValue());
+    }
+
+    /**
+     * 把数量写回输入框与滑块。滑块按 {@link #tradeStep} 折算:显示值就是单位数除以步长,
+     * 因此 x10/x100/x1000 下"滚一格/拖一格"实际变化的是 10/100/1000 个单位。
+     */
+    private void applyTradeUnits(int units) {
+        tradeSyncing = true;
+        if (tradeUnitsBox != null) {
+            tradeUnitsBox.setValue(String.valueOf(units));
+        }
+        tradeSlider.setValueInt(tradeSliderValueForUnits(units), tradeSliderMax());
+        tradeSyncing = false;
+    }
+
+    /**
+     * 在数量输入框或滑块轨道上滚动鼠标滚轮:按当前步长调节交易数量。
+     * 只处理交易窗内的这两个区域;其余区域仍由 {@link #mouseScrolledContent} 吃掉滚轮(商店不滚动)。
+     */
+    private boolean handleTradeWheel(double mouseX, double mouseY, double delta) {
+        if (tradeMaxUnits <= 0) {
+            return false; // 上限为 0:控件已禁用,不调节
+        }
+        int direction = wheelDirection(delta);
+        if (direction == 0 || !isOverTradeQuantityControl(mouseX, mouseY)) {
+            return false;
+        }
+        // long 运算后再钳,避免大数量 × 大步长溢出成负数
+        long next = (long) currentTradeUnits() + (long) direction * tradeStep;
+        applyTradeUnits((int) Math.max(1L, Math.min(next, tradeMaxUnits)));
+        return true;
+    }
+
+    /**
+     * 鼠标是否落在数量输入框或滑块(含 8px 轨道,不只是 8px 宽的滑块本体)上。
+     * 滑块纵向放宽到 +-6px,且不依赖 {@link QSlider#isMouseOver} —— 那个只命中滑块本体。
+     */
+    private boolean isOverTradeQuantityControl(double mouseX, double mouseY) {
+        if (tradeUnitsBox != null
+                && mouseX >= tradeUnitsBox.getX() && mouseX < tradeUnitsBox.getX() + tradeUnitsBox.getWidth()
+                && mouseY >= tradeUnitsBox.getY() && mouseY < tradeUnitsBox.getY() + tradeUnitsBox.getHeight()) {
+            return true;
+        }
+        if (tradeSlider != null) {
+            return mouseX >= tradeSlider.getX() && mouseX < tradeSlider.getX() + tradeSlider.getWidth()
+                    && mouseY >= tradeSlider.getY() - TRADE_SLIDER_WHEEL_SLOP
+                    && mouseY < tradeSlider.getY() + tradeSlider.getHeight() + TRADE_SLIDER_WHEEL_SLOP;
+        }
+        return false;
     }
 
     /** 客户端预估最大可交易单位数(限额/余额/背包库存) */
@@ -1917,8 +2000,7 @@ public class ShopScreen extends QShopScreen {
         }
 
         // 合计(以物换物显示"N× 获得物";物品+指令显示"总需求物品量× 付出物";其余显示完整总价,不缩写 K/M/B)
-        int input = parseTradeInput(tradeUnitsBox.getValue());
-        int units = tradeMaxUnits > 0 ? Math.min(input, tradeMaxUnits) : input;
+        int units = currentTradeUnits();
         if (e.type == ShopEntryType.BARTER) {
             ItemStack r = !e.receive.isEmpty() ? e.receive.get(0) : ItemStack.EMPTY;
             Component t = QText.parse(units + "× " + (r.isEmpty() ? "?" : r.getHoverName().getString()));

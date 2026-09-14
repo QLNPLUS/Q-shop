@@ -50,11 +50,23 @@ public final class ShopLayoutDebug {
     private static boolean enabled;
     private static boolean loaded;
 
+    /**
+     * 调试层识别的界面标识。这些名字同时是 {@code SCREENS.md} 里登记的开发对话用界面名,
+     * 新增界面时两边要一起补,别让文档和代码各叫各的。
+     */
     public enum DebugScreen {
         SHOP("Shop"),
+        /**
+         * 交易悬浮窗。它是 ShopScreen 内部的浮层而不是独立 Screen,因此不会交给
+         * {@link #beginScreen(DebugScreen)} —— 浮层打开/关闭时改写 activeScreen 会污染宿主
+         * 界面的偏移表。这里登记它只为让名字与 SCREENS.md 对得上。
+         */
+        TRADE_POPUP("Trade popup"),
         TRADE_SETTINGS("Trade settings"),
         ITEM_PICKER("Item browser"),
-        TAB_SETTINGS("Tab settings");
+        TAB_SETTINGS("Tab settings"),
+        SHOP_INFO("Shop info"),
+        ITEM_NBT("Item NBT editor");
 
         private final String label;
 
