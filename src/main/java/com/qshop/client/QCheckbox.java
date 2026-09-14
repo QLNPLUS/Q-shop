@@ -45,7 +45,9 @@ public class QCheckbox extends AbstractButton {
     public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         ShopTextures.checkbox(g, getX(), getY() + (height - 12) / 2, selected, isHovered());
         var font = Minecraft.getInstance().font;
-        g.drawString(font, getMessage(), getX() + 16, getY() + (height - font.lineHeight) / 2, 0xFFFFFF);
+        // 与 QButton 同理：12px 的勾选框图标 + 9px 行盒，文字需 +1 才与图标垂直对齐
+        g.drawString(font, getMessage(), getX() + 16,
+                getY() + (height - font.lineHeight) / 2 + 1, 0xFFFFFF);
     }
 
     /** 交互区域 = 勾选框材质非透明像素(+ 文字标签) */

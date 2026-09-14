@@ -53,6 +53,7 @@ public class ItemNbtScreen extends QShopScreen {
 
     @Override
     protected void init() {
+        ShopLayoutDebug.beginScreen(ShopLayoutDebug.DebugScreen.ITEM_NBT);
         this.left = (this.width - GUI_W) / 2;
         this.top = (this.height - GUI_H) / 2;
 
