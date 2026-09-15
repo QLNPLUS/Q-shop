@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.0 - 2026-09-15
+
+### Added
+
+- The trade quantity field now shows 1 when the trade window opens, instead of appearing empty.
+- The mouse wheel now adjusts the trade quantity, both over the quantity field and anywhere along the slider. Each notch moves by the selected multiplier (x1, x10, x100 or x1000).
+
+### Changed
+
+- When a trade cannot be made at all — not enough currency, items, or purchase limit left — the quantity field, the slider and the confirm button are now disabled, so a trade that is certain to fail can no longer be submitted.
+
+### Fixed
+
+- Fixed button labels sitting slightly above centre. The offset was most visible on short buttons in Chinese, where the label nearly touched the top edge.
+
 ## 1.7.1 - 2026-09-13
 
 ### Fixed

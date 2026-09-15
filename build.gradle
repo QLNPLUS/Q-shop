@@ -5,6 +5,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
+// 版本号来自 gradle.properties 的 mod_version（本分支不用 forge 分支写死在 build.gradle 的写法）
 version = mod_version
 group = mod_group_id
 base { archivesName = "${mod_id}-neoforge-1.21.1" }
