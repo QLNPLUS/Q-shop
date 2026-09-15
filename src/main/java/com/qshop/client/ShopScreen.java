@@ -1549,8 +1549,9 @@ public class ShopScreen extends QShopScreen {
     protected boolean mouseScrolledContent(double mouseX, double mouseY, double deltaX, double deltaY) {
         if (menuIndex >= 0 || tabMenuIndex >= 0 || tradeIndex >= 0) {
             // 交易窗打开时,滚轮在数量输入框/滑块上用于调节数量;其余浮层区域仍然吃掉滚轮(商店不滚动)
+            // 26.1.2 的 Screen.mouseScrolled 拆成了 deltaX/deltaY,纵向滚轮即 deltaY
             if (tradeIndex >= 0) {
-                handleTradeWheel(mouseX, mouseY, delta);
+                handleTradeWheel(mouseX, mouseY, deltaY);
             }
             return true;
         }
