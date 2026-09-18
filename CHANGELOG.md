@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.1 - 2026-09-18
+
+### Added
+
+- The shop now remembers the last selected sub-shop tab for each shop during the current game session. Reopening the same shop returns to that tab when it is still available.
+
 ## 1.8.0 - 2026-09-15
 
 ### Added
