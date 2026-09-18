@@ -32,8 +32,10 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -82,6 +84,11 @@ public class ShopScreen extends QShopScreen {
     static boolean rememberedEditMode() {
         return rememberedEditMode;
     }
+    /**
+     * 客户端会话内按商店记忆最近打开的子商店。使用 tab UUID 而不是序号,
+     * 避免子商店排序后恢复到错误的 tab。
+     */
+    private static final Map<String, String> rememberedTabUuids = new HashMap<>();
 
     int activeTab = 0;
     private int requestedServerTab = 0;
@@ -174,6 +181,15 @@ public class ShopScreen extends QShopScreen {
         this.editMode = data.editing && rememberedEditMode;
         if (!data.tabs.isEmpty()) {
             this.requestedServerTab = data.tabs.get(0).serverIndex;
+            String rememberedTabUuid = rememberedTabUuids.get(data.shopId);
+            if (rememberedTabUuid != null && !rememberedTabUuid.isEmpty()) {
+                for (ClientTab tab : data.tabs) {
+                    if (rememberedTabUuid.equals(tab.uuid)) {
+                        this.requestedServerTab = tab.serverIndex;
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -856,10 +872,22 @@ public class ShopScreen extends QShopScreen {
         QShopSoundEffects.playButtonClick();
         activeTab = i;
         data.activeTab = activeServerTabIndex();
+        rememberActiveTab();
         applyActiveTabEntries();
         scroll = 0;
         rowAnim = 0;
         scrollActiveTabIntoView();
+    }
+
+    /** 记录当前子商店,供关闭后重新打开同一商店时恢复。 */
+    private void rememberActiveTab() {
+        if (activeTab < 0 || activeTab >= visibleTabs.size()) {
+            return;
+        }
+        String uuid = visibleTabs.get(activeTab).uuid;
+        if (uuid != null && !uuid.isEmpty()) {
+            rememberedTabUuids.put(data.shopId, uuid);
+        }
     }
 
     /** 根据编辑模式生成可见子商店列表，并尽量保留当前服务端 tab。 */
