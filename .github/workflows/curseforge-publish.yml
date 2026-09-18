@@ -141,7 +141,7 @@ jobs:
           java: 17
 
   publish-neoforge:
-    if: (github.event_name == 'release' && contains(github.event.release.tag_name, '-neoforge-')) || inputs.loader == 'all' || inputs.loader == 'neoforge'
+    if: (github.event_name == 'release' && contains(github.event.release.tag_name, '-neoforge-1.21.1')) || inputs.loader == 'all' || inputs.loader == 'neoforge'
     runs-on: ubuntu-latest
 
     steps:
@@ -243,7 +243,7 @@ jobs:
           java: 21
 
   publish-neoforge-126:
-    if: (github.event_name == 'release' && contains(github.event.release.tag_name, '-neoforge-')) || inputs.loader == 'all' || inputs.loader == 'neoforge' || inputs.loader == 'neoforge-126'
+    if: (github.event_name == 'release' && contains(github.event.release.tag_name, '-neoforge-1.26.1.2')) || inputs.loader == 'all' || inputs.loader == 'neoforge' || inputs.loader == 'neoforge-126'
     runs-on: ubuntu-latest
 
     steps:
