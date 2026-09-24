@@ -415,7 +415,8 @@ QShop.addTab('vip', {
   requiredQuests: ['quest-1'],       // 可选,FTB 任务门槛
   requiredStages: ['vip'],           // 可选,阶段门槛
   requiredStageDescriptions: ['VIP 阶段'], // 可选,阶段显示描述
-  showWhenRequirementsNotMet: true   // 可选,条件未满足时仍显示锁定 tab
+  showWhenRequirementsNotMet: true,  // 可选,条件未满足时仍显示锁定 tab
+  hideWhenEmpty: true                // 可选,没有可显示交易时隐藏 tab,默认 true
 });
 QShop.updateTab('vip', 'daily-tab-uuid', {
   name: '新名字',
@@ -424,7 +425,8 @@ QShop.updateTab('vip', 'daily-tab-uuid', {
   requiredQuests: [],                // 空数组清空列表
   requiredStages: ['vip'],
   requiredStageDescriptions: ['VIP 阶段'],
-  showWhenRequirementsNotMet: true
+  showWhenRequirementsNotMet: true,
+  hideWhenEmpty: false                // 可选,设为 false 时空 tab 仍显示
 });
 // 旧式写法仍可用:QShop.addTab('vip', '武器', 'minecraft:iron_sword', 'uuid');
 //           QShop.updateTab('vip', 0, '新名'); / QShop.updateTabByUuid('vip', uuid, '新名', null);
@@ -481,7 +483,7 @@ QShop.clearShopLimits('card')
 
 物品写法三种:`"minecraft:diamond"`、`{"item":"minecraft:oak_log","count":8,"nbt":"{...}"}`、base64。
 
-**子商店(ShopTab)共 9 个字段**,经 `addTab(shopId, options)` / `updateTab(shopId, tabRef, options)` 设置:
+**子商店(ShopTab)共 10 个字段**,经 `addTab(shopId, options)` / `updateTab(shopId, tabRef, options)` 设置:
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -494,6 +496,7 @@ QShop.clearShopLimits('card')
 | `requiredStages` | string[] | 阶段门槛 |
 | `requiredStageDescriptions` | string[] | 阶段显示描述,按 `requiredStages` 索引对应 |
 | `showWhenRequirementsNotMet` | boolean | 条件未满足时仍显示锁定 tab,默认 false |
+| `hideWhenEmpty` | boolean | 没有可显示交易时隐藏 tab,默认 true |
 
 注意:`updateTab` 只更新 options 里出现的字段;`icon: null` 清除图标,`requiredQuests: []` 清空列表。
 `addTab/updateTab` 的旧式位置参数写法(名称/图标/uuid)仍然兼容。

@@ -181,6 +181,7 @@ public final class ShopLayoutDebug {
         STAGE_DESCRIPTIONS_ROW("Stage descriptions row"),
         DESCRIPTION_ROW("Description row"),
         VISIBILITY_ROW("Visibility option"),
+        EMPTY_CONTENT_ROW("Empty content option"),
         DELETE_BUTTON("Delete button"),
         SAVE_BUTTON("Save button"),
         CANCEL_BUTTON("Cancel button");
@@ -473,6 +474,10 @@ public final class ShopLayoutDebug {
         positions.put(TabWidget.STAGE_DESCRIPTIONS_ROW, new Position(0, 9));
         positions.put(TabWidget.DESCRIPTION_ROW, new Position(0, -46));
         positions.put(TabWidget.VISIBILITY_ROW, new Position(0, -10));
+        positions.put(TabWidget.EMPTY_CONTENT_ROW, new Position(0, -11));
+        positions.put(TabWidget.DELETE_BUTTON, new Position(0, -15));
+        positions.put(TabWidget.SAVE_BUTTON, new Position(0, -15));
+        positions.put(TabWidget.CANCEL_BUTTON, new Position(0, -20));
         return positions;
     }
 

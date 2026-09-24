@@ -108,7 +108,7 @@ Useful read-only fields are:
 | Object | Fields commonly used in scripts |
 | --- | --- |
 | `Shop` | `id`, `uuid`, `displayName`, `currency`, `icon`, `tabs` |
-| `ShopTab` | `uuid`, `name`, `icon`, `description`, `entries`, `requiredQuests`, `requiredStages`, `requiredStageDescriptions` |
+| `ShopTab` | `uuid`, `name`, `icon`, `description`, `entries`, `requiredQuests`, `requiredStages`, `requiredStageDescriptions`, `hideWhenEmpty` |
 | `ShopEntry` | `uuid`, `type`, `displayName`, `description`, `item`, `displayItem`, `give`, `receive`, `currencyId`, `price`, `globalLimit`, `playerLimit`, `reset`, `commands`, `requiredQuests`, `requiredStages`, `requiredStageDescriptions`, `count` |
 
 For example:
@@ -235,6 +235,7 @@ QShop.tab('vip')
   .stage('vip_unlocked')
   .stageDescription('VIP stage')
   .showWhenRequirementsNotMet(true)
+  .hideWhenEmpty(true)
   .add()
 ```
 
@@ -250,10 +251,13 @@ Tab option fields:
 | `requiredStages` | string[] | Stage ids that must be present. |
 | `requiredStageDescriptions` | string[] | Display labels matched by index to `requiredStages`. |
 | `showWhenRequirementsNotMet` | boolean | Keeps the tab visible with the locked material when requirements are not met. Defaults to `false`. |
+| `hideWhenEmpty` | boolean | Hides the tab when no trade entries are visible to the player. Defaults to `true`. |
 
 The `icon` accepts the same item forms as trade entries, including `{ item, count, nbt }`. The tab `description` is shown as a hover tooltip and may contain newlines. `requiredStageDescriptions` uses the same indexes as `requiredStages`; missing or blank labels fall back to the stage id.
 
 When requirements are not satisfied, the tab and its entries are hidden from normal players by default. Set `showWhenRequirementsNotMet: true` (or call `.showWhenRequirementsNotMet(true)`) to keep a tab visible with the locked material. Hovering a locked tab shows its task/stage requirements, and clicking it opens the first matching FTB Quests task when available; it does not switch tabs. Edit mode may still show restricted content for administration.
+With `hideWhenEmpty: true` (the default), a tab is hidden when all its entries are filtered by requirements or purchase limits. An entry that remains visible in the locked state counts as content. Administrators can still see every tab in edit mode.
+When updating a tab through `TabBuilder`, call `.hideWhenEmpty(false)` explicitly to keep an empty tab visible.
 
 ### Remove tabs
 

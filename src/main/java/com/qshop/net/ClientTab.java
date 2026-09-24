@@ -17,6 +17,8 @@ public class ClientTab {
     public boolean requirementsMet = true;
     /** 条件未满足时是否仍显示该子商店 */
     public boolean showWhenRequirementsNotMet = false;
+    /** 普通浏览时是否隐藏没有可显示交易条目的子商店 */
+    public boolean hideWhenEmpty = true;
     /** 子商店稳定 uuid(KubeJS 按 uuid 匹配) */
     public String uuid = "";
     public String name = "";
@@ -32,6 +34,7 @@ public class ClientTab {
         buf.writeInt(t.serverIndex);
         buf.writeBoolean(t.requirementsMet);
         buf.writeBoolean(t.showWhenRequirementsNotMet);
+        buf.writeBoolean(t.hideWhenEmpty);
         buf.writeUtf(t.uuid == null ? "" : t.uuid);
         buf.writeUtf(t.name == null ? "" : t.name);
         buf.writeUtf(t.description == null ? "" : t.description);
@@ -59,6 +62,7 @@ public class ClientTab {
         t.serverIndex = buf.readInt();
         t.requirementsMet = buf.readBoolean();
         t.showWhenRequirementsNotMet = buf.readBoolean();
+        t.hideWhenEmpty = buf.readBoolean();
         t.uuid = buf.readUtf();
         t.name = buf.readUtf();
         t.description = buf.readUtf();

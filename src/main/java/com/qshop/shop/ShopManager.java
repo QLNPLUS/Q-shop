@@ -380,6 +380,7 @@ public final class ShopManager {
             ct.serverIndex = ti;
             ct.requirementsMet = tabMet;
             ct.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
+            ct.hideWhenEmpty = tab.hideWhenEmpty;
             ct.uuid = tab.uuid == null ? "" : tab.uuid;
             ct.name = tab.name;
             ct.description = tab.description == null ? "" : tab.description;

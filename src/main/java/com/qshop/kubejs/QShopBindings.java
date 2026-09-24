@@ -264,7 +264,8 @@ final class QShopBindings {
      *     requiredQuests: ['quest-id-1'],   // 可选,FTB 任务
      *     requiredStages: ['vip'],          // 可选,阶段
      *     requiredStageDescriptions: ['VIP 阶段'], // 可选,阶段显示描述
-     *     showWhenRequirementsNotMet: true  // 可选,未满足时显示锁定 tab
+     *     showWhenRequirementsNotMet: true, // 可选,未满足时显示锁定 tab
+     *     hideWhenEmpty: true              // 可选,无可显示交易时隐藏 tab,默认 true
      * });
      * </pre>
      */
@@ -303,6 +304,9 @@ final class QShopBindings {
             if (options.has("showWhenRequirementsNotMet")
                     && options.get("showWhenRequirementsNotMet").isJsonPrimitive()) {
                 t.showWhenRequirementsNotMet = options.get("showWhenRequirementsNotMet").getAsBoolean();
+            }
+            if (options.has("hideWhenEmpty") && options.get("hideWhenEmpty").isJsonPrimitive()) {
+                t.hideWhenEmpty = options.get("hideWhenEmpty").getAsBoolean();
             }
             shop.tabs.add(t);
             ShopManager.save(shop);
@@ -427,6 +431,9 @@ final class QShopBindings {
             if (options.has("showWhenRequirementsNotMet")
                     && options.get("showWhenRequirementsNotMet").isJsonPrimitive()) {
                 t.showWhenRequirementsNotMet = options.get("showWhenRequirementsNotMet").getAsBoolean();
+            }
+            if (options.has("hideWhenEmpty") && options.get("hideWhenEmpty").isJsonPrimitive()) {
+                t.hideWhenEmpty = options.get("hideWhenEmpty").getAsBoolean();
             }
             ShopManager.save(shop);
             return true;
