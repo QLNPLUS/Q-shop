@@ -25,6 +25,7 @@ public class EditTabPacket {
     public final List<String> requiredStages = new ArrayList<>();
     public final List<String> requiredStageDescriptions = new ArrayList<>();
     public boolean showWhenRequirementsNotMet = false;
+    public boolean hideWhenEmpty = true;
 
     public EditTabPacket() {
     }
@@ -32,13 +33,14 @@ public class EditTabPacket {
     public EditTabPacket(String shopId, int tabIndex, String name, String description, ItemStack icon,
                          List<String> requiredQuests, List<String> requiredStages,
                          List<String> requiredStageDescriptions,
-                         boolean showWhenRequirementsNotMet) {
+                         boolean showWhenRequirementsNotMet, boolean hideWhenEmpty) {
         this.shopId = shopId;
         this.tabIndex = tabIndex;
         this.name = name == null ? "" : name;
         this.description = description == null ? "" : description;
         this.icon = icon == null ? ItemStack.EMPTY : icon;
         this.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
+        this.hideWhenEmpty = hideWhenEmpty;
         if (requiredQuests != null) {
             for (String q : requiredQuests) {
                 if (q != null && !q.isBlank()) {
@@ -79,6 +81,7 @@ public class EditTabPacket {
             buf.writeUtf(description == null ? "" : description);
         }
         buf.writeBoolean(p.showWhenRequirementsNotMet);
+        buf.writeBoolean(p.hideWhenEmpty);
     }
 
     public static EditTabPacket decode(FriendlyByteBuf buf) {
@@ -101,6 +104,7 @@ public class EditTabPacket {
             p.requiredStageDescriptions.add(buf.readUtf());
         }
         p.showWhenRequirementsNotMet = buf.readBoolean();
+        p.hideWhenEmpty = buf.readBoolean();
         return p;
     }
 
@@ -130,6 +134,7 @@ public class EditTabPacket {
                 t.requiredStageDescriptions.clear();
                 t.requiredStageDescriptions.addAll(requiredStageDescriptions);
                 t.showWhenRequirementsNotMet = showWhenRequirementsNotMet;
+                t.hideWhenEmpty = hideWhenEmpty;
                 ShopManager.save(shop);
                 ShopManager.openShop(player, shop);
             });

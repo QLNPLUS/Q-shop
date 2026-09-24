@@ -86,7 +86,7 @@ console.log(entry.uuid)
 
 ### ShopTab
 
-常用字段：`uuid`、`name`、`icon`、`description`、`entries`、`requiredQuests`、`requiredStages`、`requiredStageDescriptions`。
+常用字段：`uuid`、`name`、`icon`、`description`、`entries`、`requiredQuests`、`requiredStages`、`requiredStageDescriptions`、`hideWhenEmpty`。
 
 子商店的 `description` 会在鼠标悬停时显示为 tooltip，支持换行。`icon` 支持物品 ID、物品对象和 NBT。
 
@@ -183,6 +183,7 @@ QShop.tab('vip')
   .stage('vip_unlocked')
   .stageDescription('VIP 阶段')
   .showWhenRequirementsNotMet(true)
+  .hideWhenEmpty(true)
   .add()
 ```
 
@@ -194,10 +195,11 @@ description(text) uuid(id)
 quest(id)        stage(id)
 stageDescription(text)
 showWhenRequirementsNotMet(bool)
+hideWhenEmpty(bool)
 add()
 ```
 
-如果 UUID 已存在，`add()` 会更新子商店的名称、图标、描述和检测条件，并保留该子商店已有的交易项目。
+如果 UUID 已存在，`add()` 会更新子商店的名称、图标、描述和检测条件，并保留该子商店已有的交易项目。`hideWhenEmpty` 会随 builder 一起更新；若要保留空子商店，请显式调用 `.hideWhenEmpty(false)`。
 
 删除子商店：
 
@@ -211,6 +213,7 @@ QShop.removeTab('vip', 'daily-offers')
 当 `requiredQuests` 或 `requiredStages` 不满足时，普通玩家默认看不到该子商店及其交易项目。设置
 `showWhenRequirementsNotMet: true`（或 builder 的 `.showWhenRequirementsNotMet(true)`）后，子商店会以锁定材质显示；悬停时会显示任务/阶段要求，点击未满足的 tab 会打开第一个可定位的 FTB 任务（如果有），不会切换子商店内容。
 编辑模式可以继续显示受限内容。
+`hideWhenEmpty` 默认是 `true`：当交易条目因任务条件或购买上限而都不可见时，隐藏该子商店；仍以锁定状态显示的条目算作有内容。管理员进入编辑模式后仍可查看全部子商店。
 
 ## 交易项目和 EntryBuilder
 

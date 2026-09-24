@@ -15,7 +15,8 @@ import java.util.Optional;
  */
 public final class QShopNetwork {
 
-    private static final String PROTOCOL_VERSION = "1";
+    // ClientTab and EditTabPacket payloads changed with the empty-tab setting.
+    private static final String PROTOCOL_VERSION = "2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(QShopMod.MODID, "main"),

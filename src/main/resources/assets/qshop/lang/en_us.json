@@ -130,6 +130,8 @@
   "qshop.gui.stage_descriptions": "Stage descriptions",
   "qshop.gui.show_unmet_requirements": "Show if locked",
   "qshop.gui.show_tab_when_unmet": "Show tab if locked",
+  "qshop.gui.hide_tab_when_empty": "Hide tab when no trades are visible",
+  "qshop.gui.no_visible_tabs": "No sub-shops are currently available",
   "qshop.msg.req_quest": "Requires completing quest",
   "qshop.msg.quest_click_hint": "Click to open the quest",
   "qshop.msg.req_stage": "Requires stage",

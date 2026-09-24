@@ -74,6 +74,12 @@ public class TabBuilder {
         return this;
     }
 
+    /** 普通浏览时隐藏没有可显示交易条目的子商店,默认启用。 */
+    public TabBuilder hideWhenEmpty(boolean hide) {
+        tab.hideWhenEmpty = hide;
+        return this;
+    }
+
     /** 添加到商店并保存,返回是否成功 */
     public boolean add() {
         Shop shop = ShopManager.get(shopId);
@@ -94,6 +100,7 @@ public class TabBuilder {
                 existing.requiredStageDescriptions.clear();
                 existing.requiredStageDescriptions.addAll(tab.requiredStageDescriptions);
                 existing.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
+                existing.hideWhenEmpty = tab.hideWhenEmpty;
                 ShopManager.save(shop);
                 return true;
             }
