@@ -9,7 +9,8 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** NeoForge play payload registration and dispatch helpers. */
 public final class QShopNetwork {
-    private static final String PROTOCOL_VERSION = "1";
+    // ClientTab and EditTabPacket payloads changed with the empty-tab setting.
+    private static final String PROTOCOL_VERSION = "2";
 
     private QShopNetwork() {
     }

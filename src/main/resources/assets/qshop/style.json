@@ -79,9 +79,10 @@
         "stage_descriptions_row": { "x": 0, "y": 9 },
         "description_row": { "x": 0, "y": -46 },
         "visibility_row": { "x": 0, "y": -10 },
-        "delete_button": { "x": 0, "y": 0 },
-        "save_button": { "x": 0, "y": 0 },
-        "cancel_button": { "x": 0, "y": 0 }
+        "empty_content_row": { "x": 0, "y": -11 },
+        "delete_button": { "x": 0, "y": -15 },
+        "save_button": { "x": 0, "y": -15 },
+        "cancel_button": { "x": 0, "y": -20 }
       }
     }
   }

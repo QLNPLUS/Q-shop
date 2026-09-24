@@ -441,7 +441,10 @@ public class ShopScreen extends QShopScreen {
 
         // 空商店提示(网格区域居中)
         if (data.entries.isEmpty()) {
-            g.drawCenteredString(this.font, Component.translatable("qshop.gui.empty"),
+            Component emptyMessage = visibleTabs.isEmpty()
+                    ? Component.translatable("qshop.gui.no_visible_tabs")
+                    : Component.translatable("qshop.gui.empty");
+            g.drawCenteredString(this.font, emptyMessage,
                     gridX() + (cols * stepX) / 2, gridY() + gridViewportHeight() / 2 - 4, 0xFFFFFF);
         }
 
@@ -894,11 +897,17 @@ public class ShopScreen extends QShopScreen {
     private void applyVisibleTabs(int preferredServerTab) {
         visibleTabs.clear();
         for (ClientTab tab : data.tabs) {
-            if (!data.editing || editMode || tab.requirementsMet || tab.showWhenRequirementsNotMet) {
-                visibleTabs.add(tab);
+            boolean requirementsVisible = !data.editing || editMode
+                    || tab.requirementsMet || tab.showWhenRequirementsNotMet;
+            if (!requirementsVisible) {
+                continue;
             }
+            if (!editMode && tab.hideWhenEmpty && !hasEntriesForNormalView(tab)) {
+                continue;
+            }
+            visibleTabs.add(tab);
         }
-        activeTab = 0;
+        activeTab = visibleTabs.isEmpty() ? -1 : 0;
         for (int i = 0; i < visibleTabs.size(); i++) {
             if (visibleTabs.get(i).serverIndex == preferredServerTab) {
                 activeTab = i;
@@ -922,6 +931,10 @@ public class ShopScreen extends QShopScreen {
     }
 
     private void scrollActiveTabIntoView() {
+        if (activeTab < 0 || activeTab >= visibleTabs.size()) {
+            tabScroll = Mth.clamp(tabScroll, 0, maxTabScroll());
+            return;
+        }
         int itemTop = activeTab * TAB_PITCH;
         int itemBottom = itemTop + TAB_H;
         if (itemTop < tabScroll + TAB_MASK_H) {
@@ -951,6 +964,17 @@ public class ShopScreen extends QShopScreen {
             }
         }
         data.entries = visibleEntries;
+    }
+
+    /** 判断普通浏览模式下该 tab 是否至少有一条会显示的交易条目。 */
+    private static boolean hasEntriesForNormalView(ClientTab tab) {
+        for (ClientShopEntry entry : tab.entries) {
+            if ((entry.requirementsMet || entry.showWhenRequirementsNotMet)
+                    && !entryLimitReached(entry)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean entryLimitReached(ClientShopEntry entry) {

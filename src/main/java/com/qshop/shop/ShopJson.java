@@ -337,6 +337,9 @@ public final class ShopJson {
             if (t.showWhenRequirementsNotMet) {
                 to.addProperty("showWhenRequirementsNotMet", true);
             }
+            if (!t.hideWhenEmpty) {
+                to.addProperty("hideWhenEmpty", false);
+            }
             JsonArray es = new JsonArray();
             for (ShopEntry e : t.entries) {
                 es.add(entryToJson(e));
@@ -448,6 +451,7 @@ public final class ShopJson {
                 }
                 t.showWhenRequirementsNotMet = to.has("showWhenRequirementsNotMet")
                         && to.get("showWhenRequirementsNotMet").getAsBoolean();
+                t.hideWhenEmpty = !to.has("hideWhenEmpty") || to.get("hideWhenEmpty").getAsBoolean();
                 if (to.has("entries")) {
                     for (JsonElement ee : to.getAsJsonArray("entries")) {
                         parseEntryInto(shop, ee, t.entries);

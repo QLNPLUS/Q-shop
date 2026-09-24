@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 public class TabEditDialog extends QShopScreen {
 
     private static final int GUI_W = 250;
-    private static final int GUI_H = 200;
+    private static final int GUI_H = 220;
     private static final int LABEL_X = 12;
     private static final int CONTROL_X = 72;
     private static final int ITEM_ACTION_X = 94;
@@ -45,6 +45,7 @@ public class TabEditDialog extends QShopScreen {
     private String stagesStr = "";
     private String stageDescriptionsStr = "";
     private boolean showWhenRequirementsNotMet = false;
+    private boolean hideWhenEmpty = true;
 
     public TabEditDialog(OpenShopPacket data, int tabIndex) {
         super(Component.translatable("qshop.gui.edit_tab"));
@@ -59,6 +60,7 @@ public class TabEditDialog extends QShopScreen {
             this.stagesStr = String.join(",", tab.requiredStages);
             this.stageDescriptionsStr = String.join(",", tab.requiredStageDescriptions);
             this.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
+            this.hideWhenEmpty = tab.hideWhenEmpty;
         }
     }
 
@@ -162,9 +164,15 @@ public class TabEditDialog extends QShopScreen {
                 Component.translatable("qshop.gui.show_tab_when_unmet"), showWhenRequirementsNotMet,
                 v -> showWhenRequirementsNotMet = v));
 
+        addRenderableWidget(new QCheckbox(
+                tx(ShopLayoutDebug.TabWidget.EMPTY_CONTENT_ROW, left + LABEL_X),
+                ty(ShopLayoutDebug.TabWidget.EMPTY_CONTENT_ROW, top + 157),
+                Component.translatable("qshop.gui.hide_tab_when_empty"), hideWhenEmpty,
+                v -> hideWhenEmpty = v));
+
         addRenderableWidget(new QButton(
                 tx(ShopLayoutDebug.TabWidget.DELETE_BUTTON, left + 12),
-                ty(ShopLayoutDebug.TabWidget.DELETE_BUTTON, top + 154), 110, 16,
+                ty(ShopLayoutDebug.TabWidget.DELETE_BUTTON, top + 176), 110, 16,
                 Component.translatable("qshop.gui.delete_tab"), b -> {
                     // 用服务端子商店序号发送(隐藏过滤后可见序号会错位)
                     QShopNetwork.sendToServer(new RemoveTabPacket(data.shopId, tab.serverIndex));
@@ -172,11 +180,11 @@ public class TabEditDialog extends QShopScreen {
                 }));
         addRenderableWidget(new QButton(
                 tx(ShopLayoutDebug.TabWidget.SAVE_BUTTON, left + 128),
-                ty(ShopLayoutDebug.TabWidget.SAVE_BUTTON, top + 154), 110, 16,
+                ty(ShopLayoutDebug.TabWidget.SAVE_BUTTON, top + 176), 110, 16,
                 Component.translatable("qshop.gui.save"), b -> save()));
         addRenderableWidget(new QButton(
                 tx(ShopLayoutDebug.TabWidget.CANCEL_BUTTON, left + 12),
-                ty(ShopLayoutDebug.TabWidget.CANCEL_BUTTON, top + 176), 226, 16,
+                ty(ShopLayoutDebug.TabWidget.CANCEL_BUTTON, top + 198), 226, 16,
                 Component.translatable("qshop.gui.cancel"), b -> back()));
     }
 
@@ -205,7 +213,7 @@ public class TabEditDialog extends QShopScreen {
     private void save() {
         QShopNetwork.sendToServer(new EditTabPacket(data.shopId, tab.serverIndex, nameStr, descStr, icon,
                 splitList(questsStr), splitList(stagesStr), splitStageDescriptions(stageDescriptionsStr),
-                showWhenRequirementsNotMet));
+                showWhenRequirementsNotMet, hideWhenEmpty));
         back();
     }
 
