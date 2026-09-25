@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.2 - 2026-09-25
+
+### Added
+
+- Added an option to hide sub-shop tabs when no trades are visible to the player. The option is enabled by default, can be changed per sub-shop, and hidden tabs remain available in edit mode.
+- Added the `hideWhenEmpty` option to the KubeJS API for creating and updating sub-shops.
+- Updated the sub-shop editor layout to make room for the new setting.
+
 ## 1.8.1 - 2026-09-18
 
 ### Added
