@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Purchase limit resets now follow the Minecraft overworld clock. The reset time is configurable, and weekly and monthly limits now mean 7 and 30 in-game days.
+
 ## 1.8.2 - 2026-09-25
 
 ### Added

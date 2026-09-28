@@ -95,7 +95,7 @@ public final class TradeService {
         String key = e.uuid != null && !e.uuid.isEmpty()
                 ? shop.id + "|" + e.uuid
                 : shop.id + "|" + tabIndex + "|" + entryIndex;
-        String period = e.reset.periodKey();
+        String period = e.reset.periodKey(player.getServer());
 
         // ---- 限购检查 ----
         int usedGlobal = 0;
@@ -367,7 +367,7 @@ public final class TradeService {
         String key = e.uuid != null && !e.uuid.isEmpty()
                 ? shop.id + "|" + e.uuid
                 : shop.id + "|" + tabIndex + "|" + entryIndex;
-        String period = e.reset.periodKey();
+        String period = e.reset.periodKey(player.getServer());
         QShopSavedData data = null;
         int usedGlobal = 0;
         int usedPlayer = 0;
@@ -545,7 +545,7 @@ public final class TradeService {
         String key = e.uuid != null && !e.uuid.isEmpty()
                 ? shop.id + "|" + e.uuid
                 : shop.id + "|" + tabIndex + "|" + entryIndex;
-        String period = e.reset.periodKey();
+        String period = e.reset.periodKey(player.getServer());
         QShopSavedData data = null;
         int usedGlobal = 0;
         int usedPlayer = 0;

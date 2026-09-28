@@ -329,6 +329,8 @@ QShop.refreshTab('vip', 0, {
 
 `globalLimit` 是全服限购，`playerLimit` 是玩家限购，统计单位是交易单位/购买次数，而不是物品数量。一次购买一个交易项目算 1 次，即使该项目包含多个物品。周期为：`NEVER`、`DAILY`、`WEEKLY`、`MONTHLY`。
 
+`DAILY`、`WEEKLY` 和 `MONTHLY` 按主世界时间分别每 1、7、30 个游戏日重置。重置时刻由 `config/qshop-common.toml` 的 `server.limitReset.worldTime` 设置，数值范围为 `0..23999` 世界刻；默认 `18000`（游戏内 00:00）。Minecraft 时间刻数示例：`0` = 06:00、`6000` = 12:00、`12000` = 18:00、`18000` = 00:00。昼夜循环暂停时限购周期也暂停；到达设定时刻后，下次打开商店或交易检查时应用新的计数周期。
+
 ```js
 QShop.entry('vip')
   .sell({ item: 'minecraft:diamond', count: 1 })
