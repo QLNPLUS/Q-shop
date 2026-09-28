@@ -106,6 +106,17 @@ currencyRetention = ["coins=0.2", "points=0.5"]
 
 上例表示死亡后保留 20% 的 `coins`、50% 的 `points`，其他货币全部清空。比例范围为 `0.0` 到 `1.0`；也接受 `coins:0.2` 写法。
 
+### 限购刷新时间
+
+限购周期根据主世界的 Minecraft 时间计算，不依赖电脑或服务器的现实日期。配置文件 `config/qshop-common.toml` 中的 `server.limitReset.worldTime` 使用一天内的世界刻数，范围为 `0..23999`：
+
+```toml
+[server.limitReset]
+worldTime = 18000 # 游戏内午夜；默认值
+```
+
+Minecraft 每 1000 世界刻为一个游戏小时：`0` 是 06:00，`6000` 是 12:00，`12000` 是 18:00，`18000` 是 00:00。`DAILY` 每个游戏日到达该时刻时重置，`WEEKLY` 每 7 个游戏日重置，`MONTHLY` 每 30 个游戏日重置。时间以主世界为准；暂停昼夜循环时周期也会暂停。计数会在达到重置时刻后的下一次打开商店或交易检查时更新。
+
 客户端界面设置也统一保存在同一个 `config/qshop-common.toml` 文件中：
 
 ```toml
@@ -496,7 +507,7 @@ QShop.clearShopLimits('card')
 
 - 限购按**交易单位/购买次数**统计:一次购买一个交易项目算 1 次,即使该项目包含多个物品
 - 全服计数保存在世界存档(`qshop_data`),个人计数保存在玩家数据
-- `limitReset` 决定计数周期:`DAILY` 每天 0 点、`WEEKLY` 每周一、`MONTHLY` 每月 1 号自动清零
+- `limitReset` 决定计数周期:`DAILY` 每个游戏日、`WEEKLY` 每 7 个游戏日、`MONTHLY` 每 30 个游戏日，在 `config/qshop-common.toml` 的 `server.limitReset.worldTime` 指定时刻重置
 - 交易时若余额/库存/限额不足,会自动按可交易的最大数量成交并提示"实际完成 N 个交易单位"
 - 死亡重生/切换维度不会丢失货币和个人限购计数
 

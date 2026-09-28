@@ -51,6 +51,7 @@ QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests 
 - Global server-wide and per-player limits for each entry.
 - Limits are counted in trade units/purchase counts, not item quantities. One completed trade unit consumes one limit even when it contains multiple items.
 - Reset periods: `NEVER`, `DAILY`, `WEEKLY` and `MONTHLY`.
+- Timed limits follow the overworld clock: every 1, 7 or 30 Minecraft days, at the time configured by `server.limitReset.worldTime` in `config/qshop-common.toml` (default: `18000`, Minecraft midnight).
 
 ### Requirements
 

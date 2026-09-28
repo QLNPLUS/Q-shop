@@ -38,6 +38,8 @@ public final class QShopCommonConfig {
     public static final ForgeConfigSpec.BooleanValue TRADE_MESSAGES_IN_ACTION_BAR;
     /** Whether purchases may overflow the player's inventory. */
     public static final ForgeConfigSpec.BooleanValue ALLOW_OVERFLOW_PURCHASES;
+    /** Minecraft overworld time of day (0..23999) at which purchase limits roll over. */
+    public static final ForgeConfigSpec.IntValue LIMIT_RESET_WORLD_TIME;
 
     static {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -75,6 +77,20 @@ public final class QShopCommonConfig {
                         "Whether players may buy more items than their current inventory can hold. When false, the trade is rejected if the complete result does not fit.",
                         "默认 false / Default: false")
                 .define("allowOverflowPurchases", false);
+        b.pop();
+
+        b.comment(
+                "限购重置时间 / Purchase limit reset time",
+                "按主世界的 Minecraft 时间计算；世界时间暂停时，限购周期也暂停。",
+                "Uses Minecraft time in the overworld; purchase limit periods pause when world time stops.")
+                .push("limitReset");
+        LIMIT_RESET_WORLD_TIME = b
+                .comment(
+                        "每天、每 7 个游戏日或每 30 个游戏日的限购重置时刻，范围 0..23999 世界刻。",
+                        "World time of day when daily, 7-day and 30-day purchase limits reset; range 0..23999 ticks.",
+                        "Minecraft clock examples: 0 = 06:00, 6000 = 12:00, 12000 = 18:00, 18000 = 00:00.",
+                        "默认 18000，即游戏内午夜 / Default: 18000 (Minecraft midnight).")
+                .defineInRange("worldTime", 18000, 0, 23999);
         b.pop();
 
         b.comment(
@@ -165,6 +181,10 @@ public final class QShopCommonConfig {
 
     public static boolean allowOverflowPurchases() {
         return ALLOW_OVERFLOW_PURCHASES.get();
+    }
+
+    public static int limitResetWorldTime() {
+        return LIMIT_RESET_WORLD_TIME.get();
     }
 
     /** Parses the client fade color, falling back to 0x636363 for invalid input. */
