@@ -1,10 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.8.3 - 2026-09-28
 
 ### Changed
 
-- Purchase limit resets now follow the Minecraft overworld clock. The reset time is configurable, and weekly and monthly limits now mean 7 and 30 in-game days.
+- Purchase limit resets now follow the Minecraft overworld clock. Configure `server.limitReset.worldTime` in `config/qshop-common.toml`; weekly and monthly limits now cover 7 and 30 in-game days.
+
+### Fixed
+
+- Updated the embedded resource pack metadata for Minecraft 26.1.2.
+
+## Unreleased
 
 ## 1.8.2 - 2026-09-25
 
