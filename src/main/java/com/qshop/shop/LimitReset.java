@@ -1,7 +1,7 @@
 package com.qshop.shop;
 
-import java.time.LocalDate;
-import java.time.temporal.IsoFields;
+import com.qshop.config.QShopCommonConfig;
+import net.minecraft.server.MinecraftServer;
 
 /**
  * 购买/出售限制的重置周期。
@@ -11,20 +11,23 @@ public enum LimitReset {
     NEVER,
     /** 每日重置 */
     DAILY,
-    /** 每周重置(ISO 周) */
+    /** 每 7 个 Minecraft 游戏日重置 */
     WEEKLY,
-    /** 每月重置 */
+    /** 每 30 个 Minecraft 游戏日重置 */
     MONTHLY;
 
     /**
-     * 当前周期的键。周期变化时,旧的计数会被自动清零。
+     * 当前周期的键，以主世界日夜时间和配置的重置时刻计算。
+     * 周期变化时，旧的计数会在下一次查询时被视为零。
      */
-    public String periodKey() {
-        LocalDate now = LocalDate.now();
+    public String periodKey(MinecraftServer server) {
+        long worldTime = server.overworld().getDayTime();
+        long resetTime = QShopCommonConfig.limitResetWorldTime();
+        long worldDay = Math.floorDiv(worldTime - resetTime, 24_000L);
         return switch (this) {
-            case DAILY -> "d-" + now;
-            case WEEKLY -> "w-" + now.getYear() + "-" + now.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
-            case MONTHLY -> "m-" + now.getYear() + "-" + now.getMonthValue();
+            case DAILY -> "d-" + worldDay;
+            case WEEKLY -> "w-" + Math.floorDiv(worldDay, 7L);
+            case MONTHLY -> "m-" + Math.floorDiv(worldDay, 30L);
             case NEVER -> "all";
         };
     }
