@@ -396,7 +396,7 @@ public final class ShopManager {
                 }
                 int usedGlobal = 0;
                 int usedPlayer = 0;
-                String period = e.reset.periodKey(player.getServer());
+                String period = e.reset.periodKey(player.level().getServer());
                 // 限购键与交易服务一致:按条目 uuid(无 uuid 时退回位置键)
                 String key = e.uuid != null && !e.uuid.isEmpty()
                         ? shop.id + "|" + e.uuid

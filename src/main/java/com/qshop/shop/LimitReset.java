@@ -17,11 +17,11 @@ public enum LimitReset {
     MONTHLY;
 
     /**
-     * 当前周期的键，以主世界日夜时间和配置的重置时刻计算。
+     * 当前周期的键，以主世界时钟和配置的重置时刻计算。
      * 周期变化时，旧的计数会在下一次查询时被视为零。
      */
     public String periodKey(MinecraftServer server) {
-        long worldTime = server.overworld().getDayTime();
+        long worldTime = server.overworld().getOverworldClockTime();
         long resetTime = QShopCommonConfig.limitResetWorldTime();
         long worldDay = Math.floorDiv(worldTime - resetTime, 24_000L);
         return switch (this) {
