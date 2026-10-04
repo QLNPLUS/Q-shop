@@ -220,7 +220,7 @@ public final class ShopManager {
     /** Saves the current world's configuration to the global template after backing it up. */
     public static int saveWorldConfigToTemplate() {
         if (server == null) {
-            server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+            server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
         }
         if (server == null || server.getServerDirectory() == null) {
             return -1;
