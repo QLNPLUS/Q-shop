@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.4 - 2026-10-04
+
+### Added
+
+- Added `/qshop backup` to save the current world's QShop configuration to the global `config/qshop` template. The existing global configuration is backed up before matching files are replaced.
+
 ## 1.8.3 - 2026-09-28
 
 ### Changed
