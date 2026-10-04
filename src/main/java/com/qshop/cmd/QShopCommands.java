@@ -67,7 +67,7 @@ public final class QShopCommands {
                             return 1;
                         }))
                 .then(Commands.literal("backup")
-                        .requires(s -> s.hasPermission(2))
+                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(ctx -> {
                             int copied = ShopManager.saveWorldConfigToTemplate();
                             if (copied < 0) {
