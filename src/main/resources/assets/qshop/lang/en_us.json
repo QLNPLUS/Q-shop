@@ -96,6 +96,8 @@
   "qshop.cmd.reloaded": "Reloaded %s shops",
   "qshop.cmd.overwritten": "Overwrote the world QShop config with the global template, copied %s files and loaded %s shops",
   "qshop.cmd.overwrite_failed": "Failed to overwrite the QShop config",
+  "qshop.cmd.backed_up": "Saved the current world's config to global config/qshop, copied %s files, and backed up the previous config",
+  "qshop.cmd.backup_failed": "Failed to save the world config to global QShop config; check the server log",
   "qshop.cmd.player_required": "This command must be run by a player",
   "qshop.cmd.need_item": "Hold an item in your hand",
   "qshop.cmd.bad_type": "Type must be buy / sell / barter",

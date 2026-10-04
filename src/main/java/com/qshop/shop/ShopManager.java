@@ -26,6 +26,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -211,6 +213,43 @@ public final class ShopManager {
             return copied;
         } catch (IOException e) {
             LOGGER.error("QShop: failed to overwrite world configuration from {}", template, e);
+            return -1;
+        }
+    }
+
+    /** Saves the current world's configuration to the global template after backing it up. */
+    public static int saveWorldConfigToTemplate() {
+        if (server == null) {
+            server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        }
+        if (server == null || server.getServerDirectory() == null) {
+            return -1;
+        }
+
+        Path worldConfig = worldConfigDir();
+        Path template = templateDir();
+        if (!Files.isDirectory(worldConfig)) {
+            LOGGER.error("QShop: world configuration directory does not exist: {}", worldConfig);
+            return -1;
+        }
+
+        try {
+            if (Files.exists(template)) {
+                if (!Files.isDirectory(template)) {
+                    LOGGER.error("QShop: global configuration path is not a directory: {}", template);
+                    return -1;
+                }
+                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS"));
+                Path backup = Files.createTempDirectory(template.getParent(), "qshop-backup-" + timestamp + "-");
+                copyConfigTree(template, backup, false, false);
+                LOGGER.info("QShop: backed up global configuration from {} to {}", template, backup);
+            }
+
+            int copied = copyConfigTree(worldConfig, template, true, false);
+            LOGGER.info("QShop: copied {} world configuration files from {} to {}", copied, worldConfig, template);
+            return copied;
+        } catch (IOException e) {
+            LOGGER.error("QShop: failed to save world configuration from {} to {}", worldConfig, template, e);
             return -1;
         }
     }
