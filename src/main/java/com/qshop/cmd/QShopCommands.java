@@ -66,6 +66,18 @@ public final class QShopCommands {
                                     "qshop.cmd.overwritten", copied, ShopManager.all().size()), true);
                             return 1;
                         }))
+                .then(Commands.literal("backup")
+                        .requires(s -> s.hasPermission(2))
+                        .executes(ctx -> {
+                            int copied = ShopManager.saveWorldConfigToTemplate();
+                            if (copied < 0) {
+                                ctx.getSource().sendFailure(Component.translatable("qshop.cmd.backup_failed"));
+                                return 0;
+                            }
+                            ctx.getSource().sendSuccess(() -> Component.translatable(
+                                    "qshop.cmd.backed_up", copied), true);
+                            return 1;
+                        }))
                 // ---------------- 货币管理 ----------------
                 .then(Commands.literal("currency")
                         .then(Commands.literal("list").executes(QShopCommands::currencyList))
