@@ -7,8 +7,7 @@
 - Minecraft Forge 1.20.1
 - QShop
 - KubeJS 6（Forge）
-- 可选：FTB Quests（任务条件）；GameStages（模组 ID：`gamestages`，阶段条件的标准依赖）
-- 如果使用 KubeJS 的 PlayerStages，也可以作为阶段检测的兼容来源
+- 可选：FTB Quests（任务条件）；阶段条件可由 GameStages（模组 ID：`gamestages`）、AStages 或 KubeJS PlayerStages（可用时）提供
 
 脚本放在 `kubejs/server_scripts/`。修改 JSON 后使用 `/reload` 或 `QShop.reload()`。
 
@@ -379,9 +378,9 @@ requiredStageDescriptions: ['VIP 阶段']
 这些条件由服务端检查：
 
 - `requiredQuests` 需要安装并启用 FTB Quests；没有 FTB Quests 时，任务条件无法验证。
-- `requiredStages` 标准上需要安装并启用 GameStages（模组 ID：`gamestages`）。QShop 会调用 GameStages 的 `GameStageHelper.hasStage` 检查玩家阶段。
-- 如果没有 GameStages，QShop 还会尝试读取 KubeJS PlayerStages；只有检测到有效阶段提供者并拥有对应阶段时才算满足。
-- GameStages 和 KubeJS stages 都没有安装时，阶段条件按未满足处理。
+- `requiredStages` 可通过 AStages、GameStages（模组 ID：`gamestages`）或 KubeJS PlayerStages 检查；这些阶段提供者都是可选的。
+- QShop 会检查所有可用的阶段来源，任一来源确认拥有该阶段即算满足；AStages 会同时检查服务器阶段（对所有玩家生效）和当前玩家阶段。
+- 没有可用阶段来源，或所有来源都未确认该阶段时，阶段条件按未满足处理。
 
 条件不满足时，普通玩家默认看不到对应的子商店或交易项目；编辑模式可以继续显示受限内容。
 子商店和交易项目都可以设置 `showWhenRequirementsNotMet: true`，以锁定材质保留显示。

@@ -12,7 +12,7 @@ This document describes the public KubeJS API shipped by QShop. Put examples tha
 - QShop
 - KubeJS 6 for Forge
 - Optional: FTB Quests for quest requirements and the QShop money task/reward integration
-- GameStages (`gamestages`) for stage requirements; KubeJS PlayerStages is also supported when available
+- Optional stage providers: GameStages (`gamestages`), AStages, or KubeJS PlayerStages (when available); install at least one provider to use stage requirements
 
 The KubeJS integration is optional. Without KubeJS, the core shop GUI, commands, currencies, limits, and JSON configuration still work.
 
@@ -535,7 +535,7 @@ requiredQuests: ['quest_id']
 requiredStages: ['stage_id']
 ```
 
-Quest checks require FTB Quests. Stage checks use GameStages (`gamestages`) through `GameStageHelper.hasStage`; when GameStages is not installed, QShop also tries the KubeJS PlayerStages provider. If neither provider is available, a configured stage requirement is treated as unsatisfied. Requirements are checked server-side and restricted tabs/entries are hidden from normal players.
+Quest checks require FTB Quests. Stage checks query every available provider: AStages (server and player stages), GameStages (`gamestages`), and KubeJS PlayerStages. A stage requirement is met if any provider confirms it; AStages checks both server-wide stages and the current player's stages. If no provider confirms the requirement, it is treated as unsatisfied. All checks run server-side, and restricted tabs/entries are hidden from normal players.
 
 ## Trade events
 
