@@ -496,7 +496,7 @@ QShop.entry('vip')
   .add()
 ```
 
-Reset values are `NEVER`, `DAILY`, `WEEKLY`, and `MONTHLY`. Counters survive death and dimension changes. The server resets them when the configured period changes.
+Reset values are `NEVER`, `DAILY`, `WEEKLY`, and `MONTHLY`. Counters survive death and dimension changes. `DAILY`, `WEEKLY`, and `MONTHLY` limits use the overworld clock and reset every 1, 7, and 30 in-game days, respectively. Set the reset time with `server.limitReset.worldTime` in `config/qshop-common.toml` (0–23999 ticks; default `18000`, Minecraft midnight). Limit periods pause when overworld time stops. A new period takes effect on the next shop open or trade check.
 
 To clear counters:
 
