@@ -704,7 +704,7 @@ config/qshop/
     └── my_shop.json
 ```
 
-Use `/qshop overwrite` with permission level 2 to force-replace matching world files from the global template. Extra files in the world directory are preserved.
+With permission level 2, `/qshop overwrite` copies the global `config/qshop/` template into the current world's `serverconfig/qshop/`, replacing matching files while preserving world-only files. `/qshop backup` copies the current world's QShop config files into `config/qshop/`, replacing same-path files. If a template already exists, QShop first backs it up to a timestamped `qshop-backup-*` directory under `config/`.
 
 ### Currency loss on death
 
@@ -725,11 +725,12 @@ The API writes these files when it mutates data. After manually editing JSON:
 QShop.reload()
 ```
 
-or run:
+or, with permission level 2, run:
 
 ```text
 /qshop reload
 /qshop overwrite
+/qshop backup
 ```
 
 The first tab is kept as the legacy `entries` list for compatibility with older configuration files.

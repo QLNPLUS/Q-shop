@@ -553,7 +553,7 @@ config/qshop/
     └── my_shop.json
 ```
 
-需要强制用全局模板覆盖当前存档的同名文件时，使用权限等级 2 的 `/qshop overwrite`；存档目录中模板没有的额外文件会保留。
+管理员指令（权限等级 2）：`/qshop overwrite` 会将全局 `config/qshop/` 模板复制到当前存档的 `serverconfig/qshop/`，覆盖同路径文件并保留仅存在于存档中的额外文件。`/qshop backup` 会将当前存档的 QShop 配置复制到 `config/qshop/`，覆盖同路径模板文件；若模板已存在，QShop 会先把旧模板备份到服务器 `config/` 下带时间戳的 `qshop-backup-*` 目录。
 
 ### 死亡货币
 
@@ -574,11 +574,12 @@ currencyRetention = ["coins=0.2", "points=0.5"]
 QShop.reload()
 ```
 
-或者使用：
+或者使用权限等级 2 的指令：
 
 ```text
 /qshop reload
 /qshop overwrite
+/qshop backup
 ```
 
 ## 完整示例
