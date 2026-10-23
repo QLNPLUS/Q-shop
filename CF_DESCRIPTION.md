@@ -21,7 +21,7 @@ For a matching visual style, we recommend the [Q Shop Create style Resourcepack]
 
 ## Official Addons
 
-QShop has an official addon family. Every addon is a separate CurseForge project, depends on QShop, and reuses QShop currencies, prices and player data. Install only the addons you need.
+QShop and its addons are developed by the same author and published as separate CurseForge projects. Every addon depends on QShop and reuses QShop currencies, prices and player data, so they all act on the same wallet. Install only the addons you need.
 
 | Addon | Loaders / versions | What it adds |
 | --- | --- | --- |
@@ -346,7 +346,7 @@ QShop 没有强制的游戏内容联动依赖。KubeJS 与 FTB Quests 均为可�
 
 ## 官方附属模组
 
-QShop 拥有一套官方附属模组。每个附属都是独立的 CurseForge 项目，依赖 QShop，并复用 QShop 的货币、价格与玩家数据。按需安装即可。
+QShop 与这些附属模组由同一作者开发，各自是独立的 CurseForge 项目。所有附属都依赖 QShop，并复用 QShop 的货币、价格与玩家数据，因此操作的是同一套钱包。按需安装即可。
 
 | 附属模组 | 加载器 / 版本 | 作用 |
 | --- | --- | --- |
