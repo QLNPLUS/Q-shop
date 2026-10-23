@@ -5,7 +5,7 @@
 
 ## Short Description
 
-> A flexible server shop for Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2, with buy, sell, barter and command trades, custom currencies, limits, in-game editing, a Builder-first KubeJS API, and an official addon family (Sell Box, auto-requester, backpack sell upgrades, Confluence currency bridge, Create currency motor).
+> A flexible server shop for Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2, with buy, sell, barter and command trades, custom currencies, limits, in-game editing, a Builder-first KubeJS API, and an official addon family (Sell Box, auto-requester, backpack sell upgrades, Confluence currency bridge, Create currency motor) plus a Create-style resource pack.
 
 ## Full Description
 
@@ -17,19 +17,18 @@ All supported builds provide the same core shop features. The trade screen inclu
 
 QShop has no mandatory gameplay integration dependencies. KubeJS and FTB Quests are optional and only needed for their respective features. GameStages and AStages are available on the loader/version branches that support them; NeoForge 26.1.2 uses KubeJS PlayerStages because AStages does not currently provide a 26.1.2 build.
 
-For a matching visual style, we recommend the [Q Shop Create style Resourcepack](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack), a Create-inspired resource pack with files for the supported QShop versions.
-
 ## Official Addons
 
 QShop and its addons are developed by the same author and published as separate CurseForge projects. Every addon depends on QShop and reuses QShop currencies, prices and player data, so they all act on the same wallet. Install only the addons you need.
 
-| Addon | Loaders / versions | What it adds |
+| Project | Loaders / versions | What it adds |
 | --- | --- | --- |
 | [Q Shop Addon Sellbox](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-sellbox) | Forge 1.20.1, NeoForge 1.21.1, NeoForge 26.1.2 | Automatic selling container |
 | [Q Shop Addon Requester](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-requester) | Forge 1.20.1, NeoForge 1.21.1, NeoForge 26.1.2 | Automated shop purchases |
 | [Q Shop Addon Sell Upgrade](https://www.curseforge.com/minecraft/mc-mods/q-shop-sell-upgrade) | Forge 1.20.1, NeoForge 1.21.1, NeoForge 26.1.2 | Backpack auto-sell upgrades |
 | [Q Shop Addon Confluence Compat](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-confluence-compat) | Forge 1.20.1, NeoForge 1.21.1 | Confluence currency bridge |
 | [Create Currency Motor](https://www.curseforge.com/minecraft/mc-mods/create-currency-motor) | Forge 1.20.1, NeoForge 1.21.1 | Create kinetic generator paid in QShop currency |
+| [Q Shop Create style Resourcepack](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack) | Forge 1.20.1, NeoForge 1.21.1, NeoForge 26.1.2 (client-side) | Create-style GUI resource pack |
 
 ### [Q Shop Sell Box](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-sellbox)
 
@@ -86,6 +85,14 @@ A Create kinetic generator that consumes the owning player's QShop currency whil
 - Player avatar display in the owner slot, with owner-only interaction.
 
 Requires Create and QShop 1.8.1 or newer. Licensed under MIT.
+
+### [Q Shop Create style Resourcepack](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack)
+
+A 16x resource pack that restyles the QShop screens in a Create-inspired look. It is a resource pack rather than a mod: install it on the client only, and nothing needs to be added to the server.
+
+- Packs for Minecraft Forge 1.20.1, NeoForge 1.21.1 and NeoForge 26.1.2.
+- Optional — QShop is fully usable without it, and players who prefer the default look are unaffected.
+- Purely visual, so servers can let players choose individually whether to enable it.
 
 ## Features
 
@@ -342,19 +349,18 @@ QShop and its assets are **All Rights Reserved (ARR)**. See `LICENSE` for the fu
 
 QShop 没有强制的游戏内容联动依赖。KubeJS 与 FTB Quests 均为可选，仅在需要对应功能时安装。GameStages 与 AStages 在支持它们的加载器/版本分支上可用；NeoForge 26.1.2 使用 KubeJS PlayerStages，因为 AStages 目前没有 26.1.2 版本。
 
-如需统一的视觉风格，推荐使用 [Q Shop Create 风格资源包](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack)，这是一套 Create 风格的资源包，包含所有受支持 QShop 版本的文件。
-
 ## 官方附属模组
 
 QShop 与这些附属模组由同一作者开发，各自是独立的 CurseForge 项目。所有附属都依赖 QShop，并复用 QShop 的货币、价格与玩家数据，因此操作的是同一套钱包。按需安装即可。
 
-| 附属模组 | 加载器 / 版本 | 作用 |
+| 项目 | 加载器 / 版本 | 作用 |
 | --- | --- | --- |
 | [Q Shop Addon Sellbox（自动售货箱）](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-sellbox) | Forge 1.20.1、NeoForge 1.21.1、NeoForge 26.1.2 | 自动出售容器 |
 | [Q Shop Addon Requester（自动收购箱）](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-requester) | Forge 1.20.1、NeoForge 1.21.1、NeoForge 26.1.2 | 自动按间隔购买商店条目 |
 | [Q Shop Addon Sell Upgrade（背包自动出售升级）](https://www.curseforge.com/minecraft/mc-mods/q-shop-sell-upgrade) | Forge 1.20.1、NeoForge 1.21.1、NeoForge 26.1.2 | 背包拾取自动出售升级 |
 | [Q Shop Addon Confluence Compat（Confluence 货币桥接）](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-confluence-compat) | Forge 1.20.1、NeoForge 1.21.1 | 绑定 Confluence 钱币系统 |
 | [Create Currency Motor（货币动能马达）](https://www.curseforge.com/minecraft/mc-mods/create-currency-motor) | Forge 1.20.1、NeoForge 1.21.1 | 消耗 QShop 货币的 Create 发电机 |
+| [Q Shop Create 风格资源包](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack) | Forge 1.20.1、NeoForge 1.21.1、NeoForge 26.1.2（客户端） | Create 风格界面材质包 |
 
 ### [Q Shop Sell Box（自动售货箱）](https://www.curseforge.com/minecraft/mc-mods/q-shop-addon-sellbox)
 
@@ -411,6 +417,14 @@ QShop 与这些附属模组由同一作者开发，各自是独立的 CurseForge
 - 归属槽位显示玩家头像，且仅归属玩家可交互。
 
 需要 Create 与 QShop 1.8.1 或更新版本。本附属采用 MIT 许可证。
+
+### [Q Shop Create 风格资源包](https://www.curseforge.com/minecraft/texture-packs/q-shop-create-style-resourcepack)
+
+一套 16x 材质包，把 QShop 的界面换成 Create 风格的外观。它是材质包而不是模组：只需装在客户端，服务端不需要添加任何东西。
+
+- 提供 Minecraft Forge 1.20.1、NeoForge 1.21.1 与 NeoForge 26.1.2 的版本。
+- 完全可选——不装也能正常使用 QShop，喜欢原版外观的玩家不受影响。
+- 仅改变外观，服务器可以允许玩家自行决定是否启用。
 
 ## 功能
 
