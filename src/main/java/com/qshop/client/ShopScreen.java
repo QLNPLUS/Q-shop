@@ -16,6 +16,7 @@ import com.qshop.net.ReorderEntryPacket;
 import com.qshop.net.SwapEntryPacket;
 import com.qshop.net.TradePacket;
 import com.qshop.shop.ShopEntryType;
+import com.qshop.trade.ItemHelper;
 import com.qshop.util.QText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -1970,7 +1971,7 @@ public class ShopScreen extends QShopScreen {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (ItemStack.isSameItemSameComponents(s, target)) {
+            if (ItemHelper.sameItem(s, target)) {
                 count += s.getCount();
             }
         }

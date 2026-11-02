@@ -50,7 +50,7 @@ public final class ShopJson {
         if (stack == null || stack.isEmpty()) {
             return "";
         }
-        CompoundTag tag = (CompoundTag) stack.save(REGISTRY_ACCESS);
+        CompoundTag tag = (CompoundTag) normalizeCustomData(stack.copy()).save(REGISTRY_ACCESS);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             NbtIo.writeCompressed(tag, out);
@@ -68,10 +68,21 @@ public final class ShopJson {
             byte[] bytes = Base64.getDecoder().decode(s);
             CompoundTag tag = NbtIo.readCompressed(new ByteArrayInputStream(bytes),
                     net.minecraft.nbt.NbtAccounter.unlimitedHeap());
-            return ItemStack.parseOptional(REGISTRY_ACCESS, tag);
+            return normalizeCustomData(ItemStack.parseOptional(REGISTRY_ACCESS, tag));
         } catch (Exception e) {
             return ItemStack.EMPTY;
         }
+    }
+
+    /** 空 custom_data 组件归一为"没有该组件"(与 ItemHelper.sameItem 的判定保持一致) */
+    private static ItemStack normalizeCustomData(ItemStack stack) {
+        if (stack != null && !stack.isEmpty()) {
+            CompoundTag custom = ItemStackData.getCustomTag(stack);
+            if (custom != null && custom.isEmpty()) {
+                stack.remove(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+            }
+        }
+        return stack;
     }
 
     /** 解析物品的三种写法,失败时抛出异常 */
