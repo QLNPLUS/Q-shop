@@ -677,7 +677,7 @@ public final class TradeService {
         int count = 0;
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);
-            if (ItemStack.isSameItemSameTags(stack, target)) {
+            if (ItemHelper.sameItem(stack, target)) {
                 count = Math.min(Integer.MAX_VALUE, count + stack.getCount());
             }
         }
@@ -733,11 +733,11 @@ public final class TradeService {
         int remaining = amount;
         for (int slot = 0; slot < inventory.getSlots() && remaining > 0; slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);
-            if (!ItemStack.isSameItemSameTags(stack, target)) {
+            if (!ItemHelper.sameItem(stack, target)) {
                 continue;
             }
             ItemStack extracted = inventory.extractItem(slot, Math.min(remaining, stack.getCount()), false);
-            if (ItemStack.isSameItemSameTags(extracted, target)) {
+            if (ItemHelper.sameItem(extracted, target)) {
                 remaining -= extracted.getCount();
             }
         }
@@ -757,7 +757,7 @@ public final class TradeService {
         int stackLimit = target.getMaxStackSize();
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack existing = inventory.getStackInSlot(slot);
-            if (!existing.isEmpty() && !ItemStack.isSameItemSameTags(existing, target)) {
+            if (!existing.isEmpty() && !ItemHelper.sameItem(existing, target)) {
                 continue;
             }
             if (!inventory.isItemValid(slot, target)) {

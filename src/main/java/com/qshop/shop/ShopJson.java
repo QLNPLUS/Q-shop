@@ -45,7 +45,13 @@ public final class ShopJson {
         if (stack == null || stack.isEmpty()) {
             return "";
         }
-        CompoundTag tag = stack.save(new CompoundTag());
+        // 空 NBT 标签与无标签在游戏内是同一件物品,这里统一写成无标签,避免配置文件里
+        // 出现 "空 tag {}" 与 "无 tag" 两种等价写法
+        ItemStack copy = stack.copy();
+        if (copy.getTag() != null && copy.getTag().isEmpty()) {
+            copy.setTag(null);
+        }
+        CompoundTag tag = copy.save(new CompoundTag());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             NbtIo.writeCompressed(tag, out);
@@ -62,10 +68,18 @@ public final class ShopJson {
         try {
             byte[] bytes = Base64.getDecoder().decode(s);
             CompoundTag tag = NbtIo.readCompressed(new ByteArrayInputStream(bytes));
-            return ItemStack.of(tag);
+            return normalizeTag(ItemStack.of(tag));
         } catch (Exception e) {
             return ItemStack.EMPTY;
         }
+    }
+
+    /** 读取时把空 NBT 标签归一为无标签(与游戏内物品的表示保持一致) */
+    private static ItemStack normalizeTag(ItemStack stack) {
+        if (stack != null && !stack.isEmpty() && stack.getTag() != null && stack.getTag().isEmpty()) {
+            stack.setTag(null);
+        }
+        return stack;
     }
 
     /** 解析物品的三种写法,失败时抛出异常 */
@@ -108,7 +122,7 @@ public final class ShopJson {
                 if (o.has("nbt") && o.get("nbt").isJsonPrimitive()) {
                     stack.setTag(TagParser.parseTag(o.get("nbt").getAsString()));
                 }
-                return stack;
+                return normalizeTag(stack);
             }
         } catch (Exception e) {
             throw new RuntimeException("解析物品失败: " + el, e);

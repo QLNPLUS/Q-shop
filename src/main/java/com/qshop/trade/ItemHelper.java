@@ -1,5 +1,6 @@
 package com.qshop.trade;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -17,6 +18,41 @@ public final class ItemHelper {
     private ItemHelper() {
     }
 
+    /**
+     * 判断两个物品栈是否是"同一种物品"。
+     *
+     * <p>{@link ItemStack#isSameItemSameTags} 用 {@code Objects.equals} 比较 NBT,
+     * 因此"没有 NBT 标签"(null)与"空标签 {@code {}}"(empty CompoundTag)会被判成不同物品。
+     * 这个差异对玩家不可见:商店配置里手写/脚本生成的物品通常没有 tag,而游戏内从背包
+     * 取出、或经其它模组 {@code getOrCreateTag()} 触碰过的同一件物品会带一个空标签,
+     * 结果就是配置里写好的交易条目在背包里"一件都找不到"(无法交易、收购判定为物品不足)。
+     *
+     * <p>所以这里先按原版严格比较(保留 Forge 能力兼容性检查),不相等时再对
+     * "一方无标签、另一方空标签"的情况放宽。
+     */
+    public static boolean sameItem(ItemStack a, ItemStack b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        if (ItemStack.isSameItemSameTags(a, b)) {
+            return true;
+        }
+        if (!a.is(b.getItem())) {
+            return false;
+        }
+        return isEmptyTag(a.getTag()) && isEmptyTag(b.getTag());
+    }
+
+    /** 空标签与无标签等价(用于合并同类物品) */
+    public static String stackKey(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return stack.getItem().getDescriptionId() + "|" + (isEmptyTag(tag) ? "" : tag.toString());
+    }
+
+    private static boolean isEmptyTag(CompoundTag tag) {
+        return tag == null || tag.isEmpty();
+    }
+
     /** 统计玩家背包(含副手)中匹配物品的件数 */
     public static int countItems(Player player, ItemStack target) {
         if (target.isEmpty()) {
@@ -26,7 +62,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (ItemStack.isSameItemSameTags(s, target)) {
+            if (sameItem(s, target)) {
                 count += s.getCount();
             }
         }
@@ -41,7 +77,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize() && amount > 0; i++) {
             ItemStack s = inv.getItem(i);
-            if (!ItemStack.isSameItemSameTags(s, target)) {
+            if (!sameItem(s, target)) {
                 continue;
             }
             int take = Math.min(amount, s.getCount());
@@ -66,7 +102,7 @@ public final class ItemHelper {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) {
                 needed -= max;
-            } else if (ItemStack.isSameItemSameTags(s, stack)) {
+            } else if (sameItem(s, stack)) {
                 needed -= max - s.getCount();
             }
             if (needed <= 0) {
@@ -83,7 +119,7 @@ public final class ItemHelper {
             if (s.isEmpty()) {
                 continue;
             }
-            String key = s.getItem().getDescriptionId() + "|" + (s.getTag() == null ? "" : s.getTag());
+            String key = stackKey(s);
             ItemStack m = merged.get(key);
             if (m == null) {
                 merged.put(key, s.copy());
