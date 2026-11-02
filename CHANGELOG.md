@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.5 - 2026-11-02
+
+### Fixed
+
+- Fixed shop trades, barters and sells reporting zero available items when a configured item has no NBT tag but the same item in a player or container inventory carries an empty tag. Re-saving such an entry in game used to work around the problem.
+
+
 ## 1.8.4 - 2026-10-04
 
 ### Added
