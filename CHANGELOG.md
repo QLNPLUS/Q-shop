@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.5 - 2026-11-02
+
+### Fixed
+
+- Fixed shop trades, barters and sells reporting zero available items when a configured item carries no `custom_data` component but the same item in a player or container inventory carries an empty one.
+
+
 ## 1.8.4 - 2026-10-04
 
 ### Added
