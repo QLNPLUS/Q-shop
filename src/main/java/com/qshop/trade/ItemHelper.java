@@ -2,6 +2,8 @@ package com.qshop.trade;
 
 import com.qshop.util.ItemStackData;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -19,6 +21,53 @@ public final class ItemHelper {
     private ItemHelper() {
     }
 
+    /**
+     * 判断两个物品栈是否是"同一种物品"。
+     *
+     * <p>{@link ItemStack#isSameItemSameComponents} 比较的是整张组件补丁(prototype + patch),
+     * 因此"带一个显式空 custom_data 组件"与"完全没有该组件"会被判成不同物品。这个差异对玩家
+     * 不可见:配置里手写/脚本生成的物品通常不带组件,而容器里被其它模组 set 过空 CustomData 的
+     * 同一件物品会带一个空组件,结果就是交易/收购判定为"一件都找不到"。
+     *
+     * <p>所以这里先按原版严格比较,不相等时再对"一方有该组件、另一方没有"的空组件情况放宽;
+     * 其它组件(附魔、枪械 GunId 之类)仍然是严格比较。
+     */
+    public static boolean sameItem(ItemStack a, ItemStack b) {
+        if (a == null || b == null) {
+            return false;
+        }
+        if (ItemStack.isSameItemSameComponents(a, b)) {
+            return true;
+        }
+        if (!a.is(b.getItem())) {
+            return false;
+        }
+        if (!isEmptyCustomData(a) || !isEmptyCustomData(b)) {
+            return false;
+        }
+        return ItemStack.isSameItemSameComponents(withoutEmptyCustomData(a), withoutEmptyCustomData(b));
+    }
+
+    /** 空 custom_data 与没有该组件等价(用于合并同类物品) */
+    public static String stackKey(ItemStack stack) {
+        CompoundTag tag = ItemStackData.getCustomTag(stack);
+        return stack.getItem().getDescriptionId() + "|" + (tag == null || tag.isEmpty() ? "" : tag);
+    }
+
+    private static boolean isEmptyCustomData(ItemStack stack) {
+        CompoundTag tag = ItemStackData.getCustomTag(stack);
+        return tag == null || tag.isEmpty();
+    }
+
+    private static ItemStack withoutEmptyCustomData(ItemStack stack) {
+        if (!isEmptyCustomData(stack) || ItemStackData.getCustomTag(stack) == null) {
+            return stack;
+        }
+        ItemStack copy = stack.copy();
+        copy.remove(DataComponents.CUSTOM_DATA);
+        return copy;
+    }
+
     /** 统计玩家背包(含副手)中匹配物品的件数 */
     public static int countItems(Player player, ItemStack target) {
         if (target.isEmpty()) {
@@ -28,7 +77,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (ItemStack.isSameItemSameComponents(s, target)) {
+            if (sameItem(s, target)) {
                 count += s.getCount();
             }
         }
@@ -43,7 +92,7 @@ public final class ItemHelper {
         Inventory inv = player.getInventory();
         for (int i = 0; i < inv.getContainerSize() && amount > 0; i++) {
             ItemStack s = inv.getItem(i);
-            if (!ItemStack.isSameItemSameComponents(s, target)) {
+            if (!sameItem(s, target)) {
                 continue;
             }
             int take = Math.min(amount, s.getCount());
@@ -68,7 +117,7 @@ public final class ItemHelper {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) {
                 needed -= max;
-            } else if (ItemStack.isSameItemSameComponents(s, stack)) {
+            } else if (sameItem(s, stack)) {
                 needed -= max - s.getCount();
             }
             if (needed <= 0) {
@@ -85,7 +134,7 @@ public final class ItemHelper {
             if (s.isEmpty()) {
                 continue;
             }
-            String key = s.getItem().getDescriptionId() + "|" + (ItemStackData.getCustomTag(s) == null ? "" : ItemStackData.getCustomTag(s));
+            String key = stackKey(s);
             ItemStack m = merged.get(key);
             if (m == null) {
                 merged.put(key, s.copy());
