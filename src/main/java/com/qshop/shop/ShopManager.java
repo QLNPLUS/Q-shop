@@ -464,7 +464,7 @@ public final class ShopManager {
                 ? (CurrencyRegistry.firstId() == null ? "" : CurrencyRegistry.firstId())
                 : shop.currency;
         QShopNetwork.sendToPlayer(player, new OpenShopPacket(
-                shop.id, shop.displayNameOrId(), displayCurrency, icon, tabs, balances, currencies, editing,
+                shop.id, shop.displayNameOrKey(), displayCurrency, icon, tabs, balances, currencies, editing,
                 shop.dataVersion, refresh));
     }
 
@@ -605,7 +605,7 @@ public final class ShopManager {
         return """
                 {
                   "id": "starter",
-                  "displayName": "新手商店",
+                  "displayName": "lang:qshop.shop.starter",
                   "entries": [
                     {
                       "type": "SELL",
@@ -633,8 +633,8 @@ public final class ShopManager {
         return """
                 {
                   "currencies": [
-                    { "id": "coins", "name": "金币", "color": "#FFD700" },
-                    { "id": "points", "name": "点数", "color": "#55FFFF" }
+                    { "id": "coins", "name": "lang:qshop.currency.coins", "color": "#FFD700" },
+                    { "id": "points", "name": "lang:qshop.currency.points", "color": "#55FFFF" }
                   ]
                 }
                 """;

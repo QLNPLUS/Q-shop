@@ -3,6 +3,7 @@ package com.qshop.client;
 import com.qshop.net.EditShopInfoPacket;
 import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
+import com.qshop.util.QLang;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -25,6 +26,9 @@ public class ShopInfoDialog extends QShopScreen {
     private static final int ITEM_ACTION_X = 94;
 
     private final OpenShopPacket data;
+    /** 原始显示名（可能是 lang: 键或空）；编辑框显示本地化文本，未改动时存回原值 */
+    private final String rawName;
+    private final String initialName;
     private int left;
     private int top;
     private EditBox nameBox;
@@ -38,7 +42,9 @@ public class ShopInfoDialog extends QShopScreen {
     public ShopInfoDialog(OpenShopPacket data) {
         super(Component.translatable("qshop.gui.edit_shop"));
         this.data = data;
-        this.nameStr = data.shopName;
+        this.rawName = data.shopName == null ? "" : data.shopName;
+        this.initialName = QLang.text(this.rawName, "qshop.shop." + data.shopId, data.shopId);
+        this.nameStr = this.initialName;
         this.icon = data.icon.copy();
         this.currencyStr = data.shopCurrency == null ? "" : data.shopCurrency;
     }
@@ -105,7 +111,8 @@ public class ShopInfoDialog extends QShopScreen {
     }
 
     private void save() {
-        QShopNetwork.sendToServer(new EditShopInfoPacket(data.shopId, nameStr, icon, currencyStr));
+        String newName = nameStr.equals(initialName) ? rawName : nameStr;
+        QShopNetwork.sendToServer(new EditShopInfoPacket(data.shopId, newName, icon, currencyStr));
         back();
     }
 

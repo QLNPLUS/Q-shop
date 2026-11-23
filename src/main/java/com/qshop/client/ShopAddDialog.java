@@ -1,9 +1,11 @@
 package com.qshop.client;
 
+import com.qshop.currency.CurrencyRegistry;
 import com.qshop.net.AddEntryPacket;
 import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
 import com.qshop.shop.ShopEntryType;
+import com.qshop.util.QLang;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -289,7 +291,8 @@ public class ShopAddDialog extends QShopScreen {
         if (data.currencies.isEmpty()) {
             return data.shopCurrency;
         }
-        return data.currencies.get(currencyIdx).displayName;
+        var c = data.currencies.get(currencyIdx);
+        return QLang.text(c.displayName, CurrencyRegistry.defaultName(c.id), c.id);
     }
 
     /** 货币按钮文字(截断,避免盖住"货币"标签) */

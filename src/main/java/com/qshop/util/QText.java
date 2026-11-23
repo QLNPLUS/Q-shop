@@ -23,6 +23,16 @@ public final class QText {
         return s != null && s.indexOf('\u00A7') >= 0;
     }
 
+    /**
+     * 可本地化显示名 → Component：{@code lang:<键>} 或空名走语言文件，
+     * 普通文本按 § 颜色代码解析。
+     */
+    public static Component name(String raw, String fallbackKey, String fallbackText) {
+        Component base = QLang.name(raw, fallbackKey, fallbackText);
+        String plain = base.getString();
+        return hasCodes(plain) ? parse(plain) : base;
+    }
+
     /** 解析含 § 代码的字符串;无代码时直接返回普通文本 */
     public static Component parse(String s) {
         if (s == null || s.isEmpty()) {

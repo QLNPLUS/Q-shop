@@ -1,5 +1,6 @@
 package com.qshop.shop;
 
+import com.qshop.util.QLang;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public class Shop {
     public void ensureTabs() {
         if (tabs.isEmpty()) {
             ShopTab t = new ShopTab();
-            t.name = displayNameOrId();
+            t.name = displayNameOrKey();
             t.icon = ItemStack.EMPTY;
             t.entries.addAll(entries);
             tabs.add(t);
@@ -69,7 +70,10 @@ public class Shop {
         return tabs.isEmpty() ? null : tabs.get(0);
     }
 
-    public String displayNameOrId() {
-        return displayName == null || displayName.isEmpty() ? id : displayName;
+    /** 显示名；留空时返回按 id 生成的语言键（客户端按当前语言解析，缺失时回退到 id） */
+    public String displayNameOrKey() {
+        return displayName == null || displayName.isEmpty()
+                ? QLang.PREFIX + "qshop.shop." + id
+                : displayName;
     }
 }
