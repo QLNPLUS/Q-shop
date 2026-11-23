@@ -17,6 +17,7 @@ import com.qshop.net.SwapEntryPacket;
 import com.qshop.net.TradePacket;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.trade.ItemHelper;
+import com.qshop.util.QLang;
 import com.qshop.util.QText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -166,7 +167,7 @@ public class ShopScreen extends QShopScreen {
     }
 
     public ShopScreen(OpenShopPacket data) {
-        super(QText.parse(data.shopName.isEmpty() ? data.shopId : data.shopName));
+        super(QText.name(data.shopName, "qshop.shop." + data.shopId, data.shopId));
         this.data = data;
         this.wideLayout = QShopCommonConfig.lastLayoutWide();
         this.searchActive = QShopCommonConfig.searchActive();
@@ -666,10 +667,11 @@ public class ShopScreen extends QShopScreen {
         String desc = tab.description == null ? "" : tab.description;
         List<Component> lines = new ArrayList<>();
         if (!desc.isEmpty() || !tab.requiredQuests.isEmpty() || !tab.requiredStages.isEmpty()) {
-            lines.add(QText.parse(tab.name == null || tab.name.isEmpty() ? "Tab" : tab.name));
+            lines.add(QText.name(tab.name, "qshop.shop." + data.shopId, data.shopId));
         }
         if (!desc.isEmpty()) {
-            for (String line : desc.split("\\n")) {
+            String localized = QLang.text(desc, null, desc);
+            for (String line : localized.split("\\n")) {
                 if (!line.isBlank()) {
                     lines.add(QText.parse(line));
                 }
@@ -748,7 +750,8 @@ public class ShopScreen extends QShopScreen {
             // 名称限制在按钮内部,避免压到下一项(支持 § 颜色代码)
             String name = t.name == null || t.name.isEmpty() ? data.shopName : t.name;
             float textScale = 0.55f;
-            Component n = QText.clip(name, this.font, (int) ((TAB_W - 4) / textScale));
+            Component n = QText.clip(QText.name(name, "qshop.shop." + data.shopId, data.shopId),
+                    this.font, (int) ((TAB_W - 4) / textScale));
             float nx = x + 3 + (TAB_W - this.font.width(n) * textScale) / 2f;
             float ny = ty + 17;
             g.pose().pushPose();
@@ -787,8 +790,9 @@ public class ShopScreen extends QShopScreen {
         Currency cur = displayCurrency();
         if (cur != null) {
             double v = data.balances.getOrDefault(cur.id, 0D);
-            String full = cur.displayName + " " + CurrencyRegistry.format(v);
-            Component clipped = QText.clip(cur.displayName + " " + compactPrice(v), this.font,
+            String curName = QLang.text(cur.displayName, CurrencyRegistry.defaultName(cur.id), cur.id);
+            String full = curName + " " + CurrencyRegistry.format(v);
+            Component clipped = QText.clip(curName + " " + compactPrice(v), this.font,
                     (int) ((TAB_BAR_W - 4) / 0.6f));
             float bw = this.font.width(clipped) * 0.6f;
             float bx = x + (TAB_BAR_W - bw) / 2f;
@@ -1988,7 +1992,7 @@ public class ShopScreen extends QShopScreen {
         if (!icon.isEmpty()) {
             g.renderItem(icon, px + 6, py + 4);
             int nameWidth = Math.max(0, typeX - (px + 24) - 4);
-            Component nameC = QText.parse(e.displayName.isEmpty() ? icon.getHoverName().getString() : e.displayName);
+            Component nameC = QText.name(e.displayName, null, icon.getHoverName().getString());
             g.drawString(this.font, QText.clip(nameC, this.font, nameWidth), px + 24, py + 6, 0xFFFFFF);
         }
         // 类型标签(出售/购买/交换/指令)
@@ -2172,13 +2176,11 @@ public class ShopScreen extends QShopScreen {
         List<Component> lines = new ArrayList<>();
         String title = e.displayName != null && !e.displayName.isEmpty()
                 ? e.displayName : icon.getHoverName().getString();
-        lines.add(QText.hasCodes(title)
-                ? QText.parse(title)
-                : Component.literal(title).withStyle(s -> s.withColor(0xFFFFFF)));
+        lines.add(QText.name(title, null, icon.getHoverName().getString())
+                .copy().withStyle(s -> s.withColor(0xFFFFFF)));
         if (e.description != null && !e.description.isEmpty()) {
-            lines.add(QText.hasCodes(e.description)
-                    ? QText.parse(e.description)
-                    : Component.literal(e.description).withStyle(s -> s.withColor(0xFFFFFF)));
+            lines.add(QText.name(e.description, null, e.description)
+                    .copy().withStyle(s -> s.withColor(0xFFFFFF)));
         }
         switch (e.type) {
             case BUY, COMMAND -> {
@@ -2288,7 +2290,7 @@ public class ShopScreen extends QShopScreen {
     private String currencyName(String id) {
         for (Currency c : data.currencies) {
             if (c.id.equals(id)) {
-                return c.displayName;
+                return QLang.text(c.displayName, CurrencyRegistry.defaultName(c.id), c.id);
             }
         }
         return id;

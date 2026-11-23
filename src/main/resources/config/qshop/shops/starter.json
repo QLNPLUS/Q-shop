@@ -1,6 +1,6 @@
 {
   "id": "starter",
-  "displayName": "新手商店",
+  "displayName": "lang:qshop.shop.starter",
   "entries": [
     {
       "type": "SELL",

@@ -18,6 +18,7 @@ import com.qshop.shop.ShopEntry;
 import com.qshop.shop.ShopEntryType;
 import com.qshop.shop.ShopJson;
 import com.qshop.shop.ShopManager;
+import com.qshop.util.QLang;
 import com.qshop.wallet.IWallet;
 import com.qshop.wallet.WalletCapability;
 import net.minecraft.commands.CommandSourceStack;
@@ -185,8 +186,9 @@ public final class QShopCommands {
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.shop_list"), false);
         for (Shop shop : ShopManager.all()) {
             final Shop s = shop;
-            ctx.getSource().sendSuccess(() -> Component.literal(" - " + s.id + " [" + s.uuid + "] "
-                    + s.displayNameOrId() + " (" + Component.translatable("qshop.cmd.entry_count").getString() + ": " + s.entries.size() + ")"), false);
+            ctx.getSource().sendSuccess(() -> Component.literal(" - " + s.id + " [" + s.uuid + "] ")
+                    .append(QLang.name(s.displayName, "qshop.shop." + s.id, s.id))
+                    .append(" (" + Component.translatable("qshop.cmd.entry_count").getString() + ": " + s.entries.size() + ")"), false);
         }
         return 1;
     }
@@ -202,7 +204,9 @@ public final class QShopCommands {
         }
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.balance_self"), false);
         for (Currency c : CurrencyRegistry.all()) {
-            Component line = Component.literal(" - " + c.displayName + ": " + CurrencyRegistry.format(wallet.getBalance(c.id)))
+            Component line = Component.literal(" - ")
+                    .append(QLang.name(c.displayName, CurrencyRegistry.defaultName(c.id), c.id))
+                    .append(": " + CurrencyRegistry.format(wallet.getBalance(c.id)))
                     .withStyle(style -> style.withColor(c.color));
             ctx.getSource().sendSuccess(() -> line, false);
         }
@@ -224,12 +228,12 @@ public final class QShopCommands {
             CurrencyService.INSTANCE.deposit(player, currency, amount,
                     CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_give",
-                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
+                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayNameComponent(currency)), true);
         } else {
             CurrencyService.INSTANCE.withdraw(player, currency, amount,
                     CurrencyService.SOURCE_COMMAND, null, trigger);
             ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_take",
-                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayName(currency)), true);
+                    player.getGameProfile().getName(), CurrencyRegistry.format(amount), CurrencyRegistry.displayNameComponent(currency)), true);
         }
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
         return 1;
@@ -246,7 +250,7 @@ public final class QShopCommands {
         CurrencyService.INSTANCE.set(player, currency, amount,
                 CurrencyService.SOURCE_COMMAND, null, trigger);
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_set",
-                player.getGameProfile().getName(), CurrencyRegistry.displayName(currency), CurrencyRegistry.format(amount)), true);
+                player.getGameProfile().getName(), CurrencyRegistry.displayNameComponent(currency), CurrencyRegistry.format(amount)), true);
         QShopNetwork.sendToPlayer(player, new SyncWalletPacket(wallet.snapshot()));
         return 1;
     }
@@ -255,7 +259,8 @@ public final class QShopCommands {
         ctx.getSource().sendSuccess(() -> Component.translatable("qshop.cmd.currency_list"), false);
         for (Currency c : CurrencyRegistry.all()) {
             final Currency cc = c;
-            ctx.getSource().sendSuccess(() -> Component.literal(" - " + cc.id + " = " + cc.displayName)
+            ctx.getSource().sendSuccess(() -> Component.literal(" - " + cc.id + " = ")
+                    .append(QLang.name(cc.displayName, CurrencyRegistry.defaultName(cc.id), cc.id))
                     .withStyle(style -> style.withColor(cc.color)), false);
         }
         return 1;
@@ -393,12 +398,12 @@ public final class QShopCommands {
                 case "playerlimit" -> e.playerLimit = Math.max(-1, Integer.parseInt(value));
                 case "reset" -> e.reset = LimitReset.fromName(value);
                 default -> {
-                    src.sendFailure(Component.literal("未知字段: " + field + "(可选 price/currency/globallimit/playerlimit/reset)"));
+                    src.sendFailure(Component.translatable("qshop.cmd.unknown_field", field));
                     return 0;
                 }
             }
         } catch (NumberFormatException ex) {
-            src.sendFailure(Component.literal("数值解析失败: " + value));
+            src.sendFailure(Component.translatable("qshop.cmd.bad_number", value));
             return 0;
         }
         ShopManager.save(shop);
