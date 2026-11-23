@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.qshop.util.QLang;
+import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,7 +47,7 @@ public final class CurrencyRegistry {
                     if (id.isEmpty()) {
                         continue;
                     }
-                    String name = o.has("name") ? o.get("name").getAsString() : id;
+                    String name = migrateLegacyName(id, o.has("name") ? o.get("name").getAsString() : "");
                     String color = o.has("color") ? o.get("color").getAsString() : "#FFFFFF";
                     CURRENCIES.put(id, new Currency(id, name, Currency.parseColor(color)));
                 }
@@ -55,8 +57,28 @@ public final class CurrencyRegistry {
             LOGGER.error("QShop: 货币配置加载失败", e);
         }
         if (CURRENCIES.isEmpty()) {
-            CURRENCIES.put("coins", new Currency("coins", "金币", 0xFFD700));
+            CURRENCIES.put("coins", new Currency("coins", defaultName("coins"), 0xFFD700));
         }
+    }
+
+    /** 旧版默认中文名迁移到语言键：中文客户端仍显示原中文，其他语言按各自翻译显示。 */
+    private static String migrateLegacyName(String id, String name) {
+        if (name == null || name.isBlank()) {
+            return name;
+        }
+        String trimmed = name.trim();
+        if ("coins".equals(id) && "金币".equals(trimmed)) {
+            return QLang.PREFIX + "qshop.currency.coins";
+        }
+        if ("points".equals(id) && "点数".equals(trimmed)) {
+            return QLang.PREFIX + "qshop.currency.points";
+        }
+        return name;
+    }
+
+    /** 空名/缺省名的默认语言键 */
+    public static String defaultName(String id) {
+        return QLang.PREFIX + "qshop.currency." + id;
     }
 
     /** Creates the default file without replacing an existing configuration. */
@@ -123,9 +145,22 @@ public final class CurrencyRegistry {
         }
     }
 
+    /** 显示名（按当前语言解析；空名回退到 qshop.currency.&lt;id&gt;） */
     public static String displayName(String id) {
         Currency c = get(id);
-        return c == null ? (id == null ? "" : id) : c.displayName;
+        if (c == null) {
+            return id == null ? "" : id;
+        }
+        return QLang.text(c.displayName, defaultName(c.id), c.id);
+    }
+
+    /** 显示名组件：交给客户端按各自语言解析（用于聊天/指令反馈） */
+    public static Component displayNameComponent(String id) {
+        Currency c = get(id);
+        if (c == null) {
+            return Component.literal(id == null ? "" : id);
+        }
+        return QLang.name(c.displayName, defaultName(c.id), c.id);
     }
 
     /** 数字展示:整数不带小数点;超出 double 精确整数范围(约 9.2e18)时避免 (long) 强转饱和 */
@@ -140,8 +175,8 @@ public final class CurrencyRegistry {
     private static String defaultJson() {
         JsonObject root = new JsonObject();
         JsonArray arr = new JsonArray();
-        arr.add(currencyJson("coins", "金币", "#FFD700"));
-        arr.add(currencyJson("points", "点数", "#55FFFF"));
+        arr.add(currencyJson("coins", defaultName("coins"), "#FFD700"));
+        arr.add(currencyJson("points", defaultName("points"), "#55FFFF"));
         root.add("currencies", arr);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(root);

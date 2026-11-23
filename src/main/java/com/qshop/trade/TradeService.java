@@ -290,7 +290,7 @@ public final class TradeService {
         int tradedItems = itemsPerUnit * finalUnits;
         String itemName = e.displayNameOrItem();
         String priceStr = CurrencyRegistry.format(e.price * finalUnits);
-        String curName = CurrencyRegistry.displayName(e.currencyId);
+        var curName = CurrencyRegistry.displayNameComponent(e.currencyId);
         switch (e.type) {
             case BUY -> tell(player, Component.translatable("qshop.msg.bought", itemName, tradedItems, priceStr, curName));
             case COMMAND -> {

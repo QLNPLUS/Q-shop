@@ -5,6 +5,7 @@ import com.qshop.util.ItemStackData;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.qshop.util.QLang;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
@@ -58,7 +59,7 @@ public final class ShopJson {
         try {
             NbtIo.writeCompressed(tag, out);
         } catch (IOException e) {
-            throw new RuntimeException("物品序列化失败", e);
+            throw new RuntimeException("Failed to serialize item", e);
         }
         return Base64.getEncoder().encodeToString(out.toByteArray());
     }
@@ -107,7 +108,7 @@ public final class ShopJson {
                 }
                 Item item = BuiltInRegistries.ITEM.get(Identifier.parse(s)).map(holder -> holder.value()).orElse(net.minecraft.world.item.Items.AIR);
                 if (item == null || item == net.minecraft.world.item.Items.AIR) {
-                    throw new IllegalArgumentException("未知物品: " + s);
+                    throw new IllegalArgumentException("Unknown item: " + s);
                 }
                 return new ItemStack(item, 1);
             }
@@ -124,7 +125,7 @@ public final class ShopJson {
                 // ITEM 注册表是 DefaultedRegistry:未注册 id 返回默认值 AIR 而非 null,
                 // 需显式判空,避免未知物品被静默解析成空条目
                 if (item == null || item == net.minecraft.world.item.Items.AIR) {
-                    throw new IllegalArgumentException("未知物品: " + itemId);
+                    throw new IllegalArgumentException("Unknown item: " + itemId);
                 }
                 int count = o.has("count") ? Math.max(1, o.get("count").getAsInt()) : 1;
                 ItemStack stack = new ItemStack(item, count);
@@ -134,7 +135,7 @@ public final class ShopJson {
                 return stack;
             }
         } catch (Exception e) {
-            throw new RuntimeException("解析物品失败: " + el, e);
+            throw new RuntimeException("Failed to parse item: " + el, e);
         }
         return ItemStack.EMPTY;
     }
@@ -410,6 +411,10 @@ public final class ShopJson {
         if (o.has("displayName")) {
             shop.displayName = o.get("displayName").getAsString();
         }
+        // 旧版默认中文名迁移到语言键：只精确匹配 starter 商店的出厂默认名。
+        if ("starter".equals(shop.id) && "新手商店".equals(shop.displayName)) {
+            shop.displayName = QLang.PREFIX + "qshop.shop.starter";
+        }
         if (o.has("currency")) {
             shop.currency = o.get("currency").getAsString();
         }
@@ -437,6 +442,9 @@ public final class ShopJson {
                 }
                 t.ensureUuid();
                 t.name = to.has("name") ? to.get("name").getAsString() : "";
+                if ("starter".equals(shop.id) && "新手商店".equals(t.name)) {
+                    t.name = QLang.PREFIX + "qshop.shop.starter";
+                }
                 t.description = to.has("description") ? to.get("description").getAsString() : "";
                 if (to.has("icon")) {
                     try {

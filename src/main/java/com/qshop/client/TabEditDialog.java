@@ -4,6 +4,7 @@ import com.qshop.net.EditTabPacket;
 import com.qshop.net.OpenShopPacket;
 import com.qshop.net.QShopNetwork;
 import com.qshop.net.RemoveTabPacket;
+import com.qshop.util.QLang;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -39,6 +40,9 @@ public class TabEditDialog extends QShopScreen {
     private QButton iconEditButton;
     private ItemStack icon = ItemStack.EMPTY;
     // 状态字段:从选择器/详情子窗口返回时 init() 会重建控件,必须用字段恢复输入,避免丢失
+    /** 原始名称（可能是 lang: 键或空）；编辑框显示本地化文本，未改动时存回原值 */
+    private final String rawName;
+    private final String initialName;
     private String nameStr = "";
     private String descStr = "";
     private String questsStr = "";
@@ -52,9 +56,10 @@ public class TabEditDialog extends QShopScreen {
         this.data = data;
         this.tabIndex = tabIndex;
         this.tab = data.tabs.stream().filter(t -> t.serverIndex == tabIndex).findFirst().orElse(null);
+        String rawName = "";
         if (this.tab != null) {
             this.icon = this.tab.icon.copy();
-            this.nameStr = tab.name == null ? "" : tab.name;
+            rawName = tab.name == null ? "" : tab.name;
             this.descStr = tab.description == null ? "" : tab.description;
             this.questsStr = String.join(",", tab.requiredQuests);
             this.stagesStr = String.join(",", tab.requiredStages);
@@ -62,6 +67,12 @@ public class TabEditDialog extends QShopScreen {
             this.showWhenRequirementsNotMet = tab.showWhenRequirementsNotMet;
             this.hideWhenEmpty = tab.hideWhenEmpty;
         }
+        this.rawName = rawName;
+        // 名称为空时界面回退到商店名；编辑框显示同样的文本，未改动时保留原始空值
+        this.initialName = rawName.isEmpty()
+                ? QLang.text(data.shopName, "qshop.shop." + data.shopId, data.shopId)
+                : QLang.text(rawName, null, rawName);
+        this.nameStr = this.initialName;
     }
 
     @Override
@@ -211,7 +222,8 @@ public class TabEditDialog extends QShopScreen {
     }
 
     private void save() {
-                    QShopClientNetwork.sendToServer(new EditTabPacket(data.shopId, tab.serverIndex, nameStr, descStr, icon,
+        String newName = nameStr.equals(initialName) ? rawName : nameStr;
+        QShopClientNetwork.sendToServer(new EditTabPacket(data.shopId, tab.serverIndex, newName, descStr, icon,
                 splitList(questsStr), splitList(stagesStr), splitStageDescriptions(stageDescriptionsStr),
                 showWhenRequirementsNotMet, hideWhenEmpty));
         back();
