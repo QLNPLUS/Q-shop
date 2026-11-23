@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.6 - 2026-11-23
+
+### Added
+
+- Added German (`de_de`) localization.
+- Shop, sub-shop, currency and trade-entry names can now use language keys (`lang:<key>`); the default starter shop and currencies follow the client language.
+- Old default Chinese shop and currency names are migrated automatically, so existing worlds display the selected language without editing JSON files.
+
+### Fixed
+
+- Localized the remaining hardcoded command feedback and item parsing error messages.
+- Corrected the argument order in the English currency grant/take/set feedback.
+
 ## 1.8.5 - 2026-11-02
 
 ### Fixed
