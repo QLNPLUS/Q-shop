@@ -22,6 +22,7 @@
   "qshop.gui.is_limited": "Limited",
   "qshop.gui.not_limited": "Unlimited",
   "qshop.gui.max_trade_times": "Max trades",
+  "qshop.gui.max": "Max",
   "qshop.gui.total_price": "Total: %s %s",
   "qshop.gui.op": "OP",
   "qshop.gui.silent": "Silent",
