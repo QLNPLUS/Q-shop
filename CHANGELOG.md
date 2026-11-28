@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.7 - 2026-11-28
+
+### Added
+
+- Added a `Max` button to the right of the trade quantity step button. Clicking it fills the greatest tradable amount.
+
+### Changed
+
+- The `1x` step button is now always visible in the trade popup, and the quantity slider shrinks to make room for the step and `Max` buttons.
+
 ## 1.8.6 - 2026-11-23
 
 ### Added
