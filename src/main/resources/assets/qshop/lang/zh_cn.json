@@ -23,6 +23,7 @@
   "qshop.gui.is_limited": "限购",
   "qshop.gui.not_limited": "不限购",
   "qshop.gui.max_trade_times": "最大交易次数",
+  "qshop.gui.max": "最大",
   "qshop.gui.total_price": "合计: %s %s",
   "qshop.gui.op": "提权",
   "qshop.gui.silent": "静默",

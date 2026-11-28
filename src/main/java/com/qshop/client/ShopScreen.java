@@ -121,12 +121,11 @@ public class ShopScreen extends QShopScreen {
     private static final int TRADE_W = 150;
     private static final int TRADE_H = 133;
     private static final int TRADE_STEP_BUTTON_W = 32;
-    private static final int TRADE_SLIDER_W = 88;
+    private static final int TRADE_MAX_BUTTON_W = 28;
     private static final int TRADE_STEP_BUTTON_GAP = 4;
     /** 数量输入框默认值(打开交易窗即显示,不再是空 + 占位提示)。 */
     private static final String TRADE_UNITS_DEFAULT = "1";
-    /** 超过这个上限才显示 x1/x10/x100/x1000 步长按钮(与原逻辑一致)。 */
-    private static final int TRADE_STEP_BUTTON_MIN_UNITS = 100;
+    /** 步长按钮始终显示 1x;可循环的步长随最大交易次数放大(见 {@link #cycleTradeStep()})。 */
     /** 滚轮判定时滑块纵向放宽量:覆盖 8px 轨道与比轨道高 6px 的滑块本体。 */
     private static final int TRADE_SLIDER_WHEEL_SLOP = 6;
     private int tradeIndex = -1;
@@ -137,6 +136,7 @@ public class ShopScreen extends QShopScreen {
     private EditBox tradeUnitsBox;
     private QSlider tradeSlider;
     private QButton tradeStepButton;
+    private QButton tradeMaxButton;
     private QButton tradeConfirmButton;
     private final List<AbstractWidget> tradeWidgets = new ArrayList<>();
 
@@ -1662,10 +1662,15 @@ public class ShopScreen extends QShopScreen {
         tradeSlider = new QSlider(tradeSliderX(px), py + 77, tradeSliderWidth(), 12, this::onTradeSliderChanged);
         tradeSlider.setValueInt(tradeSliderValueForUnits(1), tradeSliderMax());
         addTradeWidget(tradeSlider);
-        if (tradeMaxUnits >= TRADE_STEP_BUTTON_MIN_UNITS) {
+        if (showTradeStepButton()) {
             tradeStepButton = new QButton(tradeStepButtonX(px), py + 76, TRADE_STEP_BUTTON_W, 14,
                     Component.literal(tradeStepLabel()), b -> cycleTradeStep());
             addTradeWidget(tradeStepButton);
+        }
+        if (showTradeMaxButton()) {
+            tradeMaxButton = new QButton(tradeMaxButtonX(px), py + 76, TRADE_MAX_BUTTON_W, 14,
+                    Component.translatable("qshop.gui.max"), b -> applyTradeUnits(tradeMaxUnits));
+            addTradeWidget(tradeMaxButton);
         }
 
         // 上限为 0(余额/物品/限额不足)时:禁用数量控件与确认按钮,避免提交必然失败的交易
@@ -1696,6 +1701,7 @@ public class ShopScreen extends QShopScreen {
         tradeUnitsBox = null;
         tradeSlider = null;
         tradeStepButton = null;
+        tradeMaxButton = null;
         tradeConfirmButton = null;
         tradeStep = 1;
     }
@@ -1734,19 +1740,40 @@ public class ShopScreen extends QShopScreen {
         applyTradeUnits((int) v);
     }
 
-    private int tradeSliderX(int px) {
-        if (tradeMaxUnits < 100) {
-            return px + (TRADE_W - (TRADE_W - 16)) / 2;
-        }
-        return px + (TRADE_W - tradeSliderWidth() - TRADE_STEP_BUTTON_GAP - TRADE_STEP_BUTTON_W) / 2;
+    private boolean showTradeStepButton() {
+        return tradeMaxUnits > 0;
     }
 
+    private boolean showTradeMaxButton() {
+        return tradeMaxUnits > 1;
+    }
+
+    private int tradeSliderX(int px) {
+        return px + 8;
+    }
+
+    /** 滑块与右侧按钮共享同一行宽度:加入"最大"按钮后按需缩短滑块。 */
     private int tradeSliderWidth() {
-        return tradeMaxUnits >= 100 ? TRADE_SLIDER_W : TRADE_W - 16;
+        int reserved = 0;
+        if (showTradeStepButton()) {
+            reserved += TRADE_STEP_BUTTON_GAP + TRADE_STEP_BUTTON_W;
+        }
+        if (showTradeMaxButton()) {
+            reserved += TRADE_STEP_BUTTON_GAP + TRADE_MAX_BUTTON_W;
+        }
+        return TRADE_W - 16 - reserved;
     }
 
     private int tradeStepButtonX(int px) {
         return tradeSliderX(px) + tradeSliderWidth() + TRADE_STEP_BUTTON_GAP;
+    }
+
+    private int tradeMaxButtonX(int px) {
+        int x = tradeStepButtonX(px);
+        if (showTradeStepButton()) {
+            x += TRADE_STEP_BUTTON_W + TRADE_STEP_BUTTON_GAP;
+        }
+        return x;
     }
 
     private int tradeSliderMax() {
@@ -1768,11 +1795,20 @@ public class ShopScreen extends QShopScreen {
     }
 
     private void cycleTradeStep() {
-        if (tradeMaxUnits < TRADE_STEP_BUTTON_MIN_UNITS) {
+        int[] steps;
+        if (tradeMaxUnits >= 1000) {
+            steps = new int[]{1, 10, 100, 1000};
+        } else if (tradeMaxUnits >= 100) {
+            steps = new int[]{1, 10, 100};
+        } else if (tradeMaxUnits >= 10) {
+            steps = new int[]{1, 10};
+        } else {
+            steps = new int[]{1};
+        }
+        if (steps.length <= 1) {
             return;
         }
         int currentUnits = currentTradeUnits();
-        int[] steps = tradeMaxUnits >= 1000 ? new int[]{1, 10, 100, 1000} : new int[]{1, 10, 100};
         int next = steps[0];
         for (int i = 0; i < steps.length; i++) {
             if (steps[i] == tradeStep) {
